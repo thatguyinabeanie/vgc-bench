@@ -3,7 +3,7 @@ import asyncio
 from poke_env import cross_evaluate
 from poke_env.player import RandomPlayer
 
-from src.basic_player import BasicPlayer
+from basic_player import BasicPlayer
 
 
 async def train():
