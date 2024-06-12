@@ -3,8 +3,8 @@ from poke_env.player import BattleOrder, Player
 
 
 class BasicPlayer(Player):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):  # type: ignore
+        super().__init__(*args, **kwargs)  # type: ignore
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         if isinstance(battle, Battle):
