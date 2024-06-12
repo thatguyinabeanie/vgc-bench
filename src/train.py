@@ -1,10 +1,9 @@
 import asyncio
 
 from poke_env import cross_evaluate
-from poke_env.player import RandomPlayer, SimpleHeuristicsPlayer, MaxBasePowerPlayer
+from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 
 from basic_player import BasicPlayer
-
 
 sample_team = """
 Gengar
