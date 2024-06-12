@@ -2,3 +2,4 @@ black
 isort
 poke-env
 pyright
+torch
