@@ -18,10 +18,8 @@ async def train():
     while True:
         # self-play
         await cross_evaluate([agent, opponent], n_challenges=100)
-        exp = agent.process_experiences()
-        opp_exp = opponent.process_experiences()
         # training
-        for _ in exp + opp_exp:
+        for _ in agent.experiences + opponent.experiences:
             # TODO: implement training
             pass
         # evaluation
