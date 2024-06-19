@@ -3,7 +3,7 @@ import asyncio
 from poke_env import cross_evaluate
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 
-from basic_player import BasicPlayer
+from agent import Agent
 
 sample_team = """
 Gengar
@@ -45,11 +45,11 @@ Lapras
 
 
 async def train():
-    player = BasicPlayer(battle_format="gen1ou", team=sample_team)
+    agent = Agent(battle_format="gen1ou", team=sample_team)
     random = RandomPlayer(battle_format="gen1ou", team=sample_team)
     max_damage = MaxBasePowerPlayer(battle_format="gen1ou", team=sample_team)
     simple_heuristic = SimpleHeuristicsPlayer(battle_format="gen1ou", team=sample_team)
-    result = await cross_evaluate([player, random, max_damage, simple_heuristic], n_challenges=10)
+    result = await cross_evaluate([agent, random, max_damage, simple_heuristic], n_challenges=10)
     print(result)
 
 
