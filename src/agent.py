@@ -21,15 +21,17 @@ class Agent(Player):
             ):
                 return self.choose_default_move()
             assert battle.active_pokemon is not None
-            total_action_space = list(battle.active_pokemon.moves.values()) + list(
-                battle.team.values()
-            )
             output = self.nn(embedded_battle)
             mask = torch.full((10,), float("-inf"))
             mask[action_space] = 0
             soft_output = torch.softmax(output + mask, dim=0)
-            choice = int(torch.multinomial(soft_output, 1).item())
-            return self.create_order(total_action_space[choice])
+            action_id = int(torch.multinomial(soft_output, 1).item())
+            if action_id < 4:
+                move = list(battle.active_pokemon.moves.values())[action_id]
+                return self.create_order(move)
+            else:
+                pokemon = list(battle.team.values())[action_id - 4]
+                return self.create_order(pokemon)
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
         else:
@@ -48,16 +50,16 @@ class Agent(Player):
     def get_action_space(battle: AbstractBattle) -> list[int]:
         if isinstance(battle, Battle):
             assert battle.active_pokemon is not None
-            move_action_space = [
+            move_space = [
                 i
                 for i, move in enumerate(battle.active_pokemon.moves.values())
                 if move.id in [m.id for m in battle.available_moves]
             ]
-            switch_action_space = [
+            switch_space = [
                 i + 4
                 for i, pokemon in enumerate(battle.team.values())
                 if pokemon.species in [p.species for p in battle.available_switches]
             ]
-            return move_action_space + switch_action_space
+            return move_space + switch_space
         else:
             return []
