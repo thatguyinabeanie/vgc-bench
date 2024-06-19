@@ -1,5 +1,5 @@
 import torch
-from poke_env.environment import AbstractBattle, Battle, DoubleBattle
+from poke_env.environment import AbstractBattle, Battle, DoubleBattle, Move, Pokemon, Status, PokemonType
 from poke_env.player import BattleOrder, Player
 
 from experience import Experience
@@ -82,8 +82,30 @@ class Agent(Player):
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> torch.Tensor:
         if isinstance(battle, Battle):
-            return torch.rand(10)
+            return torch.cat(
+                [Agent.embed_pokemon(p) for p in battle.team.values()]
+                + [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
+                + [torch.zeros(117)] * (12 - len(battle.team) - len(battle.opponent_team))
+            )
         elif isinstance(battle, DoubleBattle):
             return torch.rand(10)
         else:
             raise Exception("Must be single or double battle")
+
+    @staticmethod
+    def embed_pokemon(pokemon: Pokemon) -> torch.Tensor:
+        level = pokemon.level / 100
+        hp_frac = pokemon.current_hp_fraction
+        status = [float(s == pokemon.status) for s in Status]
+        types = [float(t in pokemon.types) for t in PokemonType]
+        moves = [Agent.embed_move(m) for m in pokemon.moves.values()] + [torch.zeros(22)] * (
+            4 - len(pokemon.moves)
+        )
+        return torch.cat([torch.tensor([level, hp_frac, *status, *types])] + moves)
+
+    @staticmethod
+    def embed_move(move: Move) -> torch.Tensor:
+        power = move.base_power / 250
+        acc = move.accuracy / 100
+        move_type = [float(t == move.type) for t in PokemonType]
+        return torch.tensor([power, acc, *move_type])

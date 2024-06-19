@@ -9,7 +9,7 @@ from nn import MLP
 
 
 async def train():
-    nn = MLP(10, [100, 100], 10)
+    nn = MLP(1404, [100, 100], 10)
     agent = Agent(nn, battle_format="gen4randombattle")
     opponent = Agent(deepcopy(nn), battle_format="gen4randombattle")
     random = RandomPlayer(battle_format="gen4randombattle")
