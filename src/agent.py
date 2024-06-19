@@ -18,11 +18,11 @@ class Agent(Player):
         self.experiences = []
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
-        embedded_battle = self.embed_battle(battle)
         if battle.turn == 1:
             self.battle_records[battle.battle_tag] = []
+        action_space = self.get_action_space(battle)
+        embedded_battle = self.embed_battle(battle).to(self.nn.device)
         if isinstance(battle, Battle):
-            action_space = self.get_action_space(battle)
             if not action_space or (
                 len(battle.available_moves) == 1 and battle.available_moves[0].id == "recharge"
             ):
@@ -61,14 +61,6 @@ class Agent(Player):
         self.battle_records = {}
         super().reset_battles()
 
-    def embed_battle(self, battle: AbstractBattle) -> torch.Tensor:
-        if isinstance(battle, Battle):
-            return torch.rand(10).to(self.nn.device)
-        elif isinstance(battle, DoubleBattle):
-            return torch.rand(10).to(self.nn.device)
-        else:
-            raise Exception("Must be single or double battle")
-
     @staticmethod
     def get_action_space(battle: AbstractBattle) -> list[int]:
         if isinstance(battle, Battle):
@@ -86,3 +78,12 @@ class Agent(Player):
             return move_space + switch_space
         else:
             return []
+
+    @staticmethod
+    def embed_battle(battle: AbstractBattle) -> torch.Tensor:
+        if isinstance(battle, Battle):
+            return torch.rand(10)
+        elif isinstance(battle, DoubleBattle):
+            return torch.rand(10)
+        else:
+            raise Exception("Must be single or double battle")
