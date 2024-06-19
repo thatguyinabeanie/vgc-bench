@@ -11,7 +11,8 @@ class MLP(torch.nn.Module):
                 torch.nn.ReLU(),
             ]
         layers += [torch.nn.Linear(hidden_layers[-1], n_outputs)]
-        self.nn = torch.nn.Sequential(*layers)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.nn = torch.nn.Sequential(*layers).to(self.device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.nn(x)

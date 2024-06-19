@@ -1,18 +1,34 @@
 import asyncio
+from copy import deepcopy
 
 from poke_env import cross_evaluate
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 
 from agent import Agent
+from nn import MLP
 
 
 async def train():
-    agent = Agent(battle_format="gen4randombattle")
+    nn = MLP(10, [100, 100], 10)
+    agent = Agent(nn, battle_format="gen4randombattle")
+    opponent = Agent(deepcopy(nn), battle_format="gen4randombattle")
     random = RandomPlayer(battle_format="gen4randombattle")
     max_damage = MaxBasePowerPlayer(battle_format="gen4randombattle")
     simple_heuristic = SimpleHeuristicsPlayer(battle_format="gen4randombattle")
-    result = await cross_evaluate([agent, random, max_damage, simple_heuristic], n_challenges=10)
-    print(result)
+    while True:
+        # self-play
+        await cross_evaluate([agent, opponent], n_challenges=100)
+        exp = agent.process_experiences()
+        opp_exp = opponent.process_experiences()
+        # training
+        for _ in exp + opp_exp:
+            # TODO: implement training
+            pass
+        # evaluation
+        result = await cross_evaluate(
+            [agent, random, max_damage, simple_heuristic], n_challenges=10
+        )
+        print(result)
 
 
 if __name__ == "__main__":
