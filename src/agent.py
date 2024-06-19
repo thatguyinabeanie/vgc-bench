@@ -15,20 +15,21 @@ class Agent(Player):
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         embedded_battle = self.embed_battle(battle)
         if isinstance(battle, Battle):
-            if not battle.available_switches and (
-                not battle.available_moves
-                or battle.available_moves[0].id in ["recharge", "struggle"]
+            action_space = self.get_action_space(battle)
+            if not action_space or (
+                len(battle.available_moves) == 1 and battle.available_moves[0].id == "recharge"
             ):
                 return self.choose_default_move()
             assert battle.active_pokemon is not None
+            total_action_space = list(battle.active_pokemon.moves.values()) + list(
+                battle.team.values()
+            )
             output = self.nn(embedded_battle)
-            masked_output = output + self.get_mask(battle)
-            soft_output = torch.softmax(masked_output, dim=0)
+            mask = torch.full((10,), float("-inf"))
+            mask[action_space] = 0
+            soft_output = torch.softmax(output + mask, dim=0)
             choice = int(torch.multinomial(soft_output, 1).item())
-            if choice < 4:
-                return self.create_order(list(battle.active_pokemon.moves.values())[choice])
-            else:
-                return self.create_order(list(battle.team.values())[choice - 4])
+            return self.create_order(total_action_space[choice])
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
         else:
@@ -44,7 +45,7 @@ class Agent(Player):
             raise Exception("Must be single or double battle")
 
     @staticmethod
-    def get_mask(battle: AbstractBattle) -> torch.Tensor:
+    def get_action_space(battle: AbstractBattle) -> list[int]:
         if isinstance(battle, Battle):
             assert battle.active_pokemon is not None
             move_action_space = [
@@ -57,9 +58,6 @@ class Agent(Player):
                 for i, pokemon in enumerate(battle.team.values())
                 if pokemon.species in [p.species for p in battle.available_switches]
             ]
-            action_space = move_action_space + switch_action_space
-            mask = torch.full((10,), float("-inf"))
-            mask[action_space] = 0
-            return mask
+            return move_action_space + switch_action_space
         else:
-            return torch.tensor([])
+            return []
