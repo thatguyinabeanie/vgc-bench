@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 from poke_env.environment import (
     AbstractBattle,
@@ -19,8 +21,8 @@ class Agent(Player):
     battle_records: dict[str, list[tuple[torch.Tensor, int]]]
     experiences: list[Experience]
 
-    def __init__(self, nn: MLP, *args, **kwargs):  # type: ignore
-        super().__init__(*args, **kwargs)  # type: ignore
+    def __init__(self, nn: MLP, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.nn = nn
         self.battle_records = {}
         self.experiences = []
@@ -51,7 +53,7 @@ class Agent(Player):
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
         else:
-            raise Exception("Must be single or double battle")
+            raise TypeError()
 
     def reset_battles(self):
         for tag, records in self.battle_records.items():
@@ -98,7 +100,7 @@ class Agent(Player):
         elif isinstance(battle, DoubleBattle):
             return torch.rand(10)
         else:
-            raise Exception("Must be single or double battle")
+            raise TypeError()
 
     @staticmethod
     def embed_pokemon(pokemon: Pokemon) -> torch.Tensor:

@@ -3,7 +3,7 @@ import torch
 
 class MLP(torch.nn.Module):
     def __init__(self, n_inputs: int, hidden_layers: list[int], n_outputs: int):
-        super().__init__()  # type: ignore
+        super().__init__()
         layers = [torch.nn.Linear(n_inputs, hidden_layers[0]), torch.nn.ReLU()]
         for i in range(len(hidden_layers)):
             layers += [torch.nn.Linear(hidden_layers[i - 1], hidden_layers[i]), torch.nn.ReLU()]

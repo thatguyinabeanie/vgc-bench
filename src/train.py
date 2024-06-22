@@ -18,7 +18,7 @@ async def train():
     simple_heuristic = SimpleHeuristicsPlayer(battle_format="gen4randombattle")
     while True:
         opponent = Agent(deepcopy(agent.nn), battle_format="gen4randombattle")
-        env = ShowdownEnv(opponent)
+        env = ShowdownEnv(opponent, battle_format="gen4randombattle")
         check_env(env, skip_render_check=True)
         ppo = PPO("MlpPolicy", env)
         ppo = ppo.learn(100)
