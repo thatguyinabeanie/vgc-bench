@@ -1,32 +1,31 @@
 import asyncio
 from copy import deepcopy
 
+from gymnasium.utils.env_checker import check_env
 from poke_env import cross_evaluate
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
+from stable_baselines3 import PPO
 
 from agent import Agent
+from environment import ShowdownEnv
 from nn import MLP
 
 
 async def train():
-    nn = MLP(1404, [100, 100], 10)
-    agent = Agent(nn, battle_format="gen4randombattle")
-    opponent = Agent(deepcopy(nn), battle_format="gen4randombattle")
+    agent = Agent(MLP(1404, [100, 100], 10), battle_format="gen4randombattle")
     random = RandomPlayer(battle_format="gen4randombattle")
     max_damage = MaxBasePowerPlayer(battle_format="gen4randombattle")
     simple_heuristic = SimpleHeuristicsPlayer(battle_format="gen4randombattle")
     while True:
-        # self-play
-        await cross_evaluate([agent, opponent], n_challenges=100)
-        # training
-        for _ in agent.experiences + opponent.experiences:
-            # TODO: implement training
-            pass
-        # evaluation
+        opponent = Agent(deepcopy(agent.nn), battle_format="gen4randombattle")
+        env = ShowdownEnv(opponent)
+        check_env(env, skip_render_check=True)
+        ppo = PPO("MlpPolicy", env)
+        ppo = ppo.learn(100)
         result = await cross_evaluate(
             [agent, random, max_damage, simple_heuristic], n_challenges=10
         )
-        print(result)
+        print(result[agent.username])
 
 
 if __name__ == "__main__":

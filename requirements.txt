@@ -2,4 +2,5 @@ black
 isort
 poke-env
 pyright
+stable_baselines3
 torch

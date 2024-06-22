@@ -9,6 +9,7 @@ authors = [{ name = "Cameron Angliss", email = "cameronangliss99@gmail.com" }]
 
 [tool.black]
 line-length = 100
+skip-magic-trailing-comma = true
 
 [tool.isort]
 profile = "black"
@@ -18,3 +19,5 @@ multi_line_output = 3
 [tool.pyright]
 include = ["src"]
 pythonVersion = "3.12"
+reportUnknownMemberType = false
+reportUnknownVariableType = false
