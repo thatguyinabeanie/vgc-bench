@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 
 from poke_env import cross_evaluate
@@ -14,6 +15,8 @@ BATTLE_FORMAT = "gen4randombattle"
 async def train():
     dummy_env = ShowdownEnv(RandomPlayer())
     ppo = PPO("MlpPolicy", dummy_env, n_epochs=100, tensorboard_log="PPO")
+    if os.path.exists("ppo"):
+        ppo = ppo.load("ppo")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40)
     ppo.set_env(env)
@@ -28,6 +31,7 @@ async def train():
             [agent, random, max_damage, simple_heuristic], n_challenges=10
         )
         print(time.strftime("%H:%M:%S"), "-", result[agent.username])
+        ppo.save("ppo")
 
 
 if __name__ == "__main__":
