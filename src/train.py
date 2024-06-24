@@ -13,7 +13,7 @@ BATTLE_FORMAT = "gen4randombattle"
 
 async def train():
     dummy_env = ShowdownEnv(RandomPlayer())
-    ppo = PPO("MlpPolicy", dummy_env)
+    ppo = PPO("MlpPolicy", dummy_env, n_epochs=100, tensorboard_log="PPO")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40)
     ppo.set_env(env)
@@ -22,7 +22,7 @@ async def train():
     max_damage = MaxBasePowerPlayer(battle_format=BATTLE_FORMAT)
     simple_heuristic = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT)
     while True:
-        ppo = ppo.learn(10_000)
+        ppo = ppo.learn(10_000, reset_num_timesteps=False, progress_bar=True)
         agent.policy = ppo.policy
         result = await cross_evaluate(
             [agent, random, max_damage, simple_heuristic], n_challenges=10
