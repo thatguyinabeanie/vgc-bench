@@ -1,5 +1,7 @@
 from typing import Any
 
+import numpy as np
+import numpy.typing as npt
 import torch
 from poke_env.environment import (
     AbstractBattle,
@@ -11,40 +13,33 @@ from poke_env.environment import (
     Status,
 )
 from poke_env.player import BattleOrder, Player
-
-from experience import Experience
-from nn import MLP
+from stable_baselines3.common.policies import ActorCriticPolicy
 
 
 class Agent(Player):
-    nn: MLP
-    battle_records: dict[str, list[tuple[torch.Tensor, int]]]
-    experiences: list[Experience]
+    policy: ActorCriticPolicy
 
-    def __init__(self, nn: MLP, *args: Any, **kwargs: Any):
+    def __init__(self, policy: ActorCriticPolicy, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.nn = nn
-        self.battle_records = {}
-        self.experiences = []
+        self.policy = policy
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
-        if battle.turn == 1:
-            self.battle_records[battle.battle_tag] = []
         action_space = self.get_action_space(battle)
-        embedded_battle = self.embed_battle(battle).to(self.nn.device)
+        embedded_battle = torch.tensor(self.embed_battle(battle)).view(1, -1).to(self.policy.device)
         if isinstance(battle, Battle):
             if not action_space or (
                 len(battle.available_moves) == 1 and battle.available_moves[0].id == "recharge"
             ):
-                self.battle_records[battle.battle_tag] += [(embedded_battle, -1)]
                 return self.choose_default_move()
             assert battle.active_pokemon is not None
-            output = self.nn(embedded_battle)
-            mask = torch.full((10,), float("-inf")).to(self.nn.device)
+            _, act_log_probs, _ = self.policy.evaluate_actions(
+                embedded_battle, torch.tensor(range(10)).to(self.policy.device)
+            )
+            act_probs = torch.exp(act_log_probs)
+            mask = torch.full((10,), float("-inf")).to(self.policy.device)
             mask[action_space] = 0
-            soft_output = torch.softmax(output + mask, dim=0)
+            soft_output = torch.softmax(act_probs + mask, dim=0)
             action_id = int(torch.multinomial(soft_output, 1).item())
-            self.battle_records[battle.battle_tag] += [(embedded_battle, action_id)]
             if action_id < 4:
                 action = list(battle.active_pokemon.moves.values())[action_id]
             else:
@@ -54,22 +49,6 @@ class Agent(Player):
             return self.choose_random_doubles_move(battle)
         else:
             raise TypeError()
-
-    def reset_battles(self):
-        for tag, records in self.battle_records.items():
-            for i in range(len(records) - 1):
-                state, action = records[i]
-                next_state, _ = records[i + 1]
-                if action != -1:
-                    done = i == len(records) - 2
-                    reward = (
-                        1
-                        if self.battles[tag].won and done
-                        else -1 if self.battles[tag].lost and done else 0
-                    )
-                    self.experiences += [Experience(state, action, next_state, reward, done)]
-        self.battle_records = {}
-        super().reset_battles()
 
     @staticmethod
     def get_action_space(battle: AbstractBattle) -> list[int]:
@@ -90,20 +69,21 @@ class Agent(Player):
             return []
 
     @staticmethod
-    def embed_battle(battle: AbstractBattle) -> torch.Tensor:
+    def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
-            return torch.cat(
+            return np.concatenate(
                 [Agent.embed_pokemon(p) for p in battle.team.values()]
                 + [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-                + [torch.zeros(117)] * (12 - len(battle.team) - len(battle.opponent_team))
+                + [torch.zeros(117)] * (12 - len(battle.team) - len(battle.opponent_team)),
+                dtype=np.float32,
             )
         elif isinstance(battle, DoubleBattle):
-            return torch.rand(10)
+            return np.array([])
         else:
             raise TypeError()
 
     @staticmethod
-    def embed_pokemon(pokemon: Pokemon) -> torch.Tensor:
+    def embed_pokemon(pokemon: Pokemon) -> npt.NDArray[np.float32]:
         level = pokemon.level / 100
         hp_frac = pokemon.current_hp_fraction
         status = [float(s == pokemon.status) for s in Status]
@@ -111,11 +91,11 @@ class Agent(Player):
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()] + [torch.zeros(22)] * (
             4 - len(pokemon.moves)
         )
-        return torch.cat([torch.tensor([level, hp_frac, *status, *types])] + moves)
+        return np.concatenate([np.array([level, hp_frac, *status, *types])] + moves)
 
     @staticmethod
-    def embed_move(move: Move) -> torch.Tensor:
+    def embed_move(move: Move) -> npt.NDArray[np.float32]:
         power = move.base_power / 250
         acc = move.accuracy / 100
         move_type = [float(t == move.type) for t in PokemonType]
-        return torch.tensor([power, acc, *move_type])
+        return np.array([power, acc, *move_type])

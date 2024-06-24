@@ -20,4 +20,3 @@ multi_line_output = 3
 include = ["src"]
 pythonVersion = "3.12"
 reportUnknownMemberType = false
-reportUnknownVariableType = false
