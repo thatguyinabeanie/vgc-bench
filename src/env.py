@@ -6,6 +6,7 @@ from gymnasium import Space
 from gymnasium.spaces import Box
 from poke_env.environment import AbstractBattle
 from poke_env.player import Gen4EnvSinglePlayer
+from stable_baselines3.common.vec_env import DummyVecEnv, VecEnvWrapper
 
 from agent import Agent
 
@@ -29,3 +30,18 @@ class ShowdownEnv(Gen4EnvSinglePlayer[npt.NDArray[np.float32], int]):
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
         return Box(0.0, 1.0, shape=(1404,), dtype=np.float32)
+
+
+class ShowdownVecEnvWrapper(VecEnvWrapper):
+    def __init__(self, venv: DummyVecEnv, env: ShowdownEnv):
+        super().__init__(venv)
+        self.env = env
+
+    def reset(self):
+        return self.venv.reset()
+
+    def step_wait(self):
+        return self.venv.step_wait()
+
+    def set_opponent(self, opponent: Agent):
+        self.env.set_opponent(opponent)

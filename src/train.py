@@ -1,11 +1,13 @@
 import asyncio
 import os
 
-from poke_env.player import SimpleHeuristicsPlayer
+from poke_env.player import RandomPlayer
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.vec_env import DummyVecEnv
 
-from env import ShowdownEnv
+from agent import Agent
+from env import ShowdownEnv, ShowdownVecEnvWrapper
 
 BATTLE_FORMAT = "gen4ou"
 TEAM1 = """
@@ -120,19 +122,36 @@ Adamant Nature
 - Waterfall
 - Outrage
 - Rest"""
+ppo = PPO(
+    "MlpPolicy", ShowdownEnv(RandomPlayer()), learning_rate=1e-5, tensorboard_log="output/logs/ppo"
+)
+
+
+class SelfPlayCallback(BaseCallback):
+    def __init__(self, check_freq: int):
+        super().__init__()
+        self.check_freq = check_freq
+
+    def _on_step(self) -> bool:
+        global ppo
+        if self.n_calls % self.check_freq == 0:
+            opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM2)
+            ppo.env.set_opponent(opponent)  # type: ignore
+        return True
 
 
 async def train():
-    opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM2)
-    env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
-    ppo = PPO("MlpPolicy", env, learning_rate=1e-5, tensorboard_log="output/logs/ppo")
+    global ppo
     if os.path.exists("output/saves/ppo.zip"):
         ppo.set_parameters("output/saves/ppo.zip")
         print("Resuming old run.")
-    checkpoint_callback = CheckpointCallback(
-        save_freq=100_000, save_path="./output/saves", name_prefix="ppo"
-    )
-    ppo = ppo.learn(1_000_000, callback=checkpoint_callback, reset_num_timesteps=False)
+    opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM2)
+    env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
+    vec_env = DummyVecEnv([lambda: env])
+    custom_env = ShowdownVecEnvWrapper(vec_env, env)
+    ppo.set_env(custom_env)
+    callback = SelfPlayCallback(check_freq=10_000)
+    ppo = ppo.learn(100_000, callback=callback, reset_num_timesteps=False)
     ppo.save("output/saves/ppo")
 
 
