@@ -4,8 +4,8 @@ import os
 from poke_env import cross_evaluate
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
+import time
 
 from agent import Agent
 from env import ShowdownEnv, ShowdownVecEnvWrapper
@@ -67,27 +67,13 @@ Adamant Nature
 - Swords Dance
 - Bullet Punch
 - Extreme Speed"""
-ppo = PPO(
-    "MlpPolicy", ShowdownEnv(RandomPlayer()), learning_rate=1e-5, tensorboard_log="output/logs/ppo"
-)
-
-
-class SelfPlayCallback(BaseCallback):
-    def __init__(self, check_freq: int):
-        super().__init__()
-        self.check_freq = check_freq
-
-    def _on_step(self) -> bool:
-        global ppo
-        if self.n_calls % self.check_freq == 0:
-            opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-            ppo.env.set_opponent(opponent)  # type: ignore
-        return True
 
 
 async def train():
     # setup
-    global ppo
+    ppo = PPO(
+        "MlpPolicy", ShowdownEnv(RandomPlayer()), learning_rate=1e-5, tensorboard_log="output/logs/ppo"
+    )
     if os.path.exists("output/saves/ppo.zip"):
         ppo.set_parameters("output/saves/ppo.zip")
         print("Resuming old run.")
@@ -96,17 +82,18 @@ async def train():
     vec_env = DummyVecEnv([lambda: env])
     custom_env = ShowdownVecEnvWrapper(vec_env, env)
     ppo.set_env(custom_env)
-    # train
-    callback = SelfPlayCallback(check_freq=10_000)
-    ppo = ppo.learn(100_000, callback=callback, reset_num_timesteps=False)
-    # evaluate
-    agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     random = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     max_power = MaxBasePowerPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     heuristics = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    result = await cross_evaluate([agent, random, max_power, heuristics], n_challenges=100)
-    print(result[agent.username])
-    ppo.save("output/saves/ppo")
+    # repeatedly train, evaluate, save
+    while True:
+        opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
+        ppo.env.set_opponent(opponent)  # type: ignore
+        ppo = ppo.learn(100_000, reset_num_timesteps=False)
+        agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
+        result = await cross_evaluate([agent, random, max_power, heuristics], n_challenges=100)
+        print(time.strftime("%H:%M:%S"), "-", result[agent.username])
+        ppo.save("output/saves/ppo")
 
 
 if __name__ == "__main__":
