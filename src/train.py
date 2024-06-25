@@ -3,6 +3,7 @@ import os
 
 from poke_env.player import SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import CheckpointCallback
 
 from env import ShowdownEnv
 
@@ -124,15 +125,15 @@ Adamant Nature
 async def train():
     opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM2)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
-    ppo = PPO("MlpPolicy", env, learning_rate=lr_schedule, tensorboard_log="output/logs/ppo")
-    if os.path.exists("output/saves/ppo"):
-        ppo = ppo.load("output/saves/ppo")
-    ppo = ppo.learn(1_000_000, progress_bar=True)
+    ppo = PPO("MlpPolicy", env, learning_rate=1e-5, tensorboard_log="output/logs/ppo")
+    if os.path.exists("output/saves/ppo.zip"):
+        ppo.set_parameters("output/saves/ppo.zip")
+        print("Resuming old run.")
+    checkpoint_callback = CheckpointCallback(
+        save_freq=100_000, save_path="./output/saves", name_prefix="ppo"
+    )
+    ppo = ppo.learn(1_000_000, callback=checkpoint_callback, reset_num_timesteps=False)
     ppo.save("output/saves/ppo")
-
-
-def lr_schedule(progress: float) -> float:
-    return 10 ** (-4.23) / (8 * progress + 1) ** 1.5
 
 
 if __name__ == "__main__":

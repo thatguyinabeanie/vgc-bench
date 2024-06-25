@@ -2,8 +2,6 @@ black
 isort
 poke-env
 pyright
-rich
 stable_baselines3
 tensorboard
 torch
-tqdm
