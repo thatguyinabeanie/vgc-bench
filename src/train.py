@@ -87,7 +87,7 @@ async def train():
         ppo.env.set_opponent(opponent)  # type: ignore
         ppo = ppo.learn(100_000, reset_num_timesteps=False)
         agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-        result = await cross_evaluate([agent, random, max_power, heuristics], n_challenges=100)
+        result = await cross_evaluate([agent, opponent, random, max_power, heuristics], n_challenges=100)
         print(time.strftime("%H:%M:%S"), "-", result[agent.username])
         ppo.save("output/saves/ppo")
 
