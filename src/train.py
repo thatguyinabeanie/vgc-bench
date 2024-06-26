@@ -85,7 +85,7 @@ async def train():
     heuristics = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     # repeatedly train, evaluate, save
     while True:
-        ppo = ppo.learn(100, reset_num_timesteps=False)
+        ppo = ppo.learn(100_000, reset_num_timesteps=False)
         agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
         opponent_copy = Agent(opponent.policy, battle_format=BATTLE_FORMAT, team=TEAM)
         result = await cross_evaluate(
