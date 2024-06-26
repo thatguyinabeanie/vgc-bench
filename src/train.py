@@ -78,18 +78,25 @@ async def train():
     if os.path.exists("output/saves/ppo.zip"):
         ppo.set_parameters("output/saves/ppo.zip")
         print("Resuming old run.")
+    opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
+    ppo.env.set_opponent(opponent)  # type: ignore
     random = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     max_power = MaxBasePowerPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     heuristics = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     # repeatedly train, evaluate, save
     while True:
-        opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-        ppo.env.set_opponent(opponent)  # type: ignore
-        ppo = ppo.learn(100_000, reset_num_timesteps=False)
+        ppo = ppo.learn(100, reset_num_timesteps=False)
         agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-        result = await cross_evaluate([agent, opponent, random, max_power, heuristics], n_challenges=100)
+        opponent_copy = Agent(opponent.policy, battle_format=BATTLE_FORMAT, team=TEAM)
+        result = await cross_evaluate(
+            [agent, opponent_copy, random, max_power, heuristics], n_challenges=100
+        )
         print(time.strftime("%H:%M:%S"), "-", result[agent.username])
-        ppo.save("output/saves/ppo")
+        num_wins = result[agent.username][opponent_copy.username]
+        if num_wins is not None and num_wins >= 55:
+            ppo.save("output/saves/ppo")
+            ppo.env.set_opponent(agent)  # type: ignore
+            print("Updating opponent.")
 
 
 if __name__ == "__main__":
