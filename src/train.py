@@ -70,8 +70,9 @@ TOTAL_TIMESTEPS = 100_000_000
 
 
 class SaveAndReplaceOpponentCallback(BaseCallback):
-    def __init__(self, save_freq: int, rollouts: int):
+    def __init__(self, rollout_len: int, save_freq: int, rollouts: int):
         super().__init__()
+        self.rollout_len = rollout_len
         self.save_freq = save_freq
         self.rollout_count = rollouts
 
@@ -83,7 +84,7 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         self.model.env.set_opponent(opponent)  # type: ignore
         self.rollout_count += 1
         if self.rollout_count % self.save_freq == 0:
-            self.model.save(f"output/saves/ppo_{1024 * self.rollout_count}")
+            self.model.save(f"output/saves/ppo_{self.rollout_len * self.rollout_count}")
 
 
 async def train():
@@ -108,7 +109,9 @@ async def train():
 
     ppo.learning_rate = calc_learning_rate
     # train
-    callback = SaveAndReplaceOpponentCallback(save_freq=100, rollouts=num_saved_rollouts)
+    callback = SaveAndReplaceOpponentCallback(
+        rollout_len=ppo.n_steps, save_freq=50, rollouts=num_saved_rollouts
+    )
     ppo = ppo.learn(TOTAL_TIMESTEPS, callback=callback, reset_num_timesteps=False)
     # evaluate
     agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
