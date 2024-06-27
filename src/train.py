@@ -69,10 +69,10 @@ Adamant Nature
 
 
 class SaveAndReplaceOpponentCallback(BaseCallback):
-    def __init__(self, save_freq: int):
+    def __init__(self, save_freq: int, rollouts: int):
         super().__init__()
         self.save_freq = save_freq
-        self.rollout_count = 0
+        self.rollout_count = rollouts
 
     def _on_step(self) -> bool:
         return True
@@ -97,15 +97,16 @@ async def train():
         n_steps=1024,
         tensorboard_log="output/logs/ppo",
     )
+    num_saved_rollouts = 0
     if os.path.exists("output/saves"):
         files = os.listdir("output/saves")
-        max_file_number = max([int(file[4:-4]) for file in files])
-        ppo.set_parameters(f"output/saves/ppo_{max_file_number}.zip")
-        print(f"Resuming ppo_{max_file_number}.zip run.")
+        num_saved_rollouts = max([int(file[4:-4]) for file in files])
+        ppo.set_parameters(f"output/saves/ppo_{num_saved_rollouts}.zip")
+        print(f"Resuming ppo_{num_saved_rollouts}.zip run.")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     ppo.env.set_opponent(opponent)  # type: ignore
     # train
-    callback = SaveAndReplaceOpponentCallback(save_freq=100)
+    callback = SaveAndReplaceOpponentCallback(save_freq=100, rollouts=num_saved_rollouts)
     ppo = ppo.learn(100_000_000, callback=callback, reset_num_timesteps=False)
     # evaluate
     agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
