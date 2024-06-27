@@ -112,7 +112,11 @@ async def train():
     callback = SaveAndReplaceOpponentCallback(
         rollout_len=ppo.n_steps, save_freq=50, rollouts=num_saved_rollouts
     )
-    ppo = ppo.learn(TOTAL_TIMESTEPS, callback=callback, reset_num_timesteps=False)
+    ppo = ppo.learn(
+        TOTAL_TIMESTEPS - num_saved_rollouts * ppo.n_steps,
+        callback=callback,
+        reset_num_timesteps=False,
+    )
     # evaluate
     agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     random = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
