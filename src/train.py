@@ -104,8 +104,10 @@ async def train():
         n_steps=1024,
         tensorboard_log="output/logs/ppo",
     )
-    if os.path.exists("output/saves/ppo.zip"):
-        ppo.set_parameters("output/saves/ppo.zip")
+    if os.path.exists("output/saves"):
+        files = os.listdir("output/saves")
+        max_file_number = max([int(file[4:-4]) for file in files])
+        ppo.set_parameters(f"output/saves/ppo_{max_file_number}.zip")
         print("Resuming old run.")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     ppo.env.set_opponent(opponent)  # type: ignore
@@ -123,8 +125,8 @@ async def train():
 
 def calc_learning_rate(progress_remaining: float) -> float:
     progress = 1 - progress_remaining
-    current_progress = 0
-    return 10**-4.23 / (8 * ((progress + current_progress) / (1 + current_progress)) + 1) ** 1.5
+    current_progress = 0 / 100_000_000
+    return 10**-4.23 / (8 * (progress + current_progress) / (1 + current_progress) + 1) ** 1.5
 
 
 if __name__ == "__main__":
