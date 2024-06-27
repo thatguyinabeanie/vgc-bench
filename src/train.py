@@ -1,10 +1,10 @@
 import asyncio
 import os
-import time
+import subprocess
 
-from poke_env import cross_evaluate
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from agent import Agent
@@ -69,34 +69,58 @@ Adamant Nature
 - Extreme Speed"""
 
 
+class SaveAndReplaceOpponentCallback(BaseCallback):
+    def __init__(self, save_freq: int):
+        super().__init__()
+        self.save_freq = save_freq
+        self.episode_count = 0
+
+    def _on_step(self) -> bool:
+        return True
+
+    def on_rollout_end(self):
+        opponent = Agent(self.model.policy, battle_format=BATTLE_FORMAT, team=TEAM)
+        self.model.env.set_opponent(opponent)  # type: ignore
+        self.episode_count += 1
+        if self.episode_count % self.save_freq == 0:
+            self.model.save("output/saves/ppo")
+
+
 async def train():
     # setup
-    dummy_opponent = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    env = ShowdownEnv(dummy_opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
-    vec_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
-    ppo = PPO("MlpPolicy", vec_env, learning_rate=1e-5, tensorboard_log="output/logs/ppo")
+    subprocess.Popen(
+        ["node", "pokemon-showdown", "start", "--no-security"],
+        stdout=subprocess.DEVNULL,
+        cwd="pokemon-showdown",
+    )
+    await asyncio.sleep(5)
+    opponent = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
+    env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
+    wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
+    ppo = PPO(
+        "MlpPolicy",
+        wrapper_env,
+        learning_rate=calc_learning_rate,
+        n_steps=1024,
+        tensorboard_log="output/logs/ppo",
+    )
     if os.path.exists("output/saves/ppo.zip"):
         ppo.set_parameters("output/saves/ppo.zip")
         print("Resuming old run.")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     ppo.env.set_opponent(opponent)  # type: ignore
+    callback = SaveAndReplaceOpponentCallback(save_freq=100)
+    ppo = ppo.learn(10_000_000, callback=callback, reset_num_timesteps=False)
+    agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     random = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     max_power = MaxBasePowerPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    heuristics = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    # repeatedly train, evaluate, save
-    while True:
-        ppo = ppo.learn(100_000, reset_num_timesteps=False)
-        agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-        opponent_copy = Agent(opponent.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-        result = await cross_evaluate(
-            [agent, opponent_copy, random, max_power, heuristics], n_challenges=100
-        )
-        print(time.strftime("%H:%M:%S"), "-", result[agent.username])
-        num_wins = result[agent.username][opponent_copy.username]
-        if num_wins is not None and num_wins >= 55:
-            ppo.save("output/saves/ppo")
-            ppo.env.set_opponent(agent)  # type: ignore
-            print("Updating opponent.")
+    heuristic = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
+    results = await agent.battle_against_multi([random, max_power, heuristic], n_battles=100)
+    print(results)
+
+
+def calc_learning_rate(progress: float) -> float:
+    return 10**-4.23 / (8 * progress + 1) ** 1.5
 
 
 if __name__ == "__main__":
