@@ -91,7 +91,7 @@ async def train():
     opponent = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
-    ppo = PPO("MlpPolicy", wrapper_env, n_steps=1024, tensorboard_log="output/logs/ppo")
+    ppo = PPO("MlpPolicy", wrapper_env, tensorboard_log="output/logs/ppo")
     num_saved_rollouts = 0
     if os.path.exists("output/saves"):
         files = os.listdir("output/saves")
