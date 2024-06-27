@@ -73,7 +73,7 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
     def __init__(self, save_freq: int):
         super().__init__()
         self.save_freq = save_freq
-        self.episode_count = 0
+        self.rollout_count = 0
 
     def _on_step(self) -> bool:
         return True
@@ -81,13 +81,13 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
     def on_rollout_end(self):
         opponent = Agent(self.model.policy, battle_format=BATTLE_FORMAT, team=TEAM)
         self.model.env.set_opponent(opponent)  # type: ignore
-        self.episode_count += 1
-        if self.episode_count % self.save_freq == 0:
-            self.model.save("output/saves/ppo")
+        self.rollout_count += 1
+        if self.rollout_count % self.save_freq == 0:
+            self.model.save(f"output/saves/ppo_{1024 * self.rollout_count}")
 
 
 async def train():
-    # setup
+    # start showdown server
     subprocess.Popen(
         ["node", "pokemon-showdown", "start", "--no-security"],
         stdout=subprocess.DEVNULL,
@@ -109,8 +109,10 @@ async def train():
         print("Resuming old run.")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     ppo.env.set_opponent(opponent)  # type: ignore
+    # train
     callback = SaveAndReplaceOpponentCallback(save_freq=100)
-    ppo = ppo.learn(10_000_000, callback=callback, reset_num_timesteps=False)
+    ppo = ppo.learn(100_000_000, callback=callback, reset_num_timesteps=False)
+    # evaluate
     agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     random = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     max_power = MaxBasePowerPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
@@ -119,8 +121,10 @@ async def train():
     print(results)
 
 
-def calc_learning_rate(progress: float) -> float:
-    return 10**-4.23 / (8 * progress + 1) ** 1.5
+def calc_learning_rate(progress_remaining: float) -> float:
+    progress = 1 - progress_remaining
+    current_progress = 0
+    return 10**-4.23 / (8 * ((progress + current_progress) / (1 + current_progress)) + 1) ** 1.5
 
 
 if __name__ == "__main__":
