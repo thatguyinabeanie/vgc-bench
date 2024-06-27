@@ -108,7 +108,7 @@ async def train():
         files = os.listdir("output/saves")
         max_file_number = max([int(file[4:-4]) for file in files])
         ppo.set_parameters(f"output/saves/ppo_{max_file_number}.zip")
-        print("Resuming old run.")
+        print(f"Resuming ppo_{max_file_number}.zip run.")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     ppo.env.set_opponent(opponent)  # type: ignore
     # train
