@@ -1,6 +1,5 @@
 import asyncio
 import os
-import subprocess
 
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
@@ -87,13 +86,7 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
 
 
 async def train():
-    # start showdown server
-    subprocess.Popen(
-        ["node", "pokemon-showdown", "start", "--no-security"],
-        stdout=subprocess.DEVNULL,
-        cwd="pokemon-showdown",
-    )
-    await asyncio.sleep(5)
+    # setup
     opponent = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
