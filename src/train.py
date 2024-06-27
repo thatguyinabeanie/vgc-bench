@@ -93,7 +93,7 @@ async def train():
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
     ppo = PPO("MlpPolicy", wrapper_env, tensorboard_log="output/logs/ppo")
     num_saved_rollouts = 0
-    if os.path.exists("output/saves"):
+    if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
         files = os.listdir("output/saves")
         num_saved_rollouts = max([int(file[4:-4]) for file in files])
         ppo.set_parameters(f"output/saves/ppo_{num_saved_rollouts}.zip")
