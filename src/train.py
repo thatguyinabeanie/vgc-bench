@@ -66,6 +66,7 @@ Adamant Nature
 - Swords Dance
 - Bullet Punch
 - Extreme Speed"""
+TOTAL_TIMESTEPS = 100_000_000
 
 
 class SaveAndReplaceOpponentCallback(BaseCallback):
@@ -102,13 +103,13 @@ async def train():
 
     def calc_learning_rate(progress_remaining: float) -> float:
         progress = 1 - progress_remaining
-        saved_progress = num_saved_rollouts / 100_000_000
+        saved_progress = num_saved_rollouts / TOTAL_TIMESTEPS
         return 10**-4.23 / (8 * (progress + saved_progress) / (1 + saved_progress) + 1) ** 1.5
 
     ppo.learning_rate = calc_learning_rate
     # train
     callback = SaveAndReplaceOpponentCallback(save_freq=100, rollouts=num_saved_rollouts)
-    ppo = ppo.learn(100_000_000, callback=callback, reset_num_timesteps=False)
+    ppo = ppo.learn(TOTAL_TIMESTEPS, callback=callback, reset_num_timesteps=False)
     # evaluate
     agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     random = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
