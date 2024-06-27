@@ -93,7 +93,6 @@ async def train():
     ppo = PPO(
         "MlpPolicy",
         wrapper_env,
-        learning_rate=calc_learning_rate,
         n_steps=1024,
         tensorboard_log="output/logs/ppo",
     )
@@ -105,6 +104,13 @@ async def train():
         print(f"Resuming ppo_{num_saved_rollouts}.zip run.")
     opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
     ppo.env.set_opponent(opponent)  # type: ignore
+
+    def calc_learning_rate(progress_remaining: float) -> float:
+        progress = 1 - progress_remaining
+        saved_progress = num_saved_rollouts / 100_000_000
+        return 10**-4.23 / (8 * (progress + saved_progress) / (1 + saved_progress) + 1) ** 1.5
+
+    ppo.learning_rate = calc_learning_rate
     # train
     callback = SaveAndReplaceOpponentCallback(save_freq=100, rollouts=num_saved_rollouts)
     ppo = ppo.learn(100_000_000, callback=callback, reset_num_timesteps=False)
@@ -115,12 +121,6 @@ async def train():
     heuristic = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     results = await agent.battle_against_multi([random, max_power, heuristic], n_battles=100)
     print(results)
-
-
-def calc_learning_rate(progress_remaining: float) -> float:
-    progress = 1 - progress_remaining
-    current_progress = 0 / 100_000_000
-    return 10**-4.23 / (8 * (progress + current_progress) / (1 + current_progress) + 1) ** 1.5
 
 
 if __name__ == "__main__":
