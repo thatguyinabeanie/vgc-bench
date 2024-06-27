@@ -13,13 +13,13 @@ from poke_env.environment import (
     Status,
 )
 from poke_env.player import BattleOrder, Player
-from stable_baselines3.common.policies import BasePolicy
+from stable_baselines3.common.policies import ActorCriticPolicy
 
 
 class Agent(Player):
-    policy: BasePolicy
+    policy: ActorCriticPolicy
 
-    def __init__(self, policy: BasePolicy, *args: Any, **kwargs: Any):
+    def __init__(self, policy: ActorCriticPolicy, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.policy = policy
 

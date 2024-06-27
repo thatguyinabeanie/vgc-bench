@@ -80,11 +80,13 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         return True
 
     def on_rollout_end(self):
-        opponent = Agent(self.model.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-        self.model.env.set_opponent(opponent)  # type: ignore
+        global ppo
+        opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
+        ppo.env.set_opponent(opponent)  # type: ignore
         self.num_timesteps += self.n_steps
         if self.num_timesteps % self.save_freq == 0:
-            self.model.save(f"output/saves/ppo_{self.num_timesteps}")
+            ppo.save(f"output/saves/ppo_{self.num_timesteps}")
+            print(f"Saved checkpoint ppo_{self.num_timesteps}.zip")
 
 
 async def train():
@@ -92,6 +94,7 @@ async def train():
     opponent = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
+    global ppo
     ppo = PPO("MlpPolicy", wrapper_env, tensorboard_log="output/logs/ppo")
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
