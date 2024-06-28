@@ -73,7 +73,7 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
     def __init__(self, save_freq: int, num_saved_timesteps: int, n_steps: int):
         super().__init__()
         self.save_freq = save_freq
-        self.num_timesteps = num_saved_timesteps
+        self.total_timesteps = num_saved_timesteps
         self.n_steps = n_steps
 
     def _on_step(self) -> bool:
@@ -83,10 +83,10 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         global ppo
         opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
         ppo.env.set_opponent(opponent)  # type: ignore
-        self.num_timesteps += self.n_steps
-        if self.num_timesteps % self.save_freq == 0:
-            ppo.save(f"output/saves/ppo_{self.num_timesteps}")
-            print(f"Saved checkpoint ppo_{self.num_timesteps}.zip")
+        self.total_timesteps += self.n_steps
+        if self.total_timesteps % self.save_freq == 0:
+            ppo.save(f"output/saves/ppo_{self.total_timesteps}")
+            print(f"Saved checkpoint ppo_{self.total_timesteps}.zip")
 
 
 async def train():
