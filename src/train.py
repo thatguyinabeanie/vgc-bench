@@ -80,8 +80,8 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         return True
 
     def on_rollout_end(self):
-        opponent = Agent(self.model.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-        self.model.env.set_opponent(opponent)  # type: ignore
+        agent = Agent(self.model.policy, battle_format=BATTLE_FORMAT, team=TEAM)
+        self.model.env.set_opponent(agent)  # type: ignore
         self.total_timesteps += self.n_steps
         if self.total_timesteps % self.save_freq == 0:
             self.model.save(f"output/saves/ppo_{self.total_timesteps}")
