@@ -93,7 +93,10 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
                 agent.battle_against(self.eval_opponent, n_battles=100)
             )
             tie_rate = round(1 - win_rate - lose_rate, ndigits=2)
-            score_str = f"{100 * win_rate}-{100 * lose_rate}-{100 * tie_rate}"
+            num_wins = int(100 * win_rate)
+            num_losses = int(100 * lose_rate)
+            num_ties = int(100 * tie_rate)
+            score_str = f"{num_wins}-{num_losses}-{num_ties}"
             print(f"{time.strftime("%H:%M:%S")} -- {score_str}")
             self.model.save(f"output/saves/ppo_{self.total_timesteps}")
             print(f"Saved checkpoint ppo_{self.total_timesteps}.zip")
