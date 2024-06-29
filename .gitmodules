@@ -2,3 +2,6 @@
 	path = pokemon-showdown
 	url = git@github.com:smogon/pokemon-showdown.git
 	branch = master
+[submodule "poke-env"]
+	path = poke-env
+	url = https://github.com/cameronangliss/poke-env.git
