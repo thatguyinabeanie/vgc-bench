@@ -1,7 +1,8 @@
 import asyncio
 import os
+import time
 
-from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
+from poke_env.player import SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -75,6 +76,7 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         self.save_freq = save_freq
         self.total_timesteps = num_saved_timesteps
         self.n_steps = n_steps
+        self.eval_opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
 
     def _on_step(self) -> bool:
         return True
@@ -84,13 +86,19 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         self.model.env.set_opponent(agent)  # type: ignore
         self.total_timesteps += self.n_steps
         if self.total_timesteps % self.save_freq == 0:
+            win_rate, lose_rate = asyncio.run(
+                agent.battle_against(self.eval_opponent, n_battles=100)
+            )
+            tie_rate = round(1 - win_rate - lose_rate, ndigits=2)
+            score_str = f"{100 * win_rate}-{100 * lose_rate}-{100 * tie_rate}"
+            print(f"{time.strftime("%H:%M:%S")} -- {score_str}")
             self.model.save(f"output/saves/ppo_{self.total_timesteps}")
             print(f"Saved checkpoint ppo_{self.total_timesteps}.zip")
 
 
 async def train():
     # setup
-    opponent = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
+    opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
     ppo = PPO("MlpPolicy", wrapper_env, tensorboard_log="output/logs/ppo")
@@ -114,13 +122,6 @@ async def train():
     ppo = ppo.learn(
         TOTAL_TIMESTEPS - num_saved_timesteps, callback=callback, reset_num_timesteps=False
     )
-    # evaluate
-    agent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-    random = RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    max_power = MaxBasePowerPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    heuristic = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    results = await agent.battle_against_multi([random, max_power, heuristic], n_battles=100)
-    print(results)
 
 
 if __name__ == "__main__":
