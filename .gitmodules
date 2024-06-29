@@ -5,3 +5,4 @@
 [submodule "poke-env"]
 	path = poke-env
 	url = https://github.com/cameronangliss/poke-env.git
+	branch = master
