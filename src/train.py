@@ -2,6 +2,7 @@ import asyncio
 import os
 import time
 
+import nest_asyncio
 from poke_env.player import SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
@@ -9,6 +10,8 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 
 from agent import Agent
 from env import ShowdownEnv, ShowdownVecEnvWrapper
+
+nest_asyncio.apply()
 
 BATTLE_FORMAT = "gen4ou"
 TEAM = """

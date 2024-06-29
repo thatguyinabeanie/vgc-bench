@@ -19,6 +19,7 @@ multi_line_output = 3
 [tool.pyright]
 include = ["src"]
 pythonVersion = "3.12"
+reportMissingTypeStubs = false
 reportUnknownMemberType = false
 reportUnknownParameterType = false
 reportUnknownVariableType = false
