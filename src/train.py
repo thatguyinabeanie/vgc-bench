@@ -3,7 +3,7 @@ import os
 import time
 
 import nest_asyncio
-from poke_env.player import SimpleHeuristicsPlayer
+from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -79,7 +79,11 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         self.save_freq = save_freq
         self.total_timesteps = num_saved_timesteps
         self.n_steps = n_steps
-        self.eval_opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
+        self.eval_opponents: list[Player] = [
+            RandomPlayer(battle_format=BATTLE_FORMAT, team=TEAM),
+            MaxBasePowerPlayer(battle_format=BATTLE_FORMAT, team=TEAM),
+            SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM),
+        ]
 
     def _on_step(self) -> bool:
         return True
@@ -89,15 +93,8 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
         self.model.env.set_opponent(agent)  # type: ignore
         self.total_timesteps += self.n_steps
         if self.total_timesteps % self.save_freq == 0:
-            win_rate, lose_rate = asyncio.run(
-                agent.battle_against(self.eval_opponent, n_battles=100)
-            )
-            tie_rate = round(1 - win_rate - lose_rate, ndigits=2)
-            num_wins = int(100 * win_rate)
-            num_losses = int(100 * lose_rate)
-            num_ties = int(100 * tie_rate)
-            score_str = f"{num_wins}-{num_losses}-{num_ties}"
-            print(f"{time.strftime("%H:%M:%S")} -- {score_str}")
+            results = asyncio.run(agent.battle_against_multi(self.eval_opponents, n_battles=100))
+            print(f"{time.strftime("%H:%M:%S")} - {results}")
             self.model.save(f"output/saves/ppo_{self.total_timesteps}")
             print(f"Saved checkpoint ppo_{self.total_timesteps}.zip")
 
