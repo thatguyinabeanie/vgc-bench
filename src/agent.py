@@ -42,7 +42,7 @@ class Agent(Player):
             return ForfeitBattleOrder()
         elif isinstance(battle, Battle):
             if action not in battle.action_space:
-                return ForfeitBattleOrder()
+                return self.choose_random_move(battle)
             elif action < 4:
                 assert battle.active_pokemon is not None
                 return self.create_order(list(battle.active_pokemon.moves.values())[action])
