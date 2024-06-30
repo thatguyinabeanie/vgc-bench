@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Any
 
 import torch
 from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
@@ -10,6 +11,9 @@ from agent import Agent
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+
     def forward(
         self, obs: torch.Tensor, deterministic: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
