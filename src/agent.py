@@ -12,7 +12,7 @@ from poke_env.environment import (
     PokemonType,
     Status,
 )
-from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
+from poke_env.player import BattleOrder, DefaultBattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
 
 
@@ -41,6 +41,8 @@ class Agent(Player):
         if action == -1:
             return ForfeitBattleOrder()
         elif isinstance(battle, Battle):
+            if not battle.action_space:
+                return DefaultBattleOrder()
             if action not in battle.action_space:
                 return ForfeitBattleOrder()
             elif action < 4:

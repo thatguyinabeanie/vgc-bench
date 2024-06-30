@@ -123,8 +123,11 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         mask[action_space] = 0
         values = self.value_net(latent_vf)
         distribution = self._get_action_dist_from_latent(latent_pi)
-        probs = torch.softmax(distribution.distribution.probs[0] + mask, dim=0)  # type: ignore
-        actions = torch.multinomial(probs, 1)
+        if action_space:
+            probs = torch.softmax(distribution.distribution.probs[0] + mask, dim=0)  # type: ignore
+        else:
+            probs = distribution.distribution.probs[0]  # type: ignore
+        actions = torch.multinomial(probs, 1)  # type: ignore
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
         return actions, values, log_prob
