@@ -2,9 +2,11 @@ import asyncio
 import os
 import time
 
+import torch
 from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from agent import Agent
@@ -96,12 +98,44 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
             print(f"Saved checkpoint ppo_{self.total_timesteps}.zip")
 
 
+class MaskedActorCriticPolicy(ActorCriticPolicy):
+    def forward(
+        self, obs: torch.Tensor, deterministic: bool = False
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Forward pass in all the networks (actor and critic)
+
+        :param obs: Observation
+        :param deterministic: Whether to sample or use deterministic actions
+        :return: action, value and log probability of the action
+        """
+        # Preprocess the observation if needed
+        features = self.extract_features(obs)
+        if self.share_features_extractor:
+            latent_pi, latent_vf = self.mlp_extractor(features)
+        else:
+            pi_features, vf_features = features
+            latent_pi = self.mlp_extractor.forward_actor(pi_features)
+            latent_vf = self.mlp_extractor.forward_critic(vf_features)
+        # Evaluate the values for the given observations
+        action_space = [i for i, o in enumerate(obs[0][:10].tolist()) if o == 1]  # type: ignore
+        mask = torch.full((10,), float("-inf")).to(self.device)
+        mask[action_space] = 0
+        values = self.value_net(latent_vf)
+        distribution = self._get_action_dist_from_latent(latent_pi)
+        probs = torch.softmax(distribution.distribution.probs[0] + mask, dim=0)  # type: ignore
+        actions = torch.multinomial(probs, 1)
+        log_prob = distribution.log_prob(actions)
+        actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
+        return actions, values, log_prob
+
+
 def train():
     # setup
     opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
-    ppo = PPO("MlpPolicy", wrapper_env, tensorboard_log="output/logs/ppo")
+    ppo = PPO(MaskedActorCriticPolicy, wrapper_env, tensorboard_log="output/logs/ppo")
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
         files = os.listdir("output/saves")

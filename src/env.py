@@ -29,7 +29,7 @@ class ShowdownEnv(Gen4EnvSinglePlayer[npt.NDArray[np.float32], int]):
         return np.array(Agent.embed_battle(battle))
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
-        return Box(0.0, 1.0, shape=(1404,), dtype=np.float32)
+        return Box(0.0, 1.0, shape=(1414,), dtype=np.float32)
 
 
 class ShowdownVecEnvWrapper(VecEnvWrapper):

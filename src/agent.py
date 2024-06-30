@@ -42,7 +42,7 @@ class Agent(Player):
             return ForfeitBattleOrder()
         elif isinstance(battle, Battle):
             if action not in battle.action_space:
-                return self.choose_random_move(battle)
+                return ForfeitBattleOrder()
             elif action < 4:
                 assert battle.active_pokemon is not None
                 return self.create_order(list(battle.active_pokemon.moves.values())[action])
@@ -55,7 +55,8 @@ class Agent(Player):
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             return np.concatenate(
-                [Agent.embed_pokemon(p) for p in battle.team.values()]
+                [[float(i in battle.action_space) for i in range(10)]]
+                + [Agent.embed_pokemon(p) for p in battle.team.values()]
                 + [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
                 + [torch.zeros(117)] * (12 - len(battle.team) - len(battle.opponent_team)),
                 dtype=np.float32,
