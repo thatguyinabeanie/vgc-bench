@@ -1,6 +1,6 @@
 black
 isort
--e ./poke-env
+git+https://github.com/cameronangliss/poke-env.git@improve-battle_against-method
 pyright
 stable_baselines3
 tensorboard

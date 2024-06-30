@@ -5,7 +5,7 @@ import numpy.typing as npt
 from gymnasium import Space
 from gymnasium.spaces import Box
 from poke_env.environment import AbstractBattle
-from poke_env.player import Gen4EnvSinglePlayer, BattleOrder
+from poke_env.player import BattleOrder, Gen4EnvSinglePlayer
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnvWrapper
 
 from agent import Agent

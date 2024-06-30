@@ -46,13 +46,11 @@ class Agent(Player):
         elif isinstance(battle, Battle):
             if not Agent.get_action_space(battle):
                 return DefaultBattleOrder()
-            elif action not in battle.action_space:
+            elif action not in Agent.get_action_space(battle):
                 return ForfeitBattleOrder()
             elif action < 4:
                 assert battle.active_pokemon is not None
-                return Player.create_order(
-                    list(battle.active_pokemon.moves.values())[action]
-                )
+                return Player.create_order(list(battle.active_pokemon.moves.values())[action])
             else:
                 return Player.create_order(list(battle.team.values())[action - 4])
         else:
