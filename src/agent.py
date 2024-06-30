@@ -30,17 +30,14 @@ class Agent(Player):
                     self.embed_battle(battle), device=self.policy.device
                 ).view(1, -1)
                 action, _, _ = self.policy.forward(embedded_battle)
-            return self.action_to_move(int(action.item()), battle)
+            return Agent.action_to_move(int(action.item()), battle)
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
         else:
             raise TypeError()
 
-    def action_to_move(self, action: int, battle: AbstractBattle) -> BattleOrder:
-        return Agent.action_to_move_(action, battle)
-
     @staticmethod
-    def action_to_move_(action: int, battle: AbstractBattle) -> BattleOrder:
+    def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
         if action == -1:
             return ForfeitBattleOrder()
         elif isinstance(battle, Battle):

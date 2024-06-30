@@ -16,7 +16,7 @@ class ShowdownEnv(Gen4EnvSinglePlayer[npt.NDArray[np.float32], int]):
         super().__init__(*args, **kwargs)
 
     def action_to_move(self, action: int, battle: AbstractBattle) -> BattleOrder:
-        return Agent.action_to_move_(action, battle)
+        return Agent.action_to_move(action, battle)
 
     def calc_reward(self, last_battle: AbstractBattle, current_battle: AbstractBattle) -> float:
         if not current_battle.finished:
