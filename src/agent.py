@@ -37,27 +37,32 @@ class Agent(Player):
             raise TypeError()
 
     def action_to_move(self, action: int, battle: AbstractBattle) -> BattleOrder:
-        # copied directly from Gen4EnvSinglePlayer class from poke-env
+        return Agent.action_to_move_(action, battle)
+
+    @staticmethod
+    def action_to_move_(action: int, battle: AbstractBattle) -> BattleOrder:
         if action == -1:
             return ForfeitBattleOrder()
         elif isinstance(battle, Battle):
-            if not battle.action_space:
+            if not Agent.get_action_space(battle):
                 return DefaultBattleOrder()
-            if action not in battle.action_space:
+            elif action not in battle.action_space:
                 return ForfeitBattleOrder()
             elif action < 4:
                 assert battle.active_pokemon is not None
-                return self.create_order(list(battle.active_pokemon.moves.values())[action])
+                return Player.create_order(
+                    list(battle.active_pokemon.moves.values())[action]
+                )
             else:
-                return self.create_order(list(battle.team.values())[action - 4])
+                return Player.create_order(list(battle.team.values())[action - 4])
         else:
-            return self.choose_random_move(battle)
+            return ForfeitBattleOrder()
 
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             return np.concatenate(
-                [[float(i in battle.action_space) for i in range(10)]]
+                [[float(i in Agent.get_action_space(battle)) for i in range(10)]]
                 + [Agent.embed_pokemon(p) for p in battle.team.values()]
                 + [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
                 + [torch.zeros(117)] * (12 - len(battle.team) - len(battle.opponent_team)),
@@ -85,3 +90,20 @@ class Agent(Player):
         acc = move.accuracy / 100
         move_type = [float(t == move.type) for t in PokemonType]
         return np.array([power, acc, *move_type])
+
+    @staticmethod
+    def get_action_space(battle: AbstractBattle) -> list[int]:
+        if battle.active_pokemon is None:
+            return []
+        else:
+            move_space = [
+                i
+                for i, move in enumerate(battle.active_pokemon.moves.values())
+                if move.id in [m.id for m in battle.available_moves]
+            ]
+            switch_space = [
+                i + 4
+                for i, pokemon in enumerate(battle.team.values())
+                if pokemon.species in [p.species for p in battle.available_switches]
+            ]
+            return move_space + switch_space
