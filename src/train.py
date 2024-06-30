@@ -2,7 +2,6 @@ import asyncio
 import os
 import time
 
-import nest_asyncio
 from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
@@ -10,8 +9,6 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 
 from agent import Agent
 from env import ShowdownEnv, ShowdownVecEnvWrapper
-
-nest_asyncio.apply()
 
 BATTLE_FORMAT = "gen4ou"
 TEAM = """
@@ -99,7 +96,7 @@ class SaveAndReplaceOpponentCallback(BaseCallback):
             print(f"Saved checkpoint ppo_{self.total_timesteps}.zip")
 
 
-async def train():
+def train():
     # setup
     opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
@@ -128,4 +125,4 @@ async def train():
 
 
 if __name__ == "__main__":
-    asyncio.run(train())
+    train()
