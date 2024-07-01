@@ -9,7 +9,7 @@ from env import ShowdownEnv, ShowdownVecEnvWrapper
 from utils import Callback, MaskedActorCriticPolicy
 
 BATTLE_FORMAT = "gen4ou"
-TEAM = """
+TEAM1 = """
 Bronzong @ Lum Berry
 Ability: Heatproof
 EVs: 248 HP / 252 Atk / 4 Def / 4 SpD
@@ -65,13 +65,70 @@ Adamant Nature
 - Swords Dance
 - Bullet Punch
 - Extreme Speed"""
-TOTAL_TIMESTEPS = 100_000_000
+TEAM2 = """
+Bronzong @ Lum Berry
+Ability: Heatproof
+EVs: 248 HP / 252 Atk / 8 SpD
+Brave Nature
+IVs: 0 Spe
+- Gyro Ball
+- Stealth Rock
+- Earthquake
+- Explosion
+
+Dragonite (M) @ Choice Band
+Ability: Inner Focus
+EVs: 48 HP / 252 Atk / 208 Spe
+Adamant Nature
+- Outrage
+- Dragon Claw
+- Extreme Speed
+- Earthquake
+
+Mamoswine (M) @ Life Orb
+Ability: Oblivious
+EVs: 252 Atk / 4 Def / 252 Spe
+Jolly Nature
+- Ice Shard
+- Earthquake
+- Stone Edge
+- Superpower
+
+Magnezone @ Leftovers
+Ability: Magnet Pull
+EVs: 140 HP / 252 SpA / 116 Spe
+Modest Nature
+IVs: 2 Atk / 30 SpA / 30 Spe
+- Thunderbolt
+- Thunder Wave
+- Substitute
+- Hidden Power [Fire]
+
+Flygon @ Choice Scarf
+Ability: Levitate
+EVs: 252 Atk / 6 Def / 252 Spe
+Adamant Nature
+- Outrage
+- Earthquake
+- Stone Edge
+- U-turn
+
+Kingdra (M) @ Chesto Berry
+Ability: Swift Swim
+EVs: 144 HP / 160 Atk / 40 SpD / 164 Spe
+Adamant Nature
+- Dragon Dance
+- Waterfall
+- Outrage
+- Rest"""
+TOTAL_TIMESTEPS = 1_000_000
+SELF_PLAY = True
 
 
 def train():
     # setup
-    opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM)
-    env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM)
+    opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM2)
+    env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
     ppo = PPO(MaskedActorCriticPolicy, wrapper_env, tensorboard_log="output/logs/ppo")
     num_saved_timesteps = 0
@@ -80,8 +137,9 @@ def train():
         num_saved_timesteps = max([int(file[4:-4]) for file in files])
         ppo.set_parameters(f"output/saves/ppo_{num_saved_timesteps}.zip")
         print(f"Resuming ppo_{num_saved_timesteps}.zip run.")
-    opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM)
-    ppo.env.set_opponent(opponent)  # type: ignore
+    if SELF_PLAY:
+        opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM1)
+        ppo.env.set_opponent(opponent)  # type: ignore
 
     def calc_learning_rate(progress_remaining: float) -> float:
         progress = 1 - progress_remaining
@@ -90,7 +148,9 @@ def train():
 
     ppo.learning_rate = calc_learning_rate
     # train
-    callback = Callback(102_400, num_saved_timesteps, ppo.n_steps, BATTLE_FORMAT, TEAM)
+    callback = Callback(
+        102_400, num_saved_timesteps, ppo.n_steps, BATTLE_FORMAT, TEAM1, TEAM2, SELF_PLAY
+    )
     ppo = ppo.learn(
         TOTAL_TIMESTEPS - num_saved_timesteps, callback=callback, reset_num_timesteps=False
     )

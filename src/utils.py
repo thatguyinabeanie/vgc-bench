@@ -50,7 +50,14 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 class Callback(BaseCallback):
     def __init__(
-        self, save_freq: int, num_saved_timesteps: int, n_steps: int, battle_format: str, team: str
+        self,
+        save_freq: int,
+        num_saved_timesteps: int,
+        n_steps: int,
+        battle_format: str,
+        team: str,
+        opp_team: str,
+        self_play: bool = False,
     ):
         super().__init__()
         self.save_freq = save_freq
@@ -58,20 +65,23 @@ class Callback(BaseCallback):
         self.n_steps = n_steps
         self.battle_format = battle_format
         self.team = team
+        self.self_play = self_play
+        eval_team = team if self_play else opp_team
         self.eval_opponents: list[Player] = [
-            RandomPlayer(battle_format=self.battle_format, team=self.team),
-            MaxBasePowerPlayer(battle_format=self.battle_format, team=self.team),
-            SimpleHeuristicsPlayer(battle_format=self.battle_format, team=self.team),
+            RandomPlayer(battle_format=self.battle_format, team=eval_team),
+            MaxBasePowerPlayer(battle_format=self.battle_format, team=eval_team),
+            SimpleHeuristicsPlayer(battle_format=self.battle_format, team=eval_team),
         ]
 
     def _on_step(self) -> bool:
         return True
 
     def on_rollout_end(self):
-        agent = Agent(self.model.policy, battle_format=self.battle_format, team=self.team)
-        self.model.env.set_opponent(agent)  # type: ignore
         self.total_timesteps += self.n_steps
         if self.total_timesteps % self.save_freq == 0:
+            agent = Agent(self.model.policy, battle_format=self.battle_format, team=self.team)
+            if self.self_play:
+                self.model.env.set_opponent(agent)  # type: ignore
             results = asyncio.run(agent.battle_against_multi(self.eval_opponents, n_battles=100))
             print(f"{time.strftime("%H:%M:%S")} - {results}")
             self.model.save(f"output/saves/ppo_{self.total_timesteps}")
