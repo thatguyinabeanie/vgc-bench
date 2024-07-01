@@ -12,7 +12,7 @@ from poke_env.environment import (
     PokemonType,
     Status,
 )
-from poke_env.player import BattleOrder, DefaultBattleOrder, ForfeitBattleOrder, Player
+from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
 
 
@@ -40,18 +40,12 @@ class Agent(Player):
     def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
         if action == -1:
             return ForfeitBattleOrder()
-        elif isinstance(battle, Battle):
-            if not Agent.get_action_space(battle):
-                return DefaultBattleOrder()
-            elif action not in Agent.get_action_space(battle):
-                return ForfeitBattleOrder()
-            elif action < 4:
-                assert battle.active_pokemon is not None
-                return Player.create_order(list(battle.active_pokemon.moves.values())[action])
-            else:
-                return Player.create_order(list(battle.team.values())[action - 4])
+        elif action < 4 and action < len(battle.available_moves) and not battle.force_switch:
+            return Player.create_order(battle.available_moves[action])
+        elif 0 <= action - 4 < len(battle.available_switches):
+            return Player.create_order(battle.available_switches[action - 4])
         else:
-            return ForfeitBattleOrder()
+            return Player.choose_random_move(battle)
 
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:

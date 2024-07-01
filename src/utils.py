@@ -78,10 +78,11 @@ class Callback(BaseCallback):
 
     def on_rollout_end(self):
         self.total_timesteps += self.n_steps
+        if self.self_play:
+            agent = Agent(self.model.policy, battle_format=self.battle_format, team=self.team)
+            self.model.env.set_opponent(agent)  # type: ignore
         if self.total_timesteps % self.save_freq == 0:
             agent = Agent(self.model.policy, battle_format=self.battle_format, team=self.team)
-            if self.self_play:
-                self.model.env.set_opponent(agent)  # type: ignore
             results = asyncio.run(agent.battle_against_multi(self.eval_opponents, n_battles=100))
             print(f"{time.strftime("%H:%M:%S")} - {results}")
             self.model.save(f"output/saves/ppo_{self.total_timesteps}")
