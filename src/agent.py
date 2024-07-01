@@ -12,8 +12,10 @@ from poke_env.environment import (
     PokemonType,
     Status,
 )
-from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
+from poke_env.player import BattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
+
+from env import ShowdownEnv
 
 
 class Agent(Player):
@@ -30,22 +32,11 @@ class Agent(Player):
                     self.embed_battle(battle), device=self.policy.device
                 ).view(1, -1)
                 action, _, _ = self.policy.forward(embedded_battle)
-            return Agent.action_to_move(int(action.item()), battle)
+            return ShowdownEnv.action_to_move(int(action.item()), battle)
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
         else:
             raise TypeError()
-
-    @staticmethod
-    def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
-        if action == -1:
-            return ForfeitBattleOrder()
-        elif action < 4 and action < len(battle.available_moves) and not battle.force_switch:
-            return Player.create_order(battle.available_moves[action])
-        elif 0 <= action - 4 < len(battle.available_switches):
-            return Player.create_order(battle.available_switches[action - 4])
-        else:
-            return Player.choose_random_move(battle)
 
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
