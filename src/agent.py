@@ -12,10 +12,8 @@ from poke_env.environment import (
     PokemonType,
     Status,
 )
-from poke_env.player import BattleOrder, Player
+from poke_env.player import BattleOrder, Gen4EnvSinglePlayer, Player
 from stable_baselines3.common.policies import BasePolicy
-
-from env import ShowdownEnv
 
 
 class Agent(Player):
@@ -32,7 +30,7 @@ class Agent(Player):
                     self.embed_battle(battle), device=self.policy.device
                 ).view(1, -1)
                 action, _, _ = self.policy.forward(embedded_battle)
-            return ShowdownEnv.action_to_move(int(action.item()), battle)
+            return Gen4EnvSinglePlayer.action_to_move(int(action.item()), battle)
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
         else:
