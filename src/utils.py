@@ -28,6 +28,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
         mean_actions = self.action_net(latent_pi)
+        action_space = [i for i, o in enumerate(obs[0][:10].tolist()) if o == 1]  # type: ignore
+        mask = torch.full((10,), float("-inf")).to(self.device)
+        mask[action_space] = 0
         distribution = self.action_dist.proba_distribution(mean_actions)
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
