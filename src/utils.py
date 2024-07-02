@@ -27,7 +27,8 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
         # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
-        distribution = self._get_action_dist_from_latent(latent_pi)
+        mean_actions = self.action_net(latent_pi)
+        distribution = self.action_dist.proba_distribution(mean_actions)
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
