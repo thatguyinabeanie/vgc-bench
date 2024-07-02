@@ -32,7 +32,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         mask = torch.full((10,), float("-inf")).to(self.device)
         mask[action_space] = 0
         masked_output = action_output + mask if action_space else action_output
-        distribution = self.action_dist.proba_distribution(output)
+        distribution = self.action_dist.proba_distribution(masked_output)
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
