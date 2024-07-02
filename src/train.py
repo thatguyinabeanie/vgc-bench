@@ -6,7 +6,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 
 from agent import Agent
 from env import ShowdownEnv, ShowdownVecEnvWrapper
-from utils import Callback
+from utils import Callback, MaskedActorCriticPolicy
 
 BATTLE_FORMAT = "gen4ou"
 TEAM1 = """
@@ -128,7 +128,7 @@ def train(total_timesteps: int, self_play: bool):
     opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM2)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
-    ppo = PPO("MlpPolicy", wrapper_env, tensorboard_log="output/logs/ppo")
+    ppo = PPO(MaskedActorCriticPolicy, wrapper_env, tensorboard_log="output/logs/ppo")
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
         files = os.listdir("output/saves")
@@ -155,4 +155,4 @@ def train(total_timesteps: int, self_play: bool):
 
 
 if __name__ == "__main__":
-    train(1_000_000, False)
+    train(100_000_000, True)

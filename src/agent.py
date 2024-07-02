@@ -12,7 +12,7 @@ from poke_env.environment import (
     PokemonType,
     Status,
 )
-from poke_env.player import BattleOrder, Gen4EnvSinglePlayer, Player
+from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
 
 
@@ -30,11 +30,28 @@ class Agent(Player):
                     self.embed_battle(battle), device=self.policy.device
                 ).view(1, -1)
                 action, _, _ = self.policy.forward(embedded_battle)
-            return Gen4EnvSinglePlayer.action_to_move(int(action.item()), battle)
+            return Agent.action_to_move(int(action.item()), battle)
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
         else:
             raise TypeError()
+
+    @staticmethod
+    def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
+        if action == -1:
+            return ForfeitBattleOrder()
+        elif isinstance(battle, Battle):
+            if not Agent.get_action_space(battle):
+                return Player.choose_random_move(battle)
+            elif action not in Agent.get_action_space(battle):
+                return Player.choose_random_move(battle)
+            elif action < 4:
+                assert battle.active_pokemon is not None
+                return Player.create_order(list(battle.active_pokemon.moves.values())[action])
+            else:
+                return Player.create_order(list(battle.team.values())[action - 4])
+        else:
+            return Player.choose_random_move(battle)
 
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
