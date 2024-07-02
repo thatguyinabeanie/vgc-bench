@@ -27,11 +27,11 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
         # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
-        output = self.action_net(latent_pi)
+        action_output = self.action_net(latent_pi)
         action_space = [i for i, o in enumerate(obs[0][:10].tolist()) if o == 1]  # type: ignore
         mask = torch.full((10,), float("-inf")).to(self.device)
         mask[action_space] = 0
-        masked_output = output + mask if action_space else output
+        masked_output = action_output + mask if action_space else action_output
         distribution = self.action_dist.proba_distribution(output)
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
