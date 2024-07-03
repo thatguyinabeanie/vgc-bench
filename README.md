@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ```
 
 # How to run
-In one terminal, navigate to `UT-masters-thesis` and run:
+In one terminal, navigate to `UT-masters-thesis/` and run:
 ```
 cd pokemon-showdown
 node pokemon-showdown start --no-security
@@ -41,4 +41,4 @@ Now do the following:
 1. Open a new terminal
 1. Navigate to `UT-masters-thesis/`
 1. Ensure that the Python virtual environment is activated (see above setup script for how to do this)
-1. Run `python src/train.py`.
+1. Run `python src/train.py`
