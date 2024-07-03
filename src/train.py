@@ -133,7 +133,7 @@ def train(total_timesteps: int, self_play: bool):
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
         files = os.listdir("output/saves")
         num_saved_timesteps = max([int(file[4:-4]) for file in files])
-        ppo.set_parameters(f"output/saves/ppo_{num_saved_timesteps}.zip")
+        ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
         print(f"Resuming ppo_{num_saved_timesteps}.zip run.")
     if self_play:
         opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM1)
