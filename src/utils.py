@@ -33,7 +33,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             mask[i] = (
                 mask[i]
                 if bool_mask[i].all()
-                else mask[i].masked_fill(bool_mask[i], torch.min(mean_actions[i]) - 10)
+                else mask[i].masked_fill(bool_mask[i], torch.min(mean_actions[i]) - 1)
             )
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         actions = distribution.get_actions(deterministic=deterministic)
@@ -58,7 +58,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             mask[i] = (
                 mask[i]
                 if bool_mask[i].all()
-                else mask[i].masked_fill(bool_mask[i], torch.min(mean_actions[i]) - 10)
+                else mask[i].masked_fill(bool_mask[i], torch.min(mean_actions[i]) - 1)
             )
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         log_prob = distribution.log_prob(actions)
