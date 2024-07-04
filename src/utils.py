@@ -43,6 +43,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         print("actions:", actions)
         mask = ~obs[:, :10].bool()  # type: ignore
         print("mask:", mask)
+        print(mask[torch.arange(mask.size(0)), actions])
         features = self.extract_features(obs)
         # print("features:", features)
         if self.share_features_extractor:
@@ -56,9 +57,13 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         #     if param._grad is not None:
         #         print(name, "grad:", (param._grad**2).mean())
         mean_actions = self.action_net(latent_pi)
-        masked_actions = (
-            mean_actions if mask.all() else mean_actions.masked_fill(mask, float("-inf"))
-        )
+        masked_actions = torch.zeros(mean_actions.size()).to(self.device)
+        for i in range(mask.size(0)):
+            masked_actions[i] = (
+                mean_actions[i]
+                if mask[i].all()
+                else mean_actions[i].masked_fill(mask[i], float("-inf"))
+            )
         distribution = self.action_dist.proba_distribution(action_logits=masked_actions)
         log_prob = distribution.log_prob(actions)
         values = self.value_net(latent_vf)
