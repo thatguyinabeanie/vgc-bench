@@ -136,7 +136,7 @@ def train(total_timesteps: int, self_play: bool):
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
         print(f"Resuming ppo_{num_saved_timesteps}.zip run.")
     if self_play:
-        opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM1)
+        opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
         ppo.env.set_opponent(opponent)  # type: ignore
 
     def calc_learning_rate(progress_remaining: float) -> float:
