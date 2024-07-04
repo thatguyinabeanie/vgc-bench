@@ -19,9 +19,8 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def forward(
         self, obs: torch.Tensor, deterministic: bool = True
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        distribution = self.get_distribution(obs)
+        distribution, values = self.get_distribution_and_values(obs)
         actions = distribution.get_actions(deterministic=deterministic)
-        values = self.predict_values(obs)
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
         return actions, values, log_prob
@@ -29,19 +28,18 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def evaluate_actions(
         self, obs: PyTorchObs, actions: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
-        distribution = self.get_distribution(obs)
-        values = self.predict_values(obs)
+        distribution, values = self.get_distribution_and_values(obs)
         log_prob = distribution.log_prob(actions)
         entropy = distribution.entropy()
         return values, log_prob, entropy
 
-    def get_distribution(self, obs: PyTorchObs) -> Distribution:
+    def get_distribution_and_values(self, obs: PyTorchObs) -> tuple[Distribution, torch.Tensor]:
         bool_mask = ~obs[:, :10].bool()  # type: ignore
         features = self.extract_features(obs)
         if self.share_features_extractor:
-            latent_pi, _ = self.mlp_extractor(features)
+            latent_pi, latent_vf = self.mlp_extractor(features)
         else:
-            pi_features, _ = features
+            pi_features, latent_vf = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
         mean_actions = self.action_net(latent_pi)
         mask = torch.zeros(bool_mask.size()).to(self.device)
@@ -53,7 +51,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
                     bool_mask[i], -(torch.max(mean_actions[i]) - torch.min(mean_actions[i]) + 1)
                 )
             )
-        return self.action_dist.proba_distribution(action_logits=mean_actions + mask)
+        distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
+        values = self.value_net(latent_vf)
+        return distribution, values
 
 
 class Callback(BaseCallback):
