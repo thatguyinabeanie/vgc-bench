@@ -128,7 +128,12 @@ def train(total_timesteps: int, self_play: bool):
     opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM2)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
-    ppo = PPO(MaskedActorCriticPolicy, wrapper_env, tensorboard_log="output/logs/ppo")
+    ppo = PPO(
+        MaskedActorCriticPolicy,
+        wrapper_env,
+        clip_range_vf=0.2,
+        tensorboard_log="output/logs/ppo",
+    )
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
         files = os.listdir("output/saves")
@@ -139,12 +144,12 @@ def train(total_timesteps: int, self_play: bool):
         opponent = Agent(ppo.policy, battle_format=BATTLE_FORMAT, team=TEAM1)
         ppo.env.set_opponent(opponent)  # type: ignore
 
-    def calc_learning_rate(progress_remaining: float) -> float:
-        progress = 1 - progress_remaining
-        saved_progress = num_saved_timesteps / total_timesteps
-        return 10**-4.23 / (8 * (progress + saved_progress) / (1 + saved_progress) + 1) ** 1.5
+    # def calc_learning_rate(progress_remaining: float) -> float:
+    #     progress = 1 - progress_remaining
+    #     saved_progress = num_saved_timesteps / total_timesteps
+    #     return 10**-4.23 / (8 * (progress + saved_progress) / (1 + saved_progress) + 1) ** 1.5
 
-    ppo.learning_rate = calc_learning_rate
+    # ppo.learning_rate = calc_learning_rate
     # train
     callback = Callback(
         102_400, num_saved_timesteps, ppo.n_steps, BATTLE_FORMAT, TEAM1, TEAM2, self_play

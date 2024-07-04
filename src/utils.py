@@ -6,6 +6,7 @@ import torch
 from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.type_aliases import PyTorchObs
 
 from agent import Agent
 
@@ -17,7 +18,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def forward(
         self, obs: torch.Tensor, deterministic: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        # Preprocess the observation if needed
+        mask = ~obs[:, :10].bool()
         features = self.extract_features(obs)
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
@@ -25,18 +26,44 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             pi_features, vf_features = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
-        # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
-        action_output = self.action_net(latent_pi)
-        action_space = [i for i, o in enumerate(obs[0][:10].tolist()) if o == 1]  # type: ignore
-        mask = torch.full((10,), float("-inf")).to(self.device)
-        mask[action_space] = 0
-        masked_output = action_output + mask if action_space else action_output
-        distribution = self.action_dist.proba_distribution(masked_output)
+        mean_actions = self.action_net(latent_pi)
+        masked_actions = (
+            mean_actions if mask.all() else mean_actions.masked_fill(mask, float("-inf"))
+        )
+        distribution = self.action_dist.proba_distribution(action_logits=masked_actions)
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
         return actions, values, log_prob
+
+    def evaluate_actions(
+        self, obs: PyTorchObs, actions: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
+        print("actions:", actions)
+        mask = ~obs[:, :10].bool()  # type: ignore
+        print("mask:", mask)
+        features = self.extract_features(obs)
+        # print("features:", features)
+        if self.share_features_extractor:
+            latent_pi, latent_vf = self.mlp_extractor(features)  # THE PROBLEM IS HERE
+        else:  # ignore this, it is skipped every time
+            pi_features, vf_features = features
+            latent_pi = self.mlp_extractor.forward_actor(pi_features)
+            latent_vf = self.mlp_extractor.forward_critic(vf_features)
+        # print("latent_pi:", latent_pi)
+        # for name, param in self.mlp_extractor.named_parameters():
+        #     if param._grad is not None:
+        #         print(name, "grad:", (param._grad**2).mean())
+        mean_actions = self.action_net(latent_pi)
+        masked_actions = (
+            mean_actions if mask.all() else mean_actions.masked_fill(mask, float("-inf"))
+        )
+        distribution = self.action_dist.proba_distribution(action_logits=masked_actions)
+        log_prob = distribution.log_prob(actions)
+        values = self.value_net(latent_vf)
+        entropy = distribution.entropy()
+        return values, log_prob, entropy
 
 
 class Callback(BaseCallback):
