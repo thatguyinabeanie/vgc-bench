@@ -128,11 +128,7 @@ def train(total_timesteps: int, self_play: bool):
     opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM2)
     env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
-    ppo = PPO(
-        MaskedActorCriticPolicy,
-        wrapper_env,
-        tensorboard_log="output/logs/ppo",
-    )
+    ppo = PPO(MaskedActorCriticPolicy, wrapper_env, tensorboard_log="output/logs/ppo")
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
         files = os.listdir("output/saves")

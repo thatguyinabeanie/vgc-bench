@@ -44,7 +44,7 @@ class Agent(Player):
             if not Agent.get_action_space(battle):
                 return Player.choose_random_move(battle)
             elif action not in Agent.get_action_space(battle):
-                return Player.choose_random_move(battle)
+                raise LookupError()
             elif action < 4:
                 assert battle.active_pokemon is not None
                 return Player.create_order(list(battle.active_pokemon.moves.values())[action])

@@ -16,9 +16,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         super().__init__(*args, **kwargs)
 
     def forward(
-        self, obs: torch.Tensor, deterministic: bool = False
+        self, obs: torch.Tensor, deterministic: bool = True
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        mask = ~obs[:, :10].bool()
+        bool_mask = ~obs[:, :10].bool()
         features = self.extract_features(obs)
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
@@ -28,14 +28,14 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
         values = self.value_net(latent_vf)
         mean_actions = self.action_net(latent_pi)
-        masked_actions = torch.zeros(mean_actions.size()).to(self.device)
-        for i in range(mean_actions.size(0)):
-            masked_actions[i] = (
-                mean_actions[i]
-                if mask[i].all()
-                else mean_actions[i].masked_fill(mask[i], -10)
+        mask = torch.zeros(bool_mask.size()).to(self.device)
+        for i in range(mask.size(0)):
+            mask[i] = (
+                mask[i]
+                if bool_mask[i].all()
+                else mask[i].masked_fill(bool_mask[i], torch.min(mean_actions[i]) - 10)
             )
-        distribution = self.action_dist.proba_distribution(action_logits=masked_actions)
+        distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
@@ -44,31 +44,23 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def evaluate_actions(
         self, obs: PyTorchObs, actions: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
-        # print("actions:", actions)
-        mask = ~obs[:, :10].bool()  # type: ignore
-        # print("mask:", mask)
-        # print(mask[torch.arange(mask.size(0)), actions])
+        bool_mask = ~obs[:, :10].bool()  # type: ignore
         features = self.extract_features(obs)
-        # print("features:", features)
         if self.share_features_extractor:
-            latent_pi, latent_vf = self.mlp_extractor(features)  # THE PROBLEM IS HERE
-        else:  # ignore this, it is skipped every time
+            latent_pi, latent_vf = self.mlp_extractor(features)
+        else:
             pi_features, vf_features = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
-        # print("latent_pi:", latent_pi)
-        # for name, param in self.mlp_extractor.named_parameters():
-        #     if param._grad is not None:
-        #         print(name, "grad:", (param._grad**2).mean())
         mean_actions = self.action_net(latent_pi)
-        masked_actions = torch.zeros(mean_actions.size()).to(self.device)
-        for i in range(mean_actions.size(0)):
-            masked_actions[i] = (
-                mean_actions[i]
-                if mask[i].all()
-                else mean_actions[i].masked_fill(mask[i], -10)
+        mask = torch.zeros(bool_mask.size()).to(self.device)
+        for i in range(mask.size(0)):
+            mask[i] = (
+                mask[i]
+                if bool_mask[i].all()
+                else mask[i].masked_fill(bool_mask[i], torch.min(mean_actions[i]) - 10)
             )
-        distribution = self.action_dist.proba_distribution(action_logits=masked_actions)
+        distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         log_prob = distribution.log_prob(actions)
         values = self.value_net(latent_vf)
         entropy = distribution.entropy()
