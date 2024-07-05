@@ -1,7 +1,9 @@
 black
 isort
+numpy==1.26.4
 git+https://github.com/cameronangliss/poke-env.git@improve-battle_against-method
 pyright
 stable_baselines3
 tensorboard
 torch
+torch-tb-profiler
