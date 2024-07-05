@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution
-from stable_baselines3.common.policies import ActorCriticPolicy, BasePolicy
+from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.type_aliases import PyTorchObs
 
 
@@ -13,9 +14,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def clone(cls, policy: BasePolicy) -> MaskedActorCriticPolicy:
-        new_policy = cls(policy.observation_space, policy.action_space, policy.lr_schedule)
-        new_policy.load_state_dict(policy.state_dict())
+    def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
+        new_policy = cls(model.observation_space, model.action_space, model.lr_schedule)
+        new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
 
     def forward(

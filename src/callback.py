@@ -38,7 +38,7 @@ class Callback(BaseCallback):
     def _on_rollout_start(self):
         if self.self_play:
             agent = Agent(
-                MaskedActorCriticPolicy.clone(self.model.policy),
+                MaskedActorCriticPolicy.clone(self.model),
                 battle_format=self.battle_format,
                 log_level=40,
                 team=self.team,
@@ -46,7 +46,7 @@ class Callback(BaseCallback):
             self.model.env.set_opponent(agent)  # type: ignore
         if self.total_timesteps % self.save_freq == 0:
             agent = Agent(
-                MaskedActorCriticPolicy.clone(self.model.policy),
+                MaskedActorCriticPolicy.clone(self.model),
                 battle_format=self.battle_format,
                 log_level=40,
                 team=self.team,
