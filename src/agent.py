@@ -41,9 +41,10 @@ class Agent(Player):
         if action == -1:
             return ForfeitBattleOrder()
         elif isinstance(battle, Battle):
-            if not Agent.get_action_space(battle):
+            action_space = Agent.get_action_space(battle)
+            if not action_space:
                 return Player.choose_random_move(battle)
-            elif action not in Agent.get_action_space(battle):
+            elif action not in action_space:
                 raise LookupError()
             elif action < 4:
                 assert battle.active_pokemon is not None
