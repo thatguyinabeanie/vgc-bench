@@ -20,6 +20,7 @@ multi_line_output = 3
 include = ["src"]
 pythonVersion = "3.12"
 reportMissingTypeStubs = false
+reportUnknownLambdaType = false
 reportUnknownMemberType = false
 reportUnknownParameterType = false
 reportUnknownVariableType = false

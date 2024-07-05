@@ -1,9 +1,10 @@
 import os
 
-from poke_env.player import SimpleHeuristicsPlayer
+from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 
+from agent import Agent
 from callback import Callback
 from env import ShowdownEnv, ShowdownVecEnvWrapper
 from policy import MaskedActorCriticPolicy
@@ -12,10 +13,22 @@ from teams import TEAM1, TEAM2
 BATTLE_FORMAT = "gen4ou"
 
 
-def train(total_timesteps: int, self_play: bool):
+def train(total_timesteps: int):
     # setup
-    opponent = SimpleHeuristicsPlayer(battle_format=BATTLE_FORMAT, team=TEAM2)
-    env = ShowdownEnv(opponent, battle_format=BATTLE_FORMAT, log_level=40, team=TEAM1)
+    dummy_opponent = Agent(
+        None,
+        account_configuration=AccountConfiguration("DummyOpponent", None),
+        battle_format=BATTLE_FORMAT,
+        log_level=40,
+        team=TEAM2,
+    )
+    env = ShowdownEnv(
+        dummy_opponent,
+        account_configuration=AccountConfiguration("Agent", None),
+        battle_format=BATTLE_FORMAT,
+        log_level=40,
+        team=TEAM1,
+    )
     wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
@@ -37,11 +50,11 @@ def train(total_timesteps: int, self_play: bool):
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
         print(f"Resuming ppo_{num_saved_timesteps}.zip run.")
     # train
-    callback = Callback(102_400, num_saved_timesteps, BATTLE_FORMAT, TEAM1, TEAM2, self_play)
+    callback = Callback(num_saved_timesteps, 102_400, BATTLE_FORMAT, TEAM1)
     ppo = ppo.learn(
         total_timesteps - num_saved_timesteps, callback=callback, reset_num_timesteps=False
     )
 
 
 if __name__ == "__main__":
-    train(100_000_000, True)
+    train(100_000_000)

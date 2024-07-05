@@ -3,6 +3,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 import torch
+from gymnasium.spaces import Box, Discrete
 from poke_env.environment import (
     AbstractBattle,
     Battle,
@@ -15,13 +16,22 @@ from poke_env.environment import (
 from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
 
+from policy import MaskedActorCriticPolicy
+
 
 class Agent(Player):
     policy: BasePolicy
 
-    def __init__(self, policy: BasePolicy, *args: Any, **kwargs: Any):
+    def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.policy = policy
+        if policy is not None:
+            self.policy = policy
+        else:
+            self.policy = MaskedActorCriticPolicy(
+                observation_space=Box(0.0, 1.0, shape=(1414,), dtype=np.float32),
+                action_space=Discrete(10),
+                lr_schedule=lambda x: 1e-4,
+            )
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         if isinstance(battle, Battle):
