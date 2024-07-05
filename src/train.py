@@ -37,8 +37,8 @@ def train(total_timesteps: int):
 
     def calc_learning_rate(progress_remaining: float) -> float:
         progress = 1 - progress_remaining
-        saved_progress = num_saved_timesteps / total_timesteps
-        return 10**-4.23 / (8 * (progress + saved_progress) / (1 + saved_progress) + 1) ** 1.5
+        saved_prog_frac = num_saved_timesteps / total_timesteps
+        return 10**-4.23 / (8 * (progress + saved_prog_frac) / (1 + saved_prog_frac) + 1) ** 1.5
 
     ppo = PPO(
         MaskedActorCriticPolicy,
