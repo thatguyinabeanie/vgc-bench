@@ -58,7 +58,7 @@ class Agent(Player):
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             return np.concatenate(
-                [[float(i in Agent.get_action_space(battle)) for i in range(10)]]
+                [[float(i not in Agent.get_action_space(battle)) for i in range(10)]]
                 + [Agent.embed_pokemon(p) for p in battle.team.values()]
                 + [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
                 + [torch.zeros(117)] * (12 - len(battle.team) - len(battle.opponent_team)),

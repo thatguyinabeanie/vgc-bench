@@ -35,7 +35,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return values, log_prob, entropy
 
     def get_distribution_and_values(self, obs: PyTorchObs) -> tuple[Distribution, torch.Tensor]:
-        bool_mask = ~obs[:, :10].bool()  # type: ignore
         features = self.extract_features(obs)
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
@@ -43,11 +42,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             pi_features, latent_vf = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
         mean_actions = self.action_net(latent_pi)
-        mask = torch.zeros(bool_mask.size()).to(self.device)
-        for i in range(mask.size(0)):
-            mask[i] = (
-                mask[i] if bool_mask[i].all() else mask[i].masked_fill(bool_mask[i], float("-inf"))
-            )
+        illegals = obs[:, :10]  # type: ignore
+        mask = torch.where(illegals.sum(dim=1, keepdim=True) == illegals.size(1), 0.0, illegals)
+        mask = torch.where(mask == 1, float("-inf"), mask)
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         values = self.value_net(latent_vf)
         return distribution, values
