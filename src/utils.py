@@ -18,7 +18,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         super().__init__(*args, **kwargs)
 
     def forward(
-        self, obs: torch.Tensor, deterministic: bool = True
+        self, obs: torch.Tensor, deterministic: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         distribution, values = self.get_distribution_and_values(obs)
         actions = distribution.get_actions(deterministic=deterministic)
@@ -46,11 +46,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         mask = torch.zeros(bool_mask.size()).to(self.device)
         for i in range(mask.size(0)):
             mask[i] = (
-                mask[i]
-                if bool_mask[i].all()
-                else mask[i].masked_fill(
-                    bool_mask[i], -(torch.max(mean_actions[i]) - torch.min(mean_actions[i]) + 1)
-                )
+                mask[i] if bool_mask[i].all() else mask[i].masked_fill(bool_mask[i], float("-inf"))
             )
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         values = self.value_net(latent_vf)
