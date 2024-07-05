@@ -1,11 +1,11 @@
 import asyncio
 import time
-from copy import deepcopy
 
 from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
 from stable_baselines3.common.callbacks import BaseCallback
 
 from agent import Agent
+from policy import MaskedActorCriticPolicy
 
 
 class Callback(BaseCallback):
@@ -35,10 +35,10 @@ class Callback(BaseCallback):
         self.total_timesteps += 1
         return True
 
-    def on_rollout_end(self):
+    def _on_rollout_start(self):
         if self.self_play:
             agent = Agent(
-                deepcopy(self.model.policy),
+                MaskedActorCriticPolicy.clone(self.model.policy),
                 battle_format=self.battle_format,
                 log_level=40,
                 team=self.team,
@@ -46,7 +46,7 @@ class Callback(BaseCallback):
             self.model.env.set_opponent(agent)  # type: ignore
         if self.total_timesteps % self.save_freq == 0:
             agent = Agent(
-                deepcopy(self.model.policy),
+                MaskedActorCriticPolicy.clone(self.model.policy),
                 battle_format=self.battle_format,
                 log_level=40,
                 team=self.team,

@@ -1,14 +1,22 @@
+from __future__ import annotations
+
 from typing import Any
 
 import torch
 from stable_baselines3.common.distributions import Distribution
-from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.policies import ActorCriticPolicy, BasePolicy
 from stable_baselines3.common.type_aliases import PyTorchObs
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
+
+    @classmethod
+    def clone(cls, policy: BasePolicy) -> MaskedActorCriticPolicy:
+        new_policy = cls(policy.observation_space, policy.action_space, policy.lr_schedule)
+        new_policy.load_state_dict(policy.state_dict())
+        return new_policy
 
     def forward(
         self, obs: torch.Tensor, deterministic: bool = False
