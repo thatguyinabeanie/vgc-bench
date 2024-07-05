@@ -35,7 +35,7 @@ class Callback(BaseCallback):
         self.total_timesteps += 1
         return True
 
-    def on_rollout_start(self):
+    def on_rollout_end(self):
         if self.self_play:
             agent = Agent(
                 deepcopy(self.model.policy),
