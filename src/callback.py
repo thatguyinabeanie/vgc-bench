@@ -44,7 +44,7 @@ class Callback(BaseCallback):
                 team=self.team,
             )
             self.model.env.set_opponent(agent)  # type: ignore
-    
+
     def _on_rollout_end(self):
         if self.total_timesteps % self.save_freq == 0:
             agent = Agent(
