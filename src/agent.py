@@ -8,10 +8,14 @@ from poke_env.environment import (
     AbstractBattle,
     Battle,
     DoubleBattle,
+    Effect,
     Move,
     Pokemon,
+    PokemonGender,
     PokemonType,
+    SideCondition,
     Status,
+    Weather,
 )
 from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
@@ -21,6 +25,7 @@ from policy import MaskedActorCriticPolicy
 
 class Agent(Player):
     policy: BasePolicy
+    obs_len: int = 2006
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -28,7 +33,7 @@ class Agent(Player):
             self.policy = policy
         else:
             self.policy = MaskedActorCriticPolicy(
-                observation_space=Box(0.0, 1.0, shape=(1414,), dtype=np.float32),
+                observation_space=Box(0.0, 1.0, shape=(self.obs_len,), dtype=np.float32),
                 action_space=Discrete(10),
                 lr_schedule=lambda x: 1e-4,
             )
@@ -67,11 +72,43 @@ class Agent(Player):
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
+            assert battle.active_pokemon is not None
+            assert battle.opponent_active_pokemon is not None
+            mask = np.array([float(i not in Agent.get_action_space(battle)) for i in range(10)])
+            boosts = np.array([b / 12 + 0.5 for b in battle.active_pokemon.boosts.values()])
+            opp_boosts = np.array(
+                [b / 12 + 0.5 for b in battle.opponent_active_pokemon.boosts.values()]
+            )
+            side_condition = np.array(
+                [float(s in battle.side_conditions.keys()) for s in SideCondition]
+            )
+            opp_side_condition = np.array(
+                [float(s in battle.opponent_side_conditions.keys()) for s in SideCondition]
+            )
+            effects = np.array([float(e in battle.active_pokemon.effects.keys()) for e in Effect])
+            opp_effects = np.array(
+                [float(e in battle.opponent_active_pokemon.effects.keys()) for e in Effect]
+            )
+            weather = np.array([float(w in battle.weather.keys()) for w in Weather])
+            force_switch = np.array([float(battle.force_switch)])
+            team = [Agent.embed_pokemon(p) for p in battle.team.values()]
+            team = np.concatenate([*team, np.zeros(124 * (6 - len(battle.team)))])
+            opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
+            opp_team = np.concatenate([*opp_team, np.zeros(124 * (6 - len(battle.opponent_team)))])
             return np.concatenate(
-                [[float(i not in Agent.get_action_space(battle)) for i in range(10)]]
-                + [Agent.embed_pokemon(p) for p in battle.team.values()]
-                + [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-                + [torch.zeros(117)] * (12 - len(battle.team) - len(battle.opponent_team)),
+                [
+                    mask,
+                    boosts,
+                    opp_boosts,
+                    side_condition,
+                    opp_side_condition,
+                    effects,
+                    opp_effects,
+                    weather,
+                    force_switch,
+                    team,
+                    opp_team,
+                ],
                 dtype=np.float32,
             )
         elif isinstance(battle, DoubleBattle):
@@ -82,20 +119,21 @@ class Agent(Player):
     @staticmethod
     def embed_pokemon(pokemon: Pokemon) -> npt.NDArray[np.float32]:
         level = pokemon.level / 100
+        gender = [float(g == pokemon.gender) for g in PokemonGender]
         hp_frac = pokemon.current_hp_fraction
         status = [float(s == pokemon.status) for s in Status]
         types = [float(t in pokemon.types) for t in PokemonType]
-        moves = [Agent.embed_move(m) for m in pokemon.moves.values()] + [torch.zeros(22)] * (
-            4 - len(pokemon.moves)
-        )
-        return np.concatenate([np.array([level, hp_frac, *status, *types])] + moves)
+        moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
+        moves = np.concatenate([*moves, np.zeros(23 * (4 - len(pokemon.moves)))])
+        return np.array([level, *gender, hp_frac, *status, *types, *moves])
 
     @staticmethod
     def embed_move(move: Move) -> npt.NDArray[np.float32]:
         power = move.base_power / 250
         acc = move.accuracy / 100
+        pp_frac = move.current_pp / move.max_pp
         move_type = [float(t == move.type) for t in PokemonType]
-        return np.array([power, acc, *move_type])
+        return np.array([power, acc, pp_frac, *move_type])
 
     @staticmethod
     def get_action_space(battle: AbstractBattle) -> list[int]:

@@ -3,6 +3,7 @@ import os
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
+from torch import nn
 
 from agent import Agent
 from callback import Callback
@@ -38,13 +39,24 @@ def train(total_timesteps: int):
     def calc_learning_rate(progress_remaining: float) -> float:
         progress = 1 - progress_remaining
         saved_prog_frac = num_saved_timesteps / total_timesteps
-        return 3e-4 / (8 * (progress + saved_prog_frac) / (1 + saved_prog_frac) + 1) ** 1.5
+        return 10**-4.23 / (8 * (progress + saved_prog_frac) / (1 + saved_prog_frac) + 1) ** 1.5
 
     ppo = PPO(
         MaskedActorCriticPolicy,
         wrapper_env,
         learning_rate=calc_learning_rate,
+        n_steps=8 * 512,
+        batch_size=1024,
+        n_epochs=7,
+        gamma=0.9999,
+        gae_lambda=0.754,
+        clip_range=0.0829,
+        clip_range_vf=0.0184,
+        ent_coef=0.0588,
+        vf_coef=0.4375,
+        max_grad_norm=0.5430,
         tensorboard_log="output/logs/ppo",
+        policy_kwargs={"activation_fn": nn.ReLU, "net_arch": MaskedActorCriticPolicy.arch},
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))

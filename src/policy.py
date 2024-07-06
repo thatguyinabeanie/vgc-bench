@@ -10,7 +10,10 @@ from stable_baselines3.common.type_aliases import PyTorchObs
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
+    arch: list[int] = [256, 256, 256, 256, 256]
+
     def __init__(self, *args: Any, **kwargs: Any):
+        kwargs["net_arch"] = self.arch
         super().__init__(*args, **kwargs)
 
     @classmethod
