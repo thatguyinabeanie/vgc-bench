@@ -8,7 +8,7 @@ from agent import Agent
 from callback import Callback
 from env import ShowdownEnv, ShowdownVecEnvWrapper
 from policy import MaskedActorCriticPolicy
-from teams import TEAM1, TEAM2
+from teams import TEAM1
 
 BATTLE_FORMAT = "gen4ou"
 
@@ -20,7 +20,7 @@ def train(total_timesteps: int):
         account_configuration=AccountConfiguration("DummyOpponent", None),
         battle_format=BATTLE_FORMAT,
         log_level=40,
-        team=TEAM2,
+        team=TEAM1,
     )
     env = ShowdownEnv(
         dummy_opponent,
@@ -38,7 +38,7 @@ def train(total_timesteps: int):
     def calc_learning_rate(progress_remaining: float) -> float:
         progress = 1 - progress_remaining
         saved_prog_frac = num_saved_timesteps / total_timesteps
-        return 10**-4.23 / (8 * (progress + saved_prog_frac) / (1 + saved_prog_frac) + 1) ** 1.5
+        return 3e-4 / (8 * (progress + saved_prog_frac) / (1 + saved_prog_frac) + 1) ** 1.5
 
     ppo = PPO(
         MaskedActorCriticPolicy,
@@ -57,4 +57,4 @@ def train(total_timesteps: int):
 
 
 if __name__ == "__main__":
-    train(100_000_000)
+    train(1_000_000)
