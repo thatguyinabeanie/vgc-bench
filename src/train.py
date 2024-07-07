@@ -38,7 +38,7 @@ def train():
         num_saved_timesteps = max([int(file[4:-4]) for file in files])
 
     def calc_learning_rate(progress_remaining: float) -> float:
-        progress = (num_saved_timesteps + steps * (1 - progress_remaining)) / total_steps
+        progress = (1 - progress_remaining) * (num_saved_timesteps + steps) / total_steps
         return 1e-4 / (8 * progress + 1) ** 1.5
 
     ppo = PPO(
