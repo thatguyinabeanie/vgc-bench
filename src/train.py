@@ -14,7 +14,7 @@ from teams import TEAM1
 
 def train():
     # setup
-    total_steps = 100_000_000
+    total_steps = 10_000_000
     steps = 102_400
     battle_format = "gen4ou"
     dummy_opponent = Agent(
@@ -39,7 +39,7 @@ def train():
 
     def calc_learning_rate(progress_remaining: float) -> float:
         progress = (1 - progress_remaining) * (num_saved_timesteps + steps) / total_steps
-        return 1e-4 / (8 * progress + 1) ** 1.5
+        return 10**-4.23 / (8 * progress + 1) ** 1.5
 
     ppo = PPO(
         MaskedActorCriticPolicy,
