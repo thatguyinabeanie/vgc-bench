@@ -38,6 +38,9 @@ class Callback(BaseCallback):
         self.total_timesteps += 1
         return True
 
+    def _on_training_start(self):
+        self.model.num_timesteps = self.total_timesteps
+
     def _on_rollout_start(self):
         self.opponent.policy = MaskedActorCriticPolicy.clone(self.model)
         self.model.env.set_opponent(self.opponent)  # type: ignore
