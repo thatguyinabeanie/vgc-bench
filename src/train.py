@@ -2,12 +2,11 @@ import os
 
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 
 from agent import Agent
 from callback import Callback
-from env import ShowdownEnv, ShowdownVecEnvWrapper
+from env import ShowdownEnv
 from policy import MaskedActorCriticPolicy
 from teams import TEAM1
 
@@ -17,21 +16,20 @@ def train():
     total_steps = 10_000_000
     steps = 102_400
     battle_format = "gen4ou"
-    dummy_opponent = Agent(
+    opponent = Agent(
         None,
-        account_configuration=AccountConfiguration("DummyOpponent", None),
+        account_configuration=AccountConfiguration("Opponent", None),
         battle_format=battle_format,
         log_level=40,
         team=TEAM1,
     )
     env = ShowdownEnv(
-        dummy_opponent,
+        opponent,
         account_configuration=AccountConfiguration("Agent", None),
         battle_format=battle_format,
         log_level=40,
         team=TEAM1,
     )
-    wrapper_env = ShowdownVecEnvWrapper(DummyVecEnv([lambda: env]), env)
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
         files = os.listdir("output/saves")
@@ -43,7 +41,7 @@ def train():
 
     ppo = PPO(
         MaskedActorCriticPolicy,
-        wrapper_env,
+        env,
         learning_rate=calc_learning_rate,
         n_steps=2048,
         batch_size=128,
@@ -62,7 +60,7 @@ def train():
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
         print(f"Resuming ppo_{num_saved_timesteps}.zip run.")
     # train
-    callback = Callback(num_saved_timesteps, steps, battle_format, TEAM1)
+    callback = Callback(opponent, num_saved_timesteps, steps, battle_format, TEAM1)
     ppo = ppo.learn(num_saved_timesteps + steps, callback=callback, reset_num_timesteps=False)
 
 

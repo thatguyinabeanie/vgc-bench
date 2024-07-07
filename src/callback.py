@@ -10,17 +10,11 @@ from policy import MaskedActorCriticPolicy
 
 
 class Callback(BaseCallback):
-    def __init__(self, num_saved_timesteps: int, save_freq: int, battle_format: str, team: str):
+    def __init__(self, opponent: Agent, num_saved_timesteps: int, save_freq: int, battle_format: str, team: str):
         super().__init__()
+        self.opponent = opponent
         self.num_saved_timesteps = num_saved_timesteps
         self.save_freq = save_freq
-        self.opponent = Agent(
-            None,
-            account_configuration=AccountConfiguration("Opponent", None),
-            battle_format=battle_format,
-            log_level=40,
-            team=team,
-        )
         self.eval_agent = Agent(
             None,
             account_configuration=AccountConfiguration("EvalAgent", None),
@@ -42,7 +36,6 @@ class Callback(BaseCallback):
 
     def _on_rollout_start(self):
         self.opponent.policy = MaskedActorCriticPolicy.clone(self.model)
-        self.model.env.set_opponent(self.opponent)  # type: ignore
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_freq == 0:
