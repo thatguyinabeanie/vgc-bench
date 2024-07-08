@@ -47,6 +47,8 @@ class Callback(BaseCallback):
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_freq == 0:
+            for i in range(len(self.opponents) - 1):
+                assert self.model.env.envs[i].get_opponent() is self.opponents[i + 1]  # type: ignore
             self.eval_agent.policy = MaskedActorCriticPolicy.clone(self.model)
             results = asyncio.run(
                 self.eval_agent.battle_against_multi(self.eval_opponents, n_battles=100)
