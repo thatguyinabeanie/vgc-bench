@@ -14,9 +14,9 @@ from teams import TEAM1
 
 def train():
     # setup
-    total_steps = 100_000_000
+    total_steps = 10_000_000
     steps = 102_400
-    num_envs = 32
+    num_envs = 8
     battle_format = "gen4ou"
     opponents = [
         Agent(
@@ -53,8 +53,8 @@ def train():
         MaskedActorCriticPolicy,
         env,
         learning_rate=calc_learning_rate,
-        n_steps=128,
-        batch_size=1024,
+        n_steps=4096 // num_envs,
+        batch_size=256,
         n_epochs=7,
         gamma=0.9999,
         gae_lambda=0.754,
