@@ -10,9 +10,16 @@ from policy import MaskedActorCriticPolicy
 
 
 class Callback(BaseCallback):
-    def __init__(self, opponent: Agent, num_saved_timesteps: int, save_freq: int, battle_format: str, team: str):
+    def __init__(
+        self,
+        opponents: list[Agent],
+        num_saved_timesteps: int,
+        save_freq: int,
+        battle_format: str,
+        team: str,
+    ):
         super().__init__()
-        self.opponent = opponent
+        self.opponents = opponents
         self.num_saved_timesteps = num_saved_timesteps
         self.save_freq = save_freq
         self.eval_agent = Agent(
@@ -35,7 +42,8 @@ class Callback(BaseCallback):
         self.model.num_timesteps = self.num_saved_timesteps
 
     def _on_rollout_start(self):
-        self.opponent.policy = MaskedActorCriticPolicy.clone(self.model)
+        for opponent in self.opponents:
+            opponent.policy = MaskedActorCriticPolicy.clone(self.model)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_freq == 0:

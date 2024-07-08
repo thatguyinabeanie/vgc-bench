@@ -2,6 +2,7 @@ import os
 
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 
 from agent import Agent
@@ -13,22 +14,31 @@ from teams import TEAM1
 
 def train():
     # setup
-    total_steps = 10_000_000
+    total_steps = 100_000_000
     steps = 102_400
+    num_envs = 32
     battle_format = "gen4ou"
-    opponent = Agent(
-        None,
-        account_configuration=AccountConfiguration("Opponent", None),
-        battle_format=battle_format,
-        log_level=40,
-        team=TEAM1,
-    )
-    env = ShowdownEnv(
-        opponent,
-        account_configuration=AccountConfiguration("Agent", None),
-        battle_format=battle_format,
-        log_level=40,
-        team=TEAM1,
+    opponents = [
+        Agent(
+            None,
+            account_configuration=AccountConfiguration(f"Opponent{i}", None),
+            battle_format=battle_format,
+            log_level=40,
+            team=TEAM1,
+        )
+        for i in range(num_envs)
+    ]
+    env = DummyVecEnv(
+        [
+            lambda i=i: ShowdownEnv(
+                opponents[i],
+                account_configuration=AccountConfiguration(f"Agent{i}", None),
+                battle_format=battle_format,
+                log_level=40,
+                team=TEAM1,
+            )
+            for i in range(num_envs)
+        ]
     )
     num_saved_timesteps = 0
     if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
@@ -43,10 +53,10 @@ def train():
         MaskedActorCriticPolicy,
         env,
         learning_rate=calc_learning_rate,
-        n_steps=2048,
-        batch_size=128,
+        n_steps=128,
+        batch_size=1024,
         n_epochs=7,
-        gamma=0.999,
+        gamma=0.9999,
         gae_lambda=0.754,
         clip_range=0.0829,
         clip_range_vf=0.0184,
@@ -58,9 +68,8 @@ def train():
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
-        print(f"Resuming ppo_{num_saved_timesteps}.zip run.")
     # train
-    callback = Callback(opponent, num_saved_timesteps, steps, battle_format, TEAM1)
+    callback = Callback(opponents, num_saved_timesteps, steps, battle_format, TEAM1)
     ppo = ppo.learn(num_saved_timesteps + steps, callback=callback, reset_num_timesteps=False)
 
 
