@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 from poke_env import AccountConfiguration
 from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
@@ -51,6 +50,8 @@ class Callback(BaseCallback):
             results = asyncio.run(
                 self.eval_agent.battle_against_multi(self.eval_opponents, n_battles=100)
             )
-            print(f"{time.strftime("%H:%M:%S")} - {results}")
+            self.model.logger.record("eval/random", results["RandomPlayer 1"])
+            self.model.logger.record("eval/power", results["MaxBasePowerPlay 1"])
+            self.model.logger.record("eval/heuristics", results["SimpleHeuristics 1"])
             self.model.save(f"output/saves/ppo_{self.model.num_timesteps}")
             print(f"Saved checkpoint ppo_{self.model.num_timesteps}.zip")
