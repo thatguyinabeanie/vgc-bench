@@ -29,6 +29,7 @@ class Callback(BaseCallback):
             team=team,
         )
         self.eval_opponents: list[Player] = [
+            self.opponents[0],
             RandomPlayer(battle_format=battle_format, log_level=40, team=team),
             MaxBasePowerPlayer(battle_format=battle_format, log_level=40, team=team),
             SimpleHeuristicsPlayer(battle_format=battle_format, log_level=40, team=team),
@@ -50,6 +51,7 @@ class Callback(BaseCallback):
             results = asyncio.run(
                 self.eval_agent.battle_against_multi(self.eval_opponents, n_battles=100)
             )
+            self.model.logger.record("eval/opponent", results["Opponent0"])
             self.model.logger.record("eval/random", results["RandomPlayer 1"])
             self.model.logger.record("eval/power", results["MaxBasePowerPlay 1"])
             self.model.logger.record("eval/heuristics", results["SimpleHeuristics 1"])

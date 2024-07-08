@@ -26,13 +26,13 @@ def train():
             log_level=40,
             team=TEAM1,
         )
-        for i in range(num_envs)
+        for i in range(num_envs + 1)
     ]
     env = DummyVecEnv(
         [
             lambda i=i: ShowdownEnv(
-                opponents[i],
-                account_configuration=AccountConfiguration(f"Agent{i}", None),
+                opponents[i + 1],
+                account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
                 battle_format=battle_format,
                 log_level=40,
                 team=TEAM1,
