@@ -19,17 +19,17 @@ def train():
     opponents = [
         Agent(
             None,
-            account_configuration=AccountConfiguration(f"Opponent{i}", None),
+            account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
             battle_format=battle_format,
             log_level=40,
             team=TEAM1,
         )
-        for i in range(num_envs + 1)
+        for i in range(num_envs)
     ]
     env = DummyVecEnv(
         [
             lambda i=i: ShowdownEnv(
-                opponents[i + 1],
+                opponents[i],
                 account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
                 battle_format=battle_format,
                 log_level=40,
@@ -53,7 +53,7 @@ def train():
         learning_rate=calc_learning_rate,
         n_steps=2048 // num_envs,
         tensorboard_log="output/logs/ppo",
-        policy_kwargs={"net_arch": MaskedActorCriticPolicy.arch}
+        policy_kwargs={"net_arch": MaskedActorCriticPolicy.arch},
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
