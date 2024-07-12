@@ -2,6 +2,7 @@ import asyncio
 import os
 from subprocess import DEVNULL, Popen
 
+import nest_asyncio
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -11,6 +12,8 @@ from callback import Callback
 from env import ShowdownEnv
 from policy import MaskedActorCriticPolicy
 from teams import TEAM1
+
+nest_asyncio.apply()
 
 
 async def run_forever():
