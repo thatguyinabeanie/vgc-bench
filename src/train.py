@@ -1,6 +1,6 @@
 import asyncio
 import os
-from subprocess import DEVNULL, Popen, call
+from subprocess import DEVNULL, Popen
 
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
@@ -22,7 +22,7 @@ async def run_forever():
             cwd="pokemon-showdown",
         )
         await asyncio.sleep(5)
-        call(["python", "src/train.py"])
+        train()
         process.terminate()
         process.wait()
 
