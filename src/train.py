@@ -1,4 +1,6 @@
+import asyncio
 import os
+from subprocess import DEVNULL, Popen, call
 
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
@@ -9,6 +11,20 @@ from callback import Callback
 from env import ShowdownEnv
 from policy import MaskedActorCriticPolicy
 from teams import TEAM1
+
+
+async def run_forever():
+    while True:
+        process = Popen(
+            ["node", "pokemon-showdown", "start", "--no-security"],
+            stdout=DEVNULL,
+            stderr=DEVNULL,
+            cwd="pokemon-showdown",
+        )
+        await asyncio.sleep(5)
+        call(["python", "src/train.py"])
+        process.terminate()
+        process.wait()
 
 
 def train():
@@ -61,4 +77,4 @@ def train():
 
 
 if __name__ == "__main__":
-    train()
+    asyncio.run(run_forever())

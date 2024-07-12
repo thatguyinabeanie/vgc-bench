@@ -12,7 +12,7 @@ from policy import MaskedActorCriticPolicy
 from teams import TEAM1
 
 
-async def listen():
+async def play():
     print("Setting up...")
     process = Popen(
         ["node", "pokemon-showdown", "start", "--no-security"],
@@ -41,4 +41,4 @@ async def listen():
 
 
 if __name__ == "__main__":
-    asyncio.run(listen())
+    asyncio.run(play())
