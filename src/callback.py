@@ -46,12 +46,14 @@ class Callback(BaseCallback):
     def _on_rollout_start(self):
         assert self.model.env is not None
         saves = os.listdir("output/saves")
+        weights = [i + 1 for i in range(len(saves))]
         for opponent in self.opponents[1:]:
-            if random.random() < 1 / (len(saves) + 1):
+            if random.random() < (len(saves) + 1) / (sum(weights) + len(saves) + 1):
                 model = self.model
             else:
                 model = PPO(MaskedActorCriticPolicy, self.model.env)
-                model.set_parameters(os.path.join("output/saves", random.choice(saves)))
+                opponent_file = random.choices(saves, weights=weights, k=1)[0]
+                model.set_parameters(os.path.join("output/saves", opponent_file))
             opponent.policy = MaskedActorCriticPolicy.clone(model)
 
     def _on_rollout_end(self):
