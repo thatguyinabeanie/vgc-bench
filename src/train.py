@@ -16,7 +16,7 @@ from teams import TEAM1
 nest_asyncio.apply()
 
 
-async def run_forever():
+async def train_forever():
     while True:
         process = Popen(
             ["node", "pokemon-showdown", "start", "--no-security"],
@@ -80,4 +80,4 @@ def train():
 
 
 if __name__ == "__main__":
-    asyncio.run(run_forever())
+    asyncio.run(train_forever())
