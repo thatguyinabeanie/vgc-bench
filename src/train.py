@@ -53,7 +53,6 @@ def train():
         learning_rate=calc_learning_rate,
         n_steps=2048 // num_envs,
         tensorboard_log="output/logs/ppo",
-        policy_kwargs={"net_arch": MaskedActorCriticPolicy.arch},
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
