@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import os
 from subprocess import DEVNULL, Popen
@@ -12,7 +13,7 @@ from policy import MaskedActorCriticPolicy
 from teams import TEAM1
 
 
-async def play():
+async def play(play_on_ladder: bool, n_games: int):
     print("Setting up...")
     process = Popen(
         ["node", "pokemon-showdown", "start", "--no-security"],
@@ -30,15 +31,30 @@ async def play():
         MaskedActorCriticPolicy.clone(model),
         account_configuration=AccountConfiguration("", ""),  # fill in
         battle_format="gen4ou",
-        log_level=0,
+        log_level=40,
+        max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
+        start_timer_on_battle_start=play_on_ladder,
         team=TEAM1,
     )
     process.terminate()
     process.wait()
-    print("AI is ready")
-    await agent.accept_challenges(opponent=None, n_challenges=1000)
+    if play_on_ladder:
+        print("Entering ladder")
+        await agent.ladder(n_games=n_games)
+        print(f"{agent.n_won_battles}-{agent.n_lost_battles}-{agent.n_tied_battles}")
+    else:
+        print("AI is ready")
+        await agent.accept_challenges(opponent=None, n_challenges=n_games)
 
 
 if __name__ == "__main__":
-    asyncio.run(play())
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-l", "--ladder", action="store_true", help="Plays on ladder. Default accepts challenges."
+    )
+    parser.add_argument(
+        "-n", "--n_games", type=int, default=1, help="Number of games to play. Default is 1."
+    )
+    args = parser.parse_args()
+    asyncio.run(play(args.ladder, args.n_games))
