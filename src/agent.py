@@ -25,7 +25,7 @@ from policy import MaskedActorCriticPolicy
 
 class Agent(Player):
     policy: BasePolicy
-    obs_len: int = 2022
+    obs_len: int = 2296
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -78,39 +78,77 @@ class Agent(Player):
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
-            assert battle.active_pokemon is not None
-            assert battle.opponent_active_pokemon is not None
+            if battle.active_pokemon is None or battle.opponent_active_pokemon is None:
+                boosts = np.zeros(7)
+                unboosts = np.zeros(7)
+                opp_boosts = np.zeros(7)
+                opp_unboosts = np.zeros(7)
+                effects = np.zeros(len(Effect))
+                opp_effects = np.zeros(len(Effect))
+            else:
+                boosts = np.array([max(0, b / 6) for b in battle.active_pokemon.boosts.values()])
+                unboosts = np.array([max(0, -b / 6) for b in battle.active_pokemon.boosts.values()])
+                opp_boosts = np.array(
+                    [max(0, b / 6) for b in battle.opponent_active_pokemon.boosts.values()]
+                )
+                opp_unboosts = np.array(
+                    [max(0, -b / 6) for b in battle.opponent_active_pokemon.boosts.values()]
+                )
+                effects = np.array(
+                    [float(e in battle.active_pokemon.effects.keys()) for e in Effect]
+                )
+                opp_effects = np.array(
+                    [float(e in battle.opponent_active_pokemon.effects.keys()) for e in Effect]
+                )
             mask = np.array([float(i not in Agent.get_action_space(battle)) for i in range(26)])
-            boosts = np.array([b / 12 + 0.5 for b in battle.active_pokemon.boosts.values()])
-            opp_boosts = np.array(
-                [b / 12 + 0.5 for b in battle.opponent_active_pokemon.boosts.values()]
-            )
             side_condition = np.array(
                 [float(s in battle.side_conditions.keys()) for s in SideCondition]
             )
             opp_side_condition = np.array(
                 [float(s in battle.opponent_side_conditions.keys()) for s in SideCondition]
             )
-            effects = np.array([float(e in battle.active_pokemon.effects.keys()) for e in Effect])
-            opp_effects = np.array(
-                [float(e in battle.opponent_active_pokemon.effects.keys()) for e in Effect]
-            )
             weather = np.array([float(w in battle.weather.keys()) for w in Weather])
+            special = np.array(
+                [
+                    float(s)
+                    for s in [
+                        battle.can_mega_evolve,
+                        battle.can_z_move,
+                        battle.can_dynamax,
+                        battle.can_tera is not None,
+                    ]
+                ]
+            )
+            opp_special = np.array(
+                [
+                    float(s)
+                    for s in [
+                        battle.opponent_can_mega_evolve,
+                        battle.opponent_can_z_move,
+                        battle.opponent_can_dynamax,
+                        battle.opponent_can_tera,
+                    ]
+                ]
+            )
             force_switch = np.array([float(battle.force_switch)])
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(124 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(145 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(124 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(145 * (6 - len(battle.opponent_team)))])
             return np.concatenate(
                 [
                     mask,
                     boosts,
+                    unboosts,
                     opp_boosts,
+                    opp_unboosts,
                     side_condition,
                     opp_side_condition,
                     effects,
                     opp_effects,
                     weather,
+                    special,
+                    opp_special,
                     force_switch,
                     team,
                     opp_team,
@@ -127,11 +165,13 @@ class Agent(Player):
         level = pokemon.level / 100
         gender = [float(g == pokemon.gender) for g in PokemonGender]
         hp_frac = pokemon.current_hp_fraction
+        active = float(pokemon.active or False)
         status = [float(s == pokemon.status) for s in Status]
         types = [float(t in pokemon.types) for t in PokemonType]
+        tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
         moves = np.concatenate([*moves, np.zeros(23 * (4 - len(pokemon.moves)))])
-        return np.array([level, *gender, hp_frac, *status, *types, *moves])
+        return np.array([level, *gender, hp_frac, active, *status, *types, *tera_type, *moves])
 
     @staticmethod
     def embed_move(move: Move) -> npt.NDArray[np.float32]:
