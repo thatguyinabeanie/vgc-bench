@@ -62,8 +62,8 @@ class Callback(BaseCallback):
             results = asyncio.run(
                 self.eval_agent.battle_against_multi(self.eval_opponents, n_battles=100)
             )
-            self.model.logger.record("eval/random", results["RandomPlayer 1"])
-            self.model.logger.record("eval/power", results["MaxBasePowerPlay 1"])
-            self.model.logger.record("eval/heuristics", results["SimpleHeuristics 1"])
+            self.model.logger.record("eval/random", results["RandomPlayer 1"][0])
+            self.model.logger.record("eval/power", results["MaxBasePowerPlay 1"][0])
+            self.model.logger.record("eval/heuristics", results["SimpleHeuristics 1"][0])
             self.model.save(f"output/saves/ppo_{self.model.num_timesteps}")
             print(f"Saved checkpoint ppo_{self.model.num_timesteps}.zip")
