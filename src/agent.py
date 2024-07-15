@@ -25,7 +25,7 @@ from policy import MaskedActorCriticPolicy
 
 class Agent(Player):
     policy: BasePolicy
-    obs_len: int = 2006
+    obs_len: int = 2022
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -34,7 +34,7 @@ class Agent(Player):
         else:
             self.policy = MaskedActorCriticPolicy(
                 observation_space=Box(0.0, 1.0, shape=(self.obs_len,), dtype=np.float32),
-                action_space=Discrete(10),
+                action_space=Discrete(26),
                 lr_schedule=lambda x: 1e-4,
             )
 
@@ -61,11 +61,17 @@ class Agent(Player):
                 return Player.choose_random_move(battle)
             elif action not in action_space:
                 raise LookupError()
-            elif action < 4:
+            elif action < 20:
                 assert battle.active_pokemon is not None
-                return Player.create_order(list(battle.active_pokemon.moves.values())[action])
+                return Player.create_order(
+                    list(battle.active_pokemon.moves.values())[action % 4],
+                    mega=4 <= action < 8,
+                    z_move=8 <= action < 12,
+                    dynamax=12 <= action < 16,
+                    terastallize=16 <= action < 20,
+                )
             else:
-                return Player.create_order(list(battle.team.values())[action - 4])
+                return Player.create_order(list(battle.team.values())[action - 20])
         else:
             return Player.choose_random_move(battle)
 
@@ -74,7 +80,7 @@ class Agent(Player):
         if isinstance(battle, Battle):
             assert battle.active_pokemon is not None
             assert battle.opponent_active_pokemon is not None
-            mask = np.array([float(i not in Agent.get_action_space(battle)) for i in range(10)])
+            mask = np.array([float(i not in Agent.get_action_space(battle)) for i in range(26)])
             boosts = np.array([b / 12 + 0.5 for b in battle.active_pokemon.boosts.values()])
             opp_boosts = np.array(
                 [b / 12 + 0.5 for b in battle.opponent_active_pokemon.boosts.values()]
@@ -136,7 +142,7 @@ class Agent(Player):
         return np.array([power, acc, pp_frac, *move_type])
 
     @staticmethod
-    def get_action_space(battle: AbstractBattle) -> list[int]:
+    def get_action_space(battle: Battle) -> list[int]:
         if battle.active_pokemon is None:
             return []
         else:
@@ -145,9 +151,18 @@ class Agent(Player):
                 for i, move in enumerate(battle.active_pokemon.moves.values())
                 if move.id in [m.id for m in battle.available_moves]
             ]
+            mega_space = [i + 4 for i in move_space if battle.can_mega_evolve]
+            zmove_space = [
+                i + 8
+                for i, move in enumerate(battle.active_pokemon.moves.values())
+                if move.id in [m.id for m in battle.active_pokemon.available_z_moves]
+                and battle.can_z_move
+            ]
+            dynamax_space = [i + 12 for i in move_space if battle.can_dynamax]
+            tera_space = [i + 16 for i in move_space if battle.can_tera]
             switch_space = [
-                i + 4
+                i + 20
                 for i, pokemon in enumerate(battle.team.values())
                 if pokemon.species in [p.species for p in battle.available_switches]
             ]
-            return move_space + switch_space
+            return move_space + mega_space + zmove_space + dynamax_space + tera_space + switch_space

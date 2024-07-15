@@ -47,7 +47,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             pi_features, latent_vf = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
         mean_actions = self.action_net(latent_pi)
-        mask = obs[:, :10]  # type: ignore
+        mask = obs[:, :26]  # type: ignore
         mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
         mask = torch.where(mask == 1, float("-inf"), mask)
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)

@@ -15,7 +15,7 @@ def train_step():
     total_steps = 10_000_000
     steps = 102_400
     num_envs = 8
-    battle_format = "gen4ou"
+    battle_format = "gen9ou"
     opponents = [
         Agent(
             None,

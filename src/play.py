@@ -30,7 +30,7 @@ async def play(play_on_ladder: bool, n_games: int):
     agent = Agent(
         MaskedActorCriticPolicy.clone(model),
         account_configuration=AccountConfiguration("", ""),  # fill in
-        battle_format="gen4ou",
+        battle_format="gen9ou",
         log_level=40,
         max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
