@@ -50,11 +50,7 @@ async def play(play_on_ladder: bool, n_games: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-l", "--ladder", action="store_true", help="Plays on ladder. Default accepts challenges."
-    )
-    parser.add_argument(
-        "-n", "--n_games", type=int, default=1, help="Number of games to play. Default is 1."
-    )
+    parser.add_argument("-n", type=int, default=1, help="Number of games to play. Default is 1.")
+    parser.add_argument("-l", action="store_true", help="Play ladder. Default accepts challenges.")
     args = parser.parse_args()
-    asyncio.run(play(args.ladder, args.n_games))
+    asyncio.run(play(args.n, args.l))
