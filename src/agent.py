@@ -143,8 +143,13 @@ class Agent(Player):
 
     @staticmethod
     def get_action_space(battle: Battle) -> list[int]:
+        switch_space = [
+            i + 20
+            for i, pokemon in enumerate(battle.team.values())
+            if pokemon.species in [p.species for p in battle.available_switches]
+        ]
         if battle.active_pokemon is None:
-            return []
+            return switch_space
         else:
             move_space = [
                 i
@@ -160,9 +165,4 @@ class Agent(Player):
             ]
             dynamax_space = [i + 12 for i in move_space if battle.can_dynamax]
             tera_space = [i + 16 for i in move_space if battle.can_tera]
-            switch_space = [
-                i + 20
-                for i, pokemon in enumerate(battle.team.values())
-                if pokemon.species in [p.species for p in battle.available_switches]
-            ]
             return move_space + mega_space + zmove_space + dynamax_space + tera_space + switch_space
