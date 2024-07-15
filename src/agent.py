@@ -25,7 +25,7 @@ from policy import MaskedActorCriticPolicy
 
 class Agent(Player):
     policy: BasePolicy
-    obs_len: int = 2296
+    obs_len: int = 2320
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -35,7 +35,7 @@ class Agent(Player):
             self.policy = MaskedActorCriticPolicy(
                 observation_space=Box(0.0, 1.0, shape=(self.obs_len,), dtype=np.float32),
                 action_space=Discrete(26),
-                lr_schedule=lambda x: 1e-4,
+                lr_schedule=lambda _: 1e-4,
             )
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
@@ -132,9 +132,9 @@ class Agent(Player):
             )
             force_switch = np.array([float(battle.force_switch)])
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(145 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(147 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(145 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(147 * (6 - len(battle.opponent_team)))])
             return np.concatenate(
                 [
                     mask,
@@ -169,9 +169,12 @@ class Agent(Player):
         status = [float(s == pokemon.status) for s in Status]
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
+        specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
         moves = np.concatenate([*moves, np.zeros(23 * (4 - len(pokemon.moves)))])
-        return np.array([level, *gender, hp_frac, active, *status, *types, *tera_type, *moves])
+        return np.array(
+            [level, *gender, hp_frac, active, *status, *types, *tera_type, *specials, *moves]
+        )
 
     @staticmethod
     def embed_move(move: Move) -> npt.NDArray[np.float32]:
