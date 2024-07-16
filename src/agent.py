@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import numpy as np
@@ -23,8 +24,12 @@ from stable_baselines3.common.policies import BasePolicy
 from policy import MaskedActorCriticPolicy
 
 DATA = GenData(gen=9)
-POKEDEX = list(DATA.pokedex.keys())
-MOVEDEX = list(DATA.moves.keys())
+POKEDEX = DATA.pokedex.keys()
+MOVEDEX = DATA.moves.keys()
+with open("json/abilities.json") as f:
+    ABILITIES = json.load(f).keys()
+with open("json/items.json") as f:
+    ITEMS = json.load(f).keys()
 
 
 class Agent(Player):
@@ -171,6 +176,8 @@ class Agent(Player):
         moves = [float(m in pokemon.moves.keys()) for m in MOVEDEX]
         pp_frac = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
         pp_frac += [0] * (4 - len(pokemon.moves))
+        ability = [float(a == (pokemon.ability or "")) for a in ABILITIES]
+        item = [float(i == (pokemon.item or "")) for i in ITEMS]
         return np.array(
             [
                 level,
@@ -183,6 +190,8 @@ class Agent(Player):
                 *specials,
                 *moves,
                 *pp_frac,
+                *ability,
+                *item,
             ]
         )
 
