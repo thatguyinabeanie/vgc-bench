@@ -34,7 +34,7 @@ with open("json/items.json") as f:
 
 class Agent(Player):
     policy: BasePolicy
-    obs_len: int = 15_774
+    obs_len: int = 25_986
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -133,9 +133,9 @@ class Agent(Player):
             species = [float(p in battle.team.keys()) for p in POKEDEX]
             opp_species = [float(p in battle.opponent_team.keys()) for p in POKEDEX]
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(1011 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(1862 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(1011 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(1862 * (6 - len(battle.opponent_team)))])
             return np.array(
                 [
                     *mask,
