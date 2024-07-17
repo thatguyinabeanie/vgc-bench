@@ -9,16 +9,12 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 from agent import Agent
 from policy import MaskedActorCriticPolicy
+from teams import RandomTeamBuilder
 
 
 class Callback(BaseCallback):
     def __init__(
-        self,
-        opponents: list[Agent],
-        num_saved_timesteps: int,
-        save_freq: int,
-        battle_format: str,
-        team: str,
+        self, opponents: list[Agent], num_saved_timesteps: int, save_freq: int, battle_format: str
     ):
         super().__init__()
         self.opponents = opponents
@@ -29,12 +25,14 @@ class Callback(BaseCallback):
             account_configuration=AccountConfiguration("EvalAgent", None),
             battle_format=battle_format,
             log_level=40,
-            team=team,
+            team=RandomTeamBuilder(),
         )
         self.eval_opponents: list[Player] = [
-            RandomPlayer(battle_format=battle_format, log_level=40, team=team),
-            MaxBasePowerPlayer(battle_format=battle_format, log_level=40, team=team),
-            SimpleHeuristicsPlayer(battle_format=battle_format, log_level=40, team=team),
+            RandomPlayer(battle_format=battle_format, log_level=40, team=RandomTeamBuilder()),
+            MaxBasePowerPlayer(battle_format=battle_format, log_level=40, team=RandomTeamBuilder()),
+            SimpleHeuristicsPlayer(
+                battle_format=battle_format, log_level=40, team=RandomTeamBuilder()
+            ),
         ]
 
     def _on_step(self) -> bool:

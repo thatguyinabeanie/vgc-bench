@@ -10,7 +10,7 @@ from stable_baselines3 import PPO
 from agent import Agent
 from env import ShowdownEnv
 from policy import MaskedActorCriticPolicy
-from teams import TEAM1
+from teams import RandomTeamBuilder
 
 
 async def play(play_on_ladder: bool, n_games: int):
@@ -35,7 +35,7 @@ async def play(play_on_ladder: bool, n_games: int):
         max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
         start_timer_on_battle_start=play_on_ladder,
-        team=TEAM1,
+        team=RandomTeamBuilder(),
     )
     process.terminate()
     process.wait()

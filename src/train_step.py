@@ -8,7 +8,7 @@ from agent import Agent
 from callback import Callback
 from env import ShowdownEnv
 from policy import MaskedActorCriticPolicy
-from teams import TEAM1
+from teams import RandomTeamBuilder
 
 
 def train_step():
@@ -22,7 +22,7 @@ def train_step():
             account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
             battle_format=battle_format,
             log_level=40,
-            team=TEAM1,
+            team=RandomTeamBuilder(),
         )
         for i in range(num_envs)
     ]
@@ -33,7 +33,7 @@ def train_step():
                 account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
                 battle_format=battle_format,
                 log_level=40,
-                team=TEAM1,
+                team=RandomTeamBuilder(),
             )
             for i in range(num_envs)
         ]
@@ -56,7 +56,7 @@ def train_step():
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
-    callback = Callback(opponents, num_saved_timesteps, steps, battle_format, TEAM1)
+    callback = Callback(opponents, num_saved_timesteps, steps, battle_format)
     ppo = ppo.learn(num_saved_timesteps + steps, callback=callback, reset_num_timesteps=False)
 
 
