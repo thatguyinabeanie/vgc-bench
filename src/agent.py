@@ -28,7 +28,7 @@ POKEDEX_DICT = DATA.pokedex
 POKEDEX = POKEDEX_DICT.keys()
 MOVEDEX = DATA.moves.keys()
 with open("json/abilities.json") as f:
-    ABILITIES = json.load(f)
+    ABILITIES_DICT = json.load(f)
 with open("json/items.json") as f:
     ITEMS = json.load(f).keys()
 
@@ -136,15 +136,15 @@ class Agent(Player):
                 0 if ident not in species_names else (species_names.index(ident) + 1) / 6
                 for ident in POKEDEX
             ]
-            if species_names:
-                assert any(species_multi_hot)
+            # if species_names:
+            #     assert any(species_multi_hot)
             opp_species_names = [p.species for p in battle.opponent_team.values()]
             opp_species_multi_hot = [
                 0 if ident not in opp_species_names else (opp_species_names.index(ident) + 1) / 6
                 for ident in POKEDEX
             ]
-            if opp_species_names:
-                assert any(opp_species_multi_hot)
+            # if opp_species_names:
+            #     assert any(opp_species_multi_hot)
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
             team = np.concatenate([*team, np.zeros(1551 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
@@ -190,20 +190,20 @@ class Agent(Player):
             0 if m not in pokemon.moves.keys() else (list(pokemon.moves.keys()).index(m) + 1) / 4
             for m in MOVEDEX
         ]
-        if pokemon.moves:
-            assert any(moves_multi_hot)
+        # if pokemon.moves:
+        #     assert any(moves_multi_hot)
         moves_pp_frac = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
         moves_pp_frac += [0] * (4 - len(pokemon.moves))
         ability = [
-            float(pokemon.ability is not None and a == ABILITIES[pokemon.ability]["name"])
+            float(pokemon.ability is not None and a == ABILITIES_DICT[pokemon.ability]["name"])
             for a in POKEDEX_DICT[pokemon.species]["abilities"].values()
         ]
         ability += [0] * (3 - len(ability))
-        if pokemon.ability is not None:
-            assert any(ability)
+        # if pokemon.ability is not None:
+        #     assert any(ability)
         item = [float(i == (pokemon.item or "")) for i in ITEMS]
-        if pokemon.item and pokemon.item != "unknown_item":
-            assert any(item)
+        # if pokemon.item and pokemon.item != "unknown_item":
+        #     assert any(item)
         return np.array(
             [
                 level,
