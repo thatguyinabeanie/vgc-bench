@@ -1,16 +1,15 @@
-import json
 from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import torch
 from gymnasium.spaces import Box, Discrete
-from poke_env.data.gen_data import GenData
 from poke_env.environment import (
     AbstractBattle,
     Battle,
     DoubleBattle,
     Effect,
+    Move,
     Pokemon,
     PokemonGender,
     PokemonType,
@@ -21,21 +20,13 @@ from poke_env.environment import (
 from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
 
+from data import ABILITIES, ITEMS, MOVES, POKEMON
 from policy import MaskedActorCriticPolicy
-
-DATA = GenData(gen=9)
-POKEDEX_DICT = DATA.pokedex
-POKEDEX = POKEDEX_DICT.keys()
-MOVEDEX = DATA.moves.keys()
-with open("json/abilities.json") as f:
-    ABILITIES_DICT = json.load(f)
-with open("json/items.json") as f:
-    ITEMS = json.load(f).keys()
 
 
 class Agent(Player):
     policy: BasePolicy
-    obs_len: int = 22_254
+    obs_len: int = 1348
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -43,7 +34,7 @@ class Agent(Player):
             self.policy = policy
         else:
             self.policy = MaskedActorCriticPolicy(
-                observation_space=Box(0.0, 1.0, shape=(self.obs_len,), dtype=np.float32),
+                observation_space=Box(0.0, len(POKEMON), shape=(self.obs_len,), dtype=np.float32),
                 action_space=Discrete(26),
                 lr_schedule=lambda _: 1e-4,
             )
@@ -131,24 +122,10 @@ class Agent(Player):
                 ]
             ]
             force_switch = float(battle.force_switch)
-            species_names = [p.species for p in battle.team.values()]
-            species_multi_hot = [
-                0 if ident not in species_names else (species_names.index(ident) + 1) / 6
-                for ident in POKEDEX
-            ]
-            # if species_names:
-            #     assert any(species_multi_hot)
-            opp_species_names = [p.species for p in battle.opponent_team.values()]
-            opp_species_multi_hot = [
-                0 if ident not in opp_species_names else (opp_species_names.index(ident) + 1) / 6
-                for ident in POKEDEX
-            ]
-            # if opp_species_names:
-            #     assert any(opp_species_multi_hot)
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(1551 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(66 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(1551 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(66 * (6 - len(battle.opponent_team)))])
             return np.array(
                 [
                     *mask,
@@ -164,8 +141,6 @@ class Agent(Player):
                     *special,
                     *opp_special,
                     force_switch,
-                    *species_multi_hot,
-                    *opp_species_multi_hot,
                     *team,
                     *opp_team,
                 ],
@@ -178,6 +153,7 @@ class Agent(Player):
 
     @staticmethod
     def embed_pokemon(pokemon: Pokemon) -> npt.NDArray[np.float32]:
+        species = POKEMON.index(pokemon.species) + 1
         level = pokemon.level / 100
         gender = [float(g == pokemon.gender) for g in PokemonGender]
         hp_frac = pokemon.current_hp_fraction
@@ -186,26 +162,13 @@ class Agent(Player):
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
-        moves_multi_hot = [
-            0 if m not in pokemon.moves.keys() else (list(pokemon.moves.keys()).index(m) + 1) / 4
-            for m in MOVEDEX
-        ]
-        # if pokemon.moves:
-        #     assert any(moves_multi_hot)
-        moves_pp_frac = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
-        moves_pp_frac += [0] * (4 - len(pokemon.moves))
-        ability = [
-            float(pokemon.ability is not None and a == ABILITIES_DICT[pokemon.ability]["name"])
-            for a in POKEDEX_DICT[pokemon.species]["abilities"].values()
-        ]
-        ability += [0] * (3 - len(ability))
-        # if pokemon.ability is not None:
-        #     assert any(ability)
-        item = [float(i == (pokemon.item or "")) for i in ITEMS]
-        # if pokemon.item and pokemon.item != "unknown_item":
-        #     assert any(item)
+        moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
+        moves = np.concatenate([*moves, np.zeros(2 * (4 - len(pokemon.moves)))])
+        ability = 0 if pokemon.ability is None else ABILITIES.index(pokemon.ability)
+        item = 0 if pokemon.item in [None, "", "unknown_item"] else ITEMS.index(pokemon.item)
         return np.array(
             [
+                species,
                 level,
                 *gender,
                 hp_frac,
@@ -214,12 +177,17 @@ class Agent(Player):
                 *types,
                 *tera_type,
                 *specials,
-                *moves_multi_hot,
-                *moves_pp_frac,
-                *ability,
-                *item,
+                *moves,
+                ability,
+                item,
             ]
         )
+
+    @staticmethod
+    def embed_move(move: Move) -> npt.NDArray[np.float32]:
+        move_id = MOVES.index(move.id)
+        pp_frac = move.current_pp / move.max_pp
+        return np.array([move_id, pp_frac])
 
     @staticmethod
     def get_action_space(battle: Battle) -> list[int]:

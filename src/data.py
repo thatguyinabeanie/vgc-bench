@@ -1,7 +1,17 @@
+import json
 import os
 import re
 
 import requests
+from poke_env.data.gen_data import GenData
+
+DATA = GenData(gen=9)
+POKEMON = list(DATA.pokedex.keys())
+MOVES = list(DATA.moves.keys())
+with open("json/abilities.json") as f:
+    ABILITIES = list(json.load(f).keys())
+with open("json/items.json") as f:
+    ITEMS = list(json.load(f).keys())
 
 
 def update_json_file(url: str, file: str):

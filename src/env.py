@@ -8,6 +8,7 @@ from poke_env.environment import AbstractBattle
 from poke_env.player import BattleOrder, Gen9EnvSinglePlayer
 
 from agent import Agent
+from data import POKEMON
 
 
 class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
@@ -32,4 +33,4 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
         return Agent.embed_battle(battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
-        return Box(0.0, 1.0, shape=(Agent.obs_len,), dtype=np.float32)
+        return Box(0.0, len(POKEMON), shape=(Agent.obs_len,), dtype=np.float32)
