@@ -164,8 +164,8 @@ class Agent(Player):
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
         moves = np.concatenate([*moves, np.zeros(2 * (4 - len(pokemon.moves)))])
-        ability = 0 if pokemon.ability is None else ABILITIES.index(pokemon.ability)
-        item = 0 if pokemon.item in [None, "", "unknown_item"] else ITEMS.index(pokemon.item)
+        ability = 0 if pokemon.ability is None else ABILITIES.index(pokemon.ability) + 1
+        item = 0 if pokemon.item in [None, "", "unknown_item"] else ITEMS.index(pokemon.item) + 1
         return np.array(
             [
                 species,
@@ -185,7 +185,7 @@ class Agent(Player):
 
     @staticmethod
     def embed_move(move: Move) -> npt.NDArray[np.float32]:
-        move_id = MOVES.index(move.id)
+        move_id = MOVES.index(move.id) + 1
         pp_frac = move.current_pp / move.max_pp
         return np.array([move_id, pp_frac])
 
