@@ -45,7 +45,7 @@ class Callback(BaseCallback):
         assert self.model.env is not None
         saves = os.listdir("output/saves") if os.path.exists("output/saves") else []
         weights = [i + 1 for i in range(len(saves))]
-        for opponent in self.opponents[1:]:
+        for opponent in self.opponents:
             if random.random() < (len(saves) + 1) / (sum(weights) + len(saves) + 1):
                 model = self.model
             else:
