@@ -5,13 +5,17 @@ import re
 import requests
 from poke_env.data.gen_data import GenData
 
-DATA = GenData(gen=9)
-POKEMON = list(DATA.pokedex.keys())
-MOVES = list(DATA.moves.keys())
+data = GenData(9)
+LEARNSETS = data.learnset
+MOVES = [name for name, details in data.moves.items() if "isNonstandard" not in details]
 with open("json/abilities.json") as f:
-    ABILITIES = list(json.load(f).keys())
+    ABILITIES = [name for name, details in json.load(f).items() if "isNonstandard" not in details]
 with open("json/items.json") as f:
-    ITEMS = list(json.load(f).keys())
+    ITEMS = [
+        name
+        for name, details in json.load(f).items()
+        if "isNonstandard" not in details and "isPokeball" not in details
+    ]
 
 
 def update_json_file(url: str, file: str):

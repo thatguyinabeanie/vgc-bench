@@ -8,7 +8,7 @@ class RandomTeamBuilder(Teambuilder):
 
     def __init__(self):
         self.teams = []
-        for team in TEAMS:
+        for team in TEAMS[:1]:
             parsed_team = self.parse_showdown_team(team)
             packed_team = self.join_team(parsed_team)
             self.teams.append(packed_team)
