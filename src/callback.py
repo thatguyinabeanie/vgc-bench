@@ -43,16 +43,15 @@ class Callback(BaseCallback):
 
     def _on_rollout_start(self):
         assert self.model.env is not None
-        saves = os.listdir("output/saves") if os.path.exists("output/saves") else []
+        saves = os.listdir("saves") if os.path.exists("saves") else []
         weights = [i + 1 for i in range(len(saves))]
         for opponent in self.opponents:
             if random.random() < (len(saves) + 1) / (sum(weights) + len(saves) + 1):
-                model = self.model
+                policy = MaskedActorCriticPolicy.clone(self.model)
             else:
-                model = PPO(MaskedActorCriticPolicy, self.model.env)
                 opponent_file = random.choices(saves, weights=weights, k=1)[0]
-                model.set_parameters(os.path.join("output/saves", opponent_file))
-            opponent.policy = MaskedActorCriticPolicy.clone(model)
+                policy = PPO.load(f"saves/{opponent_file}").policy
+            opponent.policy = policy
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_freq == 0:
@@ -63,5 +62,5 @@ class Callback(BaseCallback):
             self.model.logger.record("eval/random", results["RandomPlayer 1"][0])
             self.model.logger.record("eval/power", results["MaxBasePowerPlay 1"][0])
             self.model.logger.record("eval/heuristics", results["SimpleHeuristics 1"][0])
-            self.model.save(f"output/saves/ppo_{self.model.num_timesteps}")
+            self.model.save(f"saves/ppo_{self.model.num_timesteps}")
             print(f"Saved checkpoint ppo_{self.model.num_timesteps}.zip")

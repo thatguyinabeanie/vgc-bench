@@ -39,8 +39,8 @@ def train_step():
         ]
     )
     num_saved_timesteps = 0
-    if os.path.exists("output/saves") and len(os.listdir("output/saves")) > 0:
-        files = os.listdir("output/saves")
+    if os.path.exists("saves") and len(os.listdir("saves")) > 0:
+        files = os.listdir("saves")
         num_saved_timesteps = max([int(file[4:-4]) for file in files])
 
     def calc_learning_rate(progress_remaining: float) -> float:
@@ -52,10 +52,10 @@ def train_step():
         env,
         learning_rate=calc_learning_rate,
         n_steps=2048 // num_envs,
-        tensorboard_log="output/logs/ppo",
+        tensorboard_log="logs",
     )
     if num_saved_timesteps > 0:
-        ppo.set_parameters(os.path.join("output/saves", f"ppo_{num_saved_timesteps}.zip"))
+        ppo.set_parameters(os.path.join("saves", f"ppo_{num_saved_timesteps}.zip"))
     callback = Callback(opponents, num_saved_timesteps, steps, battle_format)
     ppo = ppo.learn(num_saved_timesteps + steps, callback=callback, reset_num_timesteps=False)
 
