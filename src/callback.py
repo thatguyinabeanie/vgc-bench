@@ -89,7 +89,7 @@ class Callback(BaseCallback):
             self.policy_pool.append(PPO.load(f"saves/ppo_{self.model.num_timesteps}").policy)
             self.elos.append(1000)
             # update policies against each other, save and log
-            self.update_elos(100)
+            self.update_elos(10 * len(self.policy_pool))
             with open("logs/elos.json", "w") as f:
                 json.dump(self.elos, f)
             self.model.logger.record("eval/max-elo", max(self.elos))
@@ -105,6 +105,6 @@ class Callback(BaseCallback):
             win_rate, lose_rate = asyncio.run(self.elo_agent.battle_against(self.elo_opponent))
             score = 1 if win_rate == 1 else 0 if lose_rate == 1 else 0.5
             expectation = 1 / (1 + 10 ** ((self.elos[j] - self.elos[i]) / 400))
-            delta = round(100 * (score - expectation))
-            self.elos[i] += delta
-            self.elos[j] -= delta
+            delta = round(20 * (score - expectation))
+            self.elos[i] = max(1, self.elos[i] + delta)
+            self.elos[j] = max(1, self.elos[j] - delta)
