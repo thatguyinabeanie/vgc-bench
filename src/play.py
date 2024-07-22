@@ -10,7 +10,7 @@ from agent import Agent
 from teams import RandomTeamBuilder
 
 
-async def play(play_on_ladder: bool, n_games: int):
+async def play(n_games: int, play_on_ladder: bool):
     print("Setting up...")
     process = Popen(
         ["node", "pokemon-showdown", "start", "--no-security"],
@@ -23,7 +23,7 @@ async def play(play_on_ladder: bool, n_games: int):
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[4:-4]) for file in files])
-        policy = PPO.load(f"saves/{num_saved_timesteps}").policy
+        policy = PPO.load(f"saves/ppo_{num_saved_timesteps}").policy
     else:
         raise FileNotFoundError()
     agent = Agent(
