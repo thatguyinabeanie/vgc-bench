@@ -61,7 +61,7 @@ class Agent(Player):
                 action, _, _ = self.policy.forward(embedded_battle)
             lead_id = int(action.item()) - 19
             all_ids = "123456"
-            return "/team " + str(lead_id) + all_ids[:lead_id - 1] + all_ids[lead_id:]
+            return "/team " + str(lead_id) + all_ids[: lead_id - 1] + all_ids[lead_id:]
         elif isinstance(battle, DoubleBattle):
             return self.random_teampreview(battle)
         else:
