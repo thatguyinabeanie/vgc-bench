@@ -1,0 +1,1 @@
+export PATH="/u/cangliss/repos/UT-masters-thesis/bin:$PATH"
