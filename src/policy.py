@@ -3,18 +3,22 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from gymnasium.spaces import Space
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution
 from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    arch: list[int] = [256, 256, 256, 256, 256]
-
     def __init__(self, *args: Any, **kwargs: Any):
-        kwargs["net_arch"] = self.arch
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args,
+            **kwargs,
+            net_arch=[256, 256, 256, 256, 256],
+            features_extractor_class=ReduceTextEmbeddingDim,
+        )
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
@@ -53,3 +57,31 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         values = self.value_net(latent_vf)
         return distribution, values
+
+
+class ReduceTextEmbeddingDim(BaseFeaturesExtractor):
+    def __init__(self, observation_space: Space[Any]):
+        super().__init__(observation_space, features_dim=3184)
+        self.n_input = 384
+        self.linear = torch.nn.Linear(self.n_input, 12)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        output = x[:, :556]
+        for i in range(12):
+            a = 556 + i * (55 + 2 * self.n_input)
+            mon_output = torch.cat(
+                [
+                    x[:, a : a + 55],
+                    self.linear(x[:, a + 55 : a + 55 + self.n_input]),
+                    self.linear(x[:, a + 55 + self.n_input : a + 55 + 2 * self.n_input]),
+                ],
+                dim=1,
+            )
+            for j in range(4):
+                b = a + 55 + 2 * self.n_input + j * (23 + self.n_input)
+                move_output = torch.cat(
+                    [x[:, b : b + 23], self.linear(x[:, b + 23 : b + 23 + self.n_input])], dim=1
+                )
+                mon_output = torch.cat([mon_output, move_output], dim=1)
+            output = torch.cat([output, mon_output], dim=1)
+        return output

@@ -3,19 +3,13 @@ import os
 import re
 
 import requests
-from poke_env.data.gen_data import GenData
 
-data = GenData(9)
-LEARNSETS = data.learnset
-MOVES = [name for name, details in data.moves.items() if "isNonstandard" not in details]
 with open("json/abilities.json") as f:
-    ABILITIES = [name for name, details in json.load(f).items() if "isNonstandard" not in details]
+    ABILITYDEX = json.load(f)
 with open("json/items.json") as f:
-    ITEMS = [
-        name
-        for name, details in json.load(f).items()
-        if "isNonstandard" not in details and "isPokeball" not in details
-    ]
+    ITEMDEX = json.load(f)
+with open("json/moves.json") as f:
+    MOVEDEX = json.load(f)
 
 
 def update_json_file(url: str, file: str):
@@ -35,5 +29,6 @@ def update_json_file(url: str, file: str):
 if __name__ == "__main__":
     if not os.path.exists("json"):
         os.mkdir("json")
-    update_json_file("https://play.pokemonshowdown.com/data", "items.js")
     update_json_file("https://play.pokemonshowdown.com/data", "abilities.js")
+    update_json_file("https://play.pokemonshowdown.com/data", "items.js")
+    update_json_file("https://play.pokemonshowdown.com/data", "moves.js")
