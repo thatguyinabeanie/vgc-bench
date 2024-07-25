@@ -61,24 +61,24 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 class ReduceTextEmbeddingDim(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=3184)
+        super().__init__(observation_space, features_dim=3304)
         self.n_input = 384
         self.linear = torch.nn.Linear(self.n_input, 12)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         output = x[:, :556]
         for i in range(12):
-            a = 556 + i * (55 + 2 * self.n_input)
+            a = 556 + i * (65 + 2 * self.n_input)
             mon_output = torch.cat(
                 [
-                    x[:, a : a + 55],
-                    self.linear(x[:, a + 55 : a + 55 + self.n_input]),
-                    self.linear(x[:, a + 55 + self.n_input : a + 55 + 2 * self.n_input]),
+                    x[:, a : a + 65],
+                    self.linear(x[:, a + 65 : a + 65 + self.n_input]),
+                    self.linear(x[:, a + 65 + self.n_input : a + 65 + 2 * self.n_input]),
                 ],
                 dim=1,
             )
             for j in range(4):
-                b = a + 55 + 2 * self.n_input + j * (23 + self.n_input)
+                b = a + 65 + 2 * self.n_input + j * (23 + self.n_input)
                 move_output = torch.cat(
                     [x[:, b : b + 23], self.linear(x[:, b + 23 : b + 23 + self.n_input])], dim=1
                 )

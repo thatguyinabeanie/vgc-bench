@@ -29,7 +29,7 @@ TEXT_MODEL = SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
 class Agent(Player):
     policy: BasePolicy
-    obs_len: int = 29_968
+    obs_len: int = 30_088
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -141,9 +141,9 @@ class Agent(Player):
             ]
             force_switch = float(battle.force_switch)
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(2451 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(2461 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(2451 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(2461 * (6 - len(battle.opponent_team)))])
             return np.array(
                 [
                     *mask,
@@ -174,8 +174,10 @@ class Agent(Player):
         level = pokemon.level / 100
         gender = [float(g == pokemon.gender) for g in PokemonGender]
         hp_frac = pokemon.current_hp_fraction
+        max_hp = pokemon.max_hp / 714
         active = float(pokemon.active or False)
         status = [float(s == pokemon.status) for s in Status]
+        stats = [0] * 5 if pokemon.stats is None else [(s or 0) / 255 for s in pokemon.stats.values()]
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
@@ -186,14 +188,16 @@ class Agent(Player):
             "" if pokemon.item in [None, "", "unknown_item"] else ITEMDEX[pokemon.item]["desc"]
         )
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(407 * (4 - len(pokemon.moves)))])
+        moves = np.concatenate([*moves, np.zeros(408 * (4 - len(pokemon.moves)))])
         return np.array(
             [
                 level,
                 *gender,
                 hp_frac,
+                max_hp,
                 active,
                 *status,
+                *stats,
                 *types,
                 *tera_type,
                 *specials,
@@ -208,9 +212,10 @@ class Agent(Player):
         power = move.base_power / 250
         acc = move.accuracy / 100
         pp_frac = move.current_pp / move.max_pp
+        max_pp = move.max_pp / 64
         move_type = [float(t == move.type) for t in PokemonType]
         move_desc = TEXT_MODEL.encode(MOVEDEX[move.id]["desc"])
-        return np.array([power, acc, pp_frac, *move_type, *move_desc])  # type: ignore
+        return np.array([power, acc, pp_frac, max_pp, *move_type, *move_desc])  # type: ignore
 
     @staticmethod
     def get_action_space(battle: Battle) -> list[int]:
