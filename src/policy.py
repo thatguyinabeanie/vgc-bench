@@ -62,7 +62,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class ReduceTextEmbeddingDim(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=3304)
-        self.n_input = 384
+        self.n_input = 300
         self.linear = torch.nn.Linear(self.n_input, 12)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

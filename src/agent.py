@@ -24,12 +24,12 @@ from stable_baselines3.common.policies import BasePolicy
 from data import ABILITYDEX, ITEMDEX, MOVEDEX
 from policy import MaskedActorCriticPolicy
 
-TEXT_MODEL = SentenceTransformer("paraphrase-MiniLM-L6-v2")
+TEXT_MODEL = SentenceTransformer("average_word_embeddings_glove.6B.300d")
 
 
 class Agent(Player):
     policy: BasePolicy
-    obs_len: int = 30_088
+    obs_len: int = 24_040
 
     def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -141,9 +141,9 @@ class Agent(Player):
             ]
             force_switch = float(battle.force_switch)
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(2461 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(1957 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(2461 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(1957 * (6 - len(battle.opponent_team)))])
             return np.array(
                 [
                     *mask,
@@ -188,7 +188,7 @@ class Agent(Player):
             "" if pokemon.item in [None, "", "unknown_item"] else ITEMDEX[pokemon.item]["desc"]
         )
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(408 * (4 - len(pokemon.moves)))])
+        moves = np.concatenate([*moves, np.zeros(324 * (4 - len(pokemon.moves)))])
         return np.array(
             [
                 level,
