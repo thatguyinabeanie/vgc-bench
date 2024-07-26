@@ -4,3 +4,4 @@ sentence-transformers
 stable_baselines3
 tensorboard
 torch
+torch-tb-profiler
