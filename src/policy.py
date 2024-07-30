@@ -78,7 +78,7 @@ class ReduceTextEmbeddingDim(BaseFeaturesExtractor):
                 dim=1,
             )
             for j in range(4):
-                b = a + 61 + 2 * self.n_input + j * (23 + self.n_input)
+                b = a + 61 + 2 * self.n_input + j * (24 + self.n_input)
                 move_output = torch.cat(
                     [x[:, b : b + 24], self.linear(x[:, b + 24 : b + 24 + self.n_input])], dim=1
                 )

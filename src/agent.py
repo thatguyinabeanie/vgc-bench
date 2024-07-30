@@ -1,3 +1,4 @@
+from functools import cache
 from typing import Any
 
 import numpy as np
@@ -177,14 +178,16 @@ class Agent(Player):
         max_hp = pokemon.max_hp / 714
         active = float(pokemon.active or False)
         status = [float(s == pokemon.status) for s in Status]
-        stats = [0] * 5 if pokemon.stats is None else [(s or 0) / 255 for s in pokemon.stats.values()]
+        stats = (
+            [0] * 5 if pokemon.stats is None else [(s or 0) / 255 for s in pokemon.stats.values()]
+        )
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
-        ability_desc = TEXT_MODEL.encode(
+        ability_desc = Agent.embed_desc(
             "" if pokemon.ability in [None, ""] else ABILITYDEX[pokemon.ability]["desc"]
         )
-        item_desc = TEXT_MODEL.encode(
+        item_desc = Agent.embed_desc(
             "" if pokemon.item in [None, "", "unknown_item"] else ITEMDEX[pokemon.item]["desc"]
         )
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
@@ -214,8 +217,13 @@ class Agent(Player):
         pp_frac = move.current_pp / move.max_pp
         max_pp = move.max_pp / 64
         move_type = [float(t == move.type) for t in PokemonType]
-        move_desc = TEXT_MODEL.encode(MOVEDEX[move.id]["desc"])
+        move_desc = Agent.embed_desc(MOVEDEX[move.id]["desc"])
         return np.array([power, acc, pp_frac, max_pp, *move_type, *move_desc])  # type: ignore
+
+    @cache
+    @staticmethod
+    def embed_desc(desc: str) -> npt.NDArray[np.float32]:
+        return TEXT_MODEL.encode(desc)  # type: ignore
 
     @staticmethod
     def get_action_space(battle: Battle) -> list[int]:
