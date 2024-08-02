@@ -13,11 +13,9 @@ from teams import RandomTeamBuilder
 
 
 class Callback(BaseCallback):
-    def __init__(
-        self, opponents: list[Agent], num_saved_timesteps: int, save_freq: int, battle_format: str
-    ):
+    def __init__(self, num_envs: int, num_saved_timesteps: int, save_freq: int, battle_format: str):
         super().__init__()
-        self.opponents = opponents
+        self.num_envs = num_envs
         self.num_saved_timesteps = num_saved_timesteps
         self.save_freq = save_freq
         self.eval_agent = Agent(
@@ -45,12 +43,14 @@ class Callback(BaseCallback):
         self.model.num_timesteps = self.num_saved_timesteps
 
     def _on_rollout_start(self):
-        for opponent in self.opponents:
-            if not self.policy_pool:
-                policy = MaskedActorCriticPolicy.clone(self.model)
-            else:
-                policy = random.choice(self.policy_pool)
+        assert self.model.env is not None
+        policies = random.choices(
+            [MaskedActorCriticPolicy.clone(self.model)] + self.policy_pool, k=self.num_envs
+        )
+        opponents = self.model.env.env_method("get_opponent", indices=range(self.num_envs))
+        for opponent, policy in zip(opponents, policies):
             opponent.policy = policy
+        self.model.env.env_method("set_opponent", opponents, indices=range(self.num_envs))
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_freq == 0:

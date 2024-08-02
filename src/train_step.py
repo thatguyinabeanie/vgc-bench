@@ -1,8 +1,9 @@
+import logging
 import os
 
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from agent import Agent
 from callback import Callback
@@ -12,32 +13,33 @@ from teams import RandomTeamBuilder
 
 
 def train_step():
+    logging.basicConfig(
+        filename="debug.log",
+        filemode="w",
+        format="%(name)s %(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s()\n%(message)s\n",
+        level=logging.INFO,
+    )
     total_steps = 10_000_000
     steps = 102_400
     num_envs = 8
     battle_format = "gen9ou"
-    opponents = [
-        Agent(
-            None,
-            account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+
+    def create_env(i: int):
+        return ShowdownEnv(
+            opponent=Agent(
+                None,
+                account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+                battle_format=battle_format,
+                log_level=40,
+                team=RandomTeamBuilder(),
+            ),
+            account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
             battle_format=battle_format,
             log_level=40,
             team=RandomTeamBuilder(),
         )
-        for i in range(num_envs)
-    ]
-    env = DummyVecEnv(
-        [
-            lambda i=i: ShowdownEnv(
-                opponents[i],
-                account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
-                battle_format=battle_format,
-                log_level=40,
-                team=RandomTeamBuilder(),
-            )
-            for i in range(num_envs)
-        ]
-    )
+
+    env = SubprocVecEnv([lambda i=i: create_env(i) for i in range(num_envs)])
     num_saved_timesteps = 0
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
@@ -56,7 +58,7 @@ def train_step():
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(os.path.join("saves", f"ppo_{num_saved_timesteps}.zip"))
-    callback = Callback(opponents, num_saved_timesteps, steps, battle_format)
+    callback = Callback(num_envs, num_saved_timesteps, steps, battle_format)
     ppo = ppo.learn(num_saved_timesteps + steps, callback=callback, reset_num_timesteps=False)
 
 
