@@ -6,6 +6,7 @@ from gymnasium import Space
 from gymnasium.spaces import Box
 from poke_env.environment import AbstractBattle
 from poke_env.player import BattleOrder, Gen9EnvSinglePlayer
+from stable_baselines3.common.policies import ActorCriticPolicy
 
 from agent import Agent
 
@@ -13,6 +14,10 @@ from agent import Agent
 class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
+
+    def set_opp_policy(self, policy: ActorCriticPolicy):
+        assert isinstance(self._opponent, Agent)
+        self._opponent.policy = policy
 
     @staticmethod
     def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:

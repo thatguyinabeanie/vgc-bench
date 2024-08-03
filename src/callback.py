@@ -47,10 +47,8 @@ class Callback(BaseCallback):
         policies = random.choices(
             [MaskedActorCriticPolicy.clone(self.model)] + self.policy_pool, k=self.num_envs
         )
-        opponents = self.model.env.env_method("get_opponent", indices=range(self.num_envs))
-        for opponent, policy in zip(opponents, policies):
-            opponent.policy = policy
-        self.model.env.env_method("set_opponent", opponents, indices=range(self.num_envs))
+        for i in range(self.num_envs):
+            self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_freq == 0:

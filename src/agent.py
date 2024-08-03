@@ -223,7 +223,7 @@ class Agent(Player):
     @cache
     @staticmethod
     def embed_desc(desc: str) -> npt.NDArray[np.float32]:
-        return TEXT_MODEL.encode(desc)  # type: ignore
+        return TEXT_MODEL.encode(desc, show_progress_bar=False)  # type: ignore
 
     @staticmethod
     def get_action_space(battle: Battle) -> list[int]:
