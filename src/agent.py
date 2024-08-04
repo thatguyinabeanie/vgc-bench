@@ -29,7 +29,8 @@ TEXT_MODEL = SentenceTransformer("average_word_embeddings_glove.6B.300d")
 
 
 class Agent(Player):
-    policy: BasePolicy
+    __policy: BasePolicy
+    __device: torch.device
     obs_len: int = 24_040
 
     def __init__(
@@ -42,22 +43,26 @@ class Agent(Player):
         super().__init__(*args, **kwargs)
         if device is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.__device = device
         if policy is not None:
-            self.policy = policy.to(device)
+            self.__policy = policy.to(self.__device)
         else:
-            self.policy = MaskedActorCriticPolicy(
+            self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(0.0, 1.0, shape=(self.obs_len,), dtype=np.float32),
                 action_space=Discrete(26),
                 lr_schedule=lambda _: 1e-4,
-            ).to(device)
+            ).to(self.__device)
+
+    def set_policy(self, policy: BasePolicy):
+        self.__policy = policy.to(self.__device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         if isinstance(battle, Battle):
             with torch.no_grad():
                 embedded_battle = torch.tensor(
-                    self.embed_battle(battle), device=self.policy.device
+                    self.embed_battle(battle), device=self.__device
                 ).view(1, -1)
-                action, _, _ = self.policy.forward(embedded_battle)
+                action, _, _ = self.__policy.forward(embedded_battle)
             return Agent.action_to_move(int(action.item()), battle)
         elif isinstance(battle, DoubleBattle):
             return self.choose_random_doubles_move(battle)
@@ -68,9 +73,9 @@ class Agent(Player):
         if isinstance(battle, Battle):
             with torch.no_grad():
                 embedded_battle = torch.tensor(
-                    self.embed_battle(battle), device=self.policy.device
+                    self.embed_battle(battle), device=self.__device
                 ).view(1, -1)
-                action, _, _ = self.policy.forward(embedded_battle)
+                action, _, _ = self.__policy.forward(embedded_battle)
             lead_id = int(action.item()) - 19
             all_ids = "123456"
             return "/team " + str(lead_id) + all_ids[: lead_id - 1] + all_ids[lead_id:]

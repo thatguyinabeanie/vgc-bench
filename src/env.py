@@ -2,22 +2,44 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+import torch
 from gymnasium import Space
 from gymnasium.spaces import Box
+from poke_env import AccountConfiguration
 from poke_env.environment import AbstractBattle
 from poke_env.player import BattleOrder, Gen9EnvSinglePlayer
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 from agent import Agent
+from teams import RandomTeamBuilder
 
 
 class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
+    @classmethod
+    def create_env(cls, i: int, battle_format: str):
+        num_gpus = torch.cuda.device_count()
+        opponent = Agent(
+            None,
+            device=torch.device(f"cuda:{i % num_gpus}" if num_gpus > 0 else "cpu"),
+            account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+            battle_format=battle_format,
+            log_level=40,
+            team=RandomTeamBuilder(),
+        )
+        return cls(
+            opponent,
+            account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
+            battle_format=battle_format,
+            log_level=40,
+            team=RandomTeamBuilder(),
+        )
+
     def set_opp_policy(self, policy: ActorCriticPolicy):
         assert isinstance(self._opponent, Agent)
-        self._opponent.policy = policy.to(self._opponent.policy.device)
+        self._opponent.set_policy(policy)
 
     @staticmethod
     def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
