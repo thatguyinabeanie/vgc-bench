@@ -1,6 +1,7 @@
 import logging
 import os
 
+import torch
 from poke_env import AccountConfiguration
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
@@ -21,13 +22,15 @@ def train_step():
     )
     total_steps = 10_000_000
     steps = 102_400
-    num_envs = 8
+    num_envs = 16
     battle_format = "gen9ou"
 
     def create_env(i: int):
+        num_gpus = torch.cuda.device_count()
         return ShowdownEnv(
-            opponent=Agent(
+            Agent(
                 None,
+                device=torch.device(f"cuda:{i % num_gpus}" if num_gpus > 0 else "cpu"),
                 account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
                 battle_format=battle_format,
                 log_level=40,
@@ -39,7 +42,7 @@ def train_step():
             team=RandomTeamBuilder(),
         )
 
-    env = SubprocVecEnv([lambda i=i: create_env(i) for i in range(num_envs)])
+    env = SubprocVecEnv([lambda i=i: create_env(i) for i in range(num_envs)], start_method="spawn")
     num_saved_timesteps = 0
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
@@ -53,13 +56,15 @@ def train_step():
         MaskedActorCriticPolicy,
         env,
         learning_rate=calc_learning_rate,
-        n_steps=2048 // num_envs,
+        n_steps=256,
+        batch_size=1024,
         tensorboard_log="logs",
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(os.path.join("saves", f"ppo_{num_saved_timesteps}.zip"))
     callback = Callback(num_envs, num_saved_timesteps, steps, battle_format)
     ppo = ppo.learn(num_saved_timesteps + steps, callback=callback, reset_num_timesteps=False)
+    torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":

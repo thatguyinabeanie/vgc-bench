@@ -32,16 +32,24 @@ class Agent(Player):
     policy: BasePolicy
     obs_len: int = 24_040
 
-    def __init__(self, policy: BasePolicy | None, *args: Any, **kwargs: Any):
+    def __init__(
+        self,
+        policy: BasePolicy | None,
+        device: torch.device | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ):
         super().__init__(*args, **kwargs)
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if policy is not None:
-            self.policy = policy
+            self.policy = policy.to(device)
         else:
             self.policy = MaskedActorCriticPolicy(
                 observation_space=Box(0.0, 1.0, shape=(self.obs_len,), dtype=np.float32),
                 action_space=Discrete(26),
                 lr_schedule=lambda _: 1e-4,
-            )
+            ).to(device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         if isinstance(battle, Battle):

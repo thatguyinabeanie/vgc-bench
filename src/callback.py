@@ -23,13 +23,27 @@ class Callback(BaseCallback):
             account_configuration=AccountConfiguration("EvalAgent", None),
             battle_format=battle_format,
             log_level=40,
+            max_concurrent_battles=10,
             team=RandomTeamBuilder(),
         )
         self.eval_opponents: list[Player] = [
-            RandomPlayer(battle_format=battle_format, log_level=40, team=RandomTeamBuilder()),
-            MaxBasePowerPlayer(battle_format=battle_format, log_level=40, team=RandomTeamBuilder()),
+            RandomPlayer(
+                battle_format=battle_format,
+                log_level=40,
+                max_concurrent_battles=10,
+                team=RandomTeamBuilder(),
+            ),
+            MaxBasePowerPlayer(
+                battle_format=battle_format,
+                log_level=40,
+                max_concurrent_battles=10,
+                team=RandomTeamBuilder(),
+            ),
             SimpleHeuristicsPlayer(
-                battle_format=battle_format, log_level=40, team=RandomTeamBuilder()
+                battle_format=battle_format,
+                log_level=40,
+                max_concurrent_battles=10,
+                team=RandomTeamBuilder(),
             ),
         ]
         self.policy_pool = [

@@ -17,7 +17,7 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
 
     def set_opp_policy(self, policy: ActorCriticPolicy):
         assert isinstance(self._opponent, Agent)
-        self._opponent.policy = policy
+        self._opponent.policy = policy.to(self._opponent.policy.device)
 
     @staticmethod
     def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
