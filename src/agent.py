@@ -93,7 +93,7 @@ class Agent(Player):
             if not action_space:
                 return Player.choose_random_move(battle)
             elif action not in action_space:
-                raise LookupError()
+                raise LookupError(f"{action} not in {action_space}")
             elif action < 20:
                 assert battle.active_pokemon is not None
                 return Player.create_order(
