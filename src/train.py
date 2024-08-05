@@ -24,7 +24,7 @@ def train():
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-3]) for file in files])
-    env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(24)])
+    env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(48)])
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
