@@ -32,7 +32,6 @@ TEXT_MODEL = SentenceTransformer("average_word_embeddings_glove.6B.300d")
 
 class Agent(Player):
     __policy: BasePolicy
-    __device: torch.device
     obs_len: int = 24_040
 
     def __init__(
@@ -45,24 +44,23 @@ class Agent(Player):
         super().__init__(*args, **kwargs)
         if device is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.__device = device
         if policy is not None:
-            self.__policy = policy.to(self.__device)
+            self.__policy = policy.to(device)
         else:
             self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(0.0, 1.0, shape=(self.obs_len,), dtype=np.float32),
                 action_space=Discrete(26),
                 lr_schedule=lambda _: 1e-4,
-            ).to(self.__device)
+            ).to(device)
 
     def set_policy(self, policy: BasePolicy):
-        self.__policy = policy.to(self.__device)
+        self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         if isinstance(battle, Battle):
             with torch.no_grad():
                 embedded_battle = torch.tensor(
-                    self.embed_battle(battle), device=self.__device
+                    self.embed_battle(battle), device=self.__policy.device
                 ).view(1, -1)
                 action, _, _ = self.__policy.forward(embedded_battle)
             return Agent.action_to_move(int(action.item()), battle)
@@ -75,7 +73,7 @@ class Agent(Player):
         if isinstance(battle, Battle):
             with torch.no_grad():
                 embedded_battle = torch.tensor(
-                    self.embed_battle(battle), device=self.__device
+                    self.embed_battle(battle), device=self.__policy.device
                 ).view(1, -1)
                 action, _, _ = self.__policy.forward(embedded_battle)
             lead_id = int(action.item()) - 19
