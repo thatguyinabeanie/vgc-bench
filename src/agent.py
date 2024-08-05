@@ -1,3 +1,4 @@
+import warnings
 from functools import cache
 from typing import Any
 
@@ -25,6 +26,7 @@ from stable_baselines3.common.policies import BasePolicy
 from data import ABILITYDEX, ITEMDEX, MOVEDEX
 from policy import MaskedActorCriticPolicy
 
+warnings.simplefilter(action="ignore", category=FutureWarning)
 TEXT_MODEL = SentenceTransformer("average_word_embeddings_glove.6B.300d")
 
 
