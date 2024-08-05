@@ -2,6 +2,7 @@ import os
 import time
 from subprocess import DEVNULL, Popen
 
+import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
@@ -22,7 +23,7 @@ def train():
     num_saved_timesteps = 0
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
-        num_saved_timesteps = max([int(file[4:-4]) for file in files])
+        num_saved_timesteps = max([int(file[:-3]) for file in files])
     env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(16)])
     ppo = PPO(
         MaskedActorCriticPolicy,
@@ -33,7 +34,7 @@ def train():
         tensorboard_log="logs",
     )
     if num_saved_timesteps > 0:
-        ppo.set_parameters(os.path.join("saves", f"ppo_{num_saved_timesteps}.zip"))
+        ppo.policy = torch.load(f"saves/{num_saved_timesteps}.pt")
     callback = Callback(
         num_saved_timesteps, battle_format, save_interval=102_400, bench_interval=102_400
     )

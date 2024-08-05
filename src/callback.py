@@ -2,9 +2,9 @@ import asyncio
 import os
 import random
 
+import torch
 from poke_env import AccountConfiguration
 from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
-from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
 from agent import Agent
@@ -59,9 +59,7 @@ class Callback(BaseCallback):
                 team=RandomTeamBuilder(),
             ),
         ]
-        self.policy_pool = [
-            PPO.load(f"saves/{filename[:-4]}").policy for filename in os.listdir("saves")
-        ]
+        self.policy_pool = [torch.load(f"saves/{filename}") for filename in os.listdir("saves")]
 
     def _on_step(self) -> bool:
         if self.model.num_timesteps % self.bench_interval == 0:
@@ -78,7 +76,7 @@ class Callback(BaseCallback):
             self.eval_agent.set_policy(new_policy)
             if not self.policy_pool:
                 self.policy_pool.append(new_policy)
-                self.model.save(f"saves/ppo_{self.model.num_timesteps}")
+                self.model.policy.save(f"saves/{self.model.num_timesteps}.pt")
             else:
                 self.eval_agent2.set_policy(self.policy_pool[-1])
                 win_rate, lose_rate = asyncio.run(
@@ -88,7 +86,7 @@ class Callback(BaseCallback):
                 self.model.logger.record("eval/score", score)
                 if score >= 0.55:
                     self.policy_pool.append(new_policy)
-                    self.model.save(f"saves/ppo_{self.model.num_timesteps}")
+                    self.model.policy.save(f"saves/{self.model.num_timesteps}.pt")
         return True
 
     def _on_training_start(self):
