@@ -24,7 +24,7 @@ def train():
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-3]) for file in files])
-    env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(16)])
+    env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(24)])
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
@@ -32,13 +32,14 @@ def train():
         n_steps=512,
         batch_size=1024,
         tensorboard_log="logs",
+        device="cuda:0",
     )
     if num_saved_timesteps > 0:
         ppo.policy = torch.load(f"saves/{num_saved_timesteps}.pt")
     callback = Callback(
-        num_saved_timesteps, battle_format, save_interval=102_400, bench_interval=102_400
+        num_saved_timesteps, battle_format, save_interval=100_000, bench_interval=100_000
     )
-    ppo = ppo.learn(100_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
+    ppo.learn(100_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
 
 
 if __name__ == "__main__":

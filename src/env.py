@@ -23,7 +23,11 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
         num_gpus = torch.cuda.device_count()
         opponent = Agent(
             None,
-            device=torch.device(f"cuda:{i % num_gpus}" if num_gpus > 0 else "cpu"),
+            device=torch.device(
+                f"cuda:{i % (num_gpus - 1) + 1}"
+                if num_gpus > 1
+                else "cuda" if num_gpus > 0 else "cpu"
+            ),
             account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
             battle_format=battle_format,
             log_level=40,
