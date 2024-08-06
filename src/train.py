@@ -2,7 +2,6 @@ import os
 import time
 from subprocess import DEVNULL, Popen
 
-import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
@@ -22,7 +21,7 @@ def train():
     num_saved_timesteps = 0
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
-        num_saved_timesteps = max([int(file[:-3]) for file in files])
+        num_saved_timesteps = max([int(file[:-4]) for file in files])
     env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, "gen9ou") for i in range(48)])
     ppo = PPO(
         MaskedActorCriticPolicy,
@@ -34,7 +33,7 @@ def train():
         device="cuda:0",
     )
     if num_saved_timesteps > 0:
-        ppo.policy = torch.load(f"saves/{num_saved_timesteps}.pt")
+        ppo.set_parameters(f"saves/{num_saved_timesteps}")
     callback = Callback(num_saved_timesteps, save_interval=98_304)
     ppo.learn(100_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
 

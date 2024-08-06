@@ -1,7 +1,7 @@
 import os
 import random
 
-import torch
+from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
 from policy import MaskedActorCriticPolicy
@@ -12,7 +12,9 @@ class Callback(BaseCallback):
         super().__init__()
         self.num_saved_timesteps = num_saved_timesteps
         self.save_interval = save_interval
-        self.policy_pool = [torch.load(f"saves/{filename}") for filename in os.listdir("saves")]
+        self.policy_pool = [
+            PPO.load(f"saves/{filename}").policy for filename in os.listdir("saves")
+        ]
 
     def _on_step(self) -> bool:
         return True
@@ -31,4 +33,4 @@ class Callback(BaseCallback):
         if self.model.num_timesteps % self.save_interval == 0:
             new_policy = MaskedActorCriticPolicy.clone(self.model)
             self.policy_pool.append(new_policy)
-            self.model.policy.save(f"saves/{self.model.num_timesteps}.pt")
+            self.model.save(f"saves/{self.model.num_timesteps}")
