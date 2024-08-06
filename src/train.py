@@ -28,8 +28,8 @@ def train():
         MaskedActorCriticPolicy,
         env,
         learning_rate=lambda x: 1e-4 / (8 * (1 - x) + 1) ** 1.5,
-        n_steps=512,
-        batch_size=1024,
+        n_steps=128,
+        batch_size=128,
         tensorboard_log="logs",
         device="cuda:0",
     )

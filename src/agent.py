@@ -1,5 +1,3 @@
-import warnings
-from functools import cache
 from typing import Any
 
 import numpy as np
@@ -12,6 +10,7 @@ from poke_env.environment import (
     DoubleBattle,
     Effect,
     Move,
+    MoveCategory,
     Pokemon,
     PokemonGender,
     PokemonType,
@@ -20,19 +19,15 @@ from poke_env.environment import (
     Weather,
 )
 from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
-from sentence_transformers import SentenceTransformer
 from stable_baselines3.common.policies import BasePolicy
 
 from data import ABILITYDEX, ITEMDEX, MOVEDEX
 from policy import MaskedActorCriticPolicy
 
-warnings.simplefilter(action="ignore", category=FutureWarning)
-TEXT_MODEL = SentenceTransformer("average_word_embeddings_glove.6B.300d")
-
 
 class Agent(Player):
     __policy: BasePolicy
-    obs_len: int = 24_040
+    obs_len: int = 41_860
 
     def __init__(
         self,
@@ -155,9 +150,9 @@ class Agent(Player):
             ]
             force_switch = float(battle.force_switch)
             team = [Agent.embed_pokemon(p) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(1957 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(3442 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(1957 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(3442 * (6 - len(battle.opponent_team)))])
             return np.array(
                 [
                     *mask,
@@ -197,14 +192,10 @@ class Agent(Player):
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
-        ability_desc = Agent.embed_desc(
-            "" if pokemon.ability in [None, ""] else ABILITYDEX[pokemon.ability]["desc"]
-        )
-        item_desc = Agent.embed_desc(
-            "" if pokemon.item in [None, "", "unknown_item"] else ITEMDEX[pokemon.item]["desc"]
-        )
+        ability_desc = item_desc = [float(a == pokemon.ability) for a in ABILITYDEX]
+        item_desc = [float(i == pokemon.item) for i in ITEMDEX]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(324 * (4 - len(pokemon.moves)))])
+        moves = np.concatenate([*moves, np.zeros(712 * (4 - len(pokemon.moves)))])
         return np.array(
             [
                 level,
@@ -217,8 +208,8 @@ class Agent(Player):
                 *types,
                 *tera_type,
                 *specials,
-                *ability_desc,  # type: ignore
-                *item_desc,  # type: ignore
+                *ability_desc,
+                *item_desc,
                 *moves,
             ]
         )
@@ -229,14 +220,10 @@ class Agent(Player):
         acc = move.accuracy / 100
         pp_frac = move.current_pp / move.max_pp
         max_pp = move.max_pp / 64
+        category = [float(c == move.category) for c in MoveCategory]
         move_type = [float(t == move.type) for t in PokemonType]
-        move_desc = Agent.embed_desc(MOVEDEX[move.id]["desc"])
-        return np.array([power, acc, pp_frac, max_pp, *move_type, *move_desc])  # type: ignore
-
-    @cache
-    @staticmethod
-    def embed_desc(desc: str) -> npt.NDArray[np.float32]:
-        return TEXT_MODEL.encode(desc, show_progress_bar=False)  # type: ignore
+        move_desc = [float(m == move.id) for m in MOVEDEX]
+        return np.array([power, acc, pp_frac, max_pp, *category, *move_type, *move_desc])
 
     @staticmethod
     def get_action_space(battle: Battle) -> list[int]:

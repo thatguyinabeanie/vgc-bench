@@ -5,11 +5,15 @@ import re
 import requests
 
 with open("json/abilities.json") as f:
-    ABILITYDEX = json.load(f)
+    ABILITYDEX = [name for name, details in json.load(f).items() if "isNonstandard" not in details]
 with open("json/items.json") as f:
-    ITEMDEX = json.load(f)
+    ITEMDEX = [
+        name
+        for name, details in json.load(f).items()
+        if "isNonstandard" not in details and "isPokeball" not in details
+    ]
 with open("json/moves.json") as f:
-    MOVEDEX = json.load(f)
+    MOVEDEX = [name for name, details in json.load(f).items() if "isNonstandard" not in details]
 
 
 def update_json_file(url: str, file: str):
