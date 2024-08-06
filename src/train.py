@@ -22,12 +22,13 @@ def train():
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
-    env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, "gen9ou") for i in range(48)])
+    num_envs = 24
+    env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, "gen9ou") for i in range(num_envs)])
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
         learning_rate=lambda x: 1e-4 / (8 * (1 - x) + 1) ** 1.5,
-        n_steps=128,
+        n_steps=6144 // num_envs,
         batch_size=128,
         tensorboard_log="logs",
         device="cuda:0",
