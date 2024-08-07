@@ -12,7 +12,7 @@ from teams import RandomTeamBuilder
 
 
 def run_eval():
-    Popen(
+    server = Popen(
         ["node", "pokemon-showdown", "start", "--no-security"],
         stdout=DEVNULL,
         stderr=DEVNULL,
@@ -57,6 +57,8 @@ def run_eval():
     ]
     result = asyncio.run(eval_agent.battle_against_multi(eval_opponents, n_battles=100))
     print(result)
+    server.terminate()
+    server.wait()
 
 
 if __name__ == "__main__":
