@@ -1,1 +1,1 @@
-export PATH="/u/cangliss/repos/UT-masters-thesis/bin:$PATH"
+export PATH="/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:$PATH"
