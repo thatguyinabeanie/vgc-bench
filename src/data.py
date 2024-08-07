@@ -4,17 +4,6 @@ import re
 
 import requests
 
-with open("json/abilities.json") as f:
-    ABILITYDEX = [name for name, details in json.load(f).items() if "isNonstandard" not in details]
-with open("json/items.json") as f:
-    ITEMDEX = [
-        name
-        for name, details in json.load(f).items()
-        if "isNonstandard" not in details and "isPokeball" not in details
-    ]
-with open("json/moves.json") as f:
-    MOVEDEX = [name for name, details in json.load(f).items() if "isNonstandard" not in details]
-
 
 def update_json_file(url: str, file: str):
     response = requests.get(f"{url}/{file}")
@@ -36,3 +25,14 @@ if __name__ == "__main__":
     update_json_file("https://play.pokemonshowdown.com/data", "abilities.js")
     update_json_file("https://play.pokemonshowdown.com/data", "items.js")
     update_json_file("https://play.pokemonshowdown.com/data", "moves.js")
+    update_json_file("https://play.pokemonshowdown.com/data", "pokedex.js")
+
+
+with open("json/abilities.json") as f:
+    ABILITYDEX = [None, ""] + list(json.load(f).keys())
+with open("json/items.json") as f:
+    ITEMDEX = [None, "", "unknown_item"] + list(json.load(f).keys())
+with open("json/moves.json") as f:
+    MOVEDEX = list(json.load(f).keys())
+with open("json/pokedex.json") as f:
+    POKEDEX = list(json.load(f).keys())

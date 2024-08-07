@@ -3,15 +3,24 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from gymnasium import Space
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution
 from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
+
+from data import ABILITYDEX, ITEMDEX, MOVEDEX, POKEDEX
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs, net_arch=[256, 256, 256, 256, 256])
+        super().__init__(
+            *args,
+            **kwargs,
+            net_arch=[256, 256, 256, 256, 256],
+            features_extractor_class=EmbeddingFeaturesExtractor,
+        )
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
@@ -50,3 +59,34 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         values = self.value_net(latent_vf)
         return distribution, values
+
+
+class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space: Space[Any]):
+        super().__init__(observation_space, features_dim=3592)
+        self.embed_ability = torch.nn.Embedding(len(ABILITYDEX), 12)
+        self.embed_item = torch.nn.Embedding(len(ITEMDEX), 12)
+        self.embed_move = torch.nn.Embedding(len(MOVEDEX), 12)
+        self.embed_pokemon = torch.nn.Embedding(len(POKEDEX), 12)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        output = x[:, :556]
+        for i in range(12):
+            a = 556 + 176 * i
+            mon_output = torch.cat(
+                [
+                    self.embed_pokemon(x[:, a].int()),
+                    self.embed_ability(x[:, a + 1].int()),
+                    self.embed_item(x[:, a + 2].int()),
+                    x[:, a + 3 : a + 64],
+                ],
+                dim=1,
+            )
+            for j in range(4):
+                b = a + 64 + 28 * j
+                move_output = torch.cat(
+                    [self.embed_move(x[:, b].int()), x[:, b + 1 : b + 28]], dim=1
+                )
+                mon_output = torch.cat([mon_output, move_output], dim=1)
+            output = torch.cat([output, mon_output], dim=1)
+        return output
