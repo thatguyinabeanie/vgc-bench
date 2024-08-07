@@ -5,6 +5,7 @@ import numpy.typing as npt
 import torch
 from gymnasium import Space
 from gymnasium.spaces import Box
+from gymnasium.wrappers.frame_stack import FrameStack
 from poke_env import AccountConfiguration
 from poke_env.environment import AbstractBattle
 from poke_env.player import BattleOrder, Gen9EnvSinglePlayer
@@ -19,7 +20,7 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def create_env(cls, i: int, battle_format: str):
+    def create_env(cls, i: int, battle_format: str) -> FrameStack:
         num_gpus = torch.cuda.device_count()
         opponent = Agent(
             None,
@@ -33,13 +34,14 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
             log_level=40,
             team=RandomTeamBuilder(),
         )
-        return cls(
+        env = cls(
             opponent,
             account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
             battle_format=battle_format,
             log_level=40,
             team=RandomTeamBuilder(),
         )
+        return FrameStack(env, 10)
 
     def set_opp_policy(self, policy: ActorCriticPolicy):
         assert isinstance(self._opponent, Agent)

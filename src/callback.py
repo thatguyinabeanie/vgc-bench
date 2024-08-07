@@ -1,10 +1,13 @@
 import os
 import random
+import warnings
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
 from policy import MaskedActorCriticPolicy
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Callback(BaseCallback):

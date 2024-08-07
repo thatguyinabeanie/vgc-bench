@@ -46,15 +46,17 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return values, log_prob, entropy
 
     def get_distribution_and_values(self, obs: PyTorchObs) -> tuple[Distribution, torch.Tensor]:
-        features = self.extract_features(obs)
+        if len(obs.size()) == 2:  # type: ignore
+            obs = torch.cat([torch.zeros((1, 9, obs.size(1))).to(obs.device), obs.unsqueeze(1)], dim=1)  # type: ignore
+        features = self.extract_features(obs)  # type: ignore
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
         else:
             pi_features, latent_vf = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
         mean_actions = self.action_net(latent_pi)
-        mask = obs[:, :26]  # type: ignore
-        mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
+        mask = obs[:, -1, :26]  # type: ignore
+        mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)  # type: ignore
         mask = torch.where(mask == 1, float("-inf"), mask)
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         values = self.value_net(latent_vf)
@@ -63,30 +65,30 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=3592)
+        super().__init__(observation_space, features_dim=35_920)
         self.embed_ability = torch.nn.Embedding(len(ABILITYDEX), 12)
         self.embed_item = torch.nn.Embedding(len(ITEMDEX), 12)
         self.embed_move = torch.nn.Embedding(len(MOVEDEX), 12)
         self.embed_pokemon = torch.nn.Embedding(len(POKEDEX), 12)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        output = x[:, :556]
+        output = x[:, :, :556]
         for i in range(12):
             a = 556 + 176 * i
             mon_output = torch.cat(
                 [
-                    self.embed_pokemon(x[:, a].int()),
-                    self.embed_ability(x[:, a + 1].int()),
-                    self.embed_item(x[:, a + 2].int()),
-                    x[:, a + 3 : a + 64],
+                    self.embed_pokemon(x[:, :, a].int()),
+                    self.embed_ability(x[:, :, a + 1].int()),
+                    self.embed_item(x[:, :, a + 2].int()),
+                    x[:, :, a + 3 : a + 64],
                 ],
-                dim=1,
+                dim=2,
             )
             for j in range(4):
                 b = a + 64 + 28 * j
                 move_output = torch.cat(
-                    [self.embed_move(x[:, b].int()), x[:, b + 1 : b + 28]], dim=1
+                    [self.embed_move(x[:, :, b].int()), x[:, :, b + 1 : b + 28]], dim=2
                 )
-                mon_output = torch.cat([mon_output, move_output], dim=1)
-            output = torch.cat([output, mon_output], dim=1)
-        return output
+                mon_output = torch.cat([mon_output, move_output], dim=2)
+            output = torch.cat([output, mon_output], dim=2)
+        return output.reshape(output.size(0), -1)
