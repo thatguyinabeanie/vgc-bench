@@ -65,11 +65,11 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=35_920)
-        self.embed_ability = torch.nn.Embedding(len(ABILITYDEX), 12)
-        self.embed_item = torch.nn.Embedding(len(ITEMDEX), 12)
-        self.embed_move = torch.nn.Embedding(len(MOVEDEX), 12)
-        self.embed_pokemon = torch.nn.Embedding(len(POKEDEX), 12)
+        super().__init__(observation_space, features_dim=86_320)
+        self.embed_ability = torch.nn.Embedding(len(ABILITYDEX), 72)
+        self.embed_item = torch.nn.Embedding(len(ITEMDEX), 72)
+        self.embed_move = torch.nn.Embedding(len(MOVEDEX), 72)
+        self.embed_pokemon = torch.nn.Embedding(len(POKEDEX), 72)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         output = x[:, :, :556]
