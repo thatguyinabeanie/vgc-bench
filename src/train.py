@@ -22,8 +22,11 @@ def train():
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
-    num_envs = 48
-    env = SubprocVecEnv([lambda i=i: ShowdownEnv.create_env(i, "gen9ou") for i in range(num_envs)])
+    num_envs = 16
+    battle_format = "gen9ou"
+    env = SubprocVecEnv(
+        [lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(num_envs)]
+    )
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
@@ -35,7 +38,7 @@ def train():
     )
     if num_saved_timesteps > 0:
         ppo.set_parameters(f"saves/{num_saved_timesteps}")
-    callback = Callback(num_saved_timesteps, save_interval=98_304)
+    callback = Callback(num_saved_timesteps, save_interval=98_304, battle_format=battle_format)
     ppo.learn(100_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
 
 
