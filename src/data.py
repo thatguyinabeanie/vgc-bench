@@ -33,6 +33,6 @@ with open("json/abilities.json") as f:
 with open("json/items.json") as f:
     ITEMDEX = ["", None, "unknown_item"] + list(json.load(f).keys())
 with open("json/moves.json") as f:
-    MOVEDEX = [""] + list(json.load(f).keys())
+    MOVEDEX = ["unknown_move"] + list(json.load(f).keys())
 with open("json/pokedex.json") as f:
-    POKEDEX = [""] + list(json.load(f).keys())
+    POKEDEX = list(json.load(f).keys())
