@@ -40,7 +40,9 @@ class Callback(BaseCallback):
                 for i in range(len(eval_opponents))
             ]
         )
-        self.evaluator = PPO(MaskedActorCriticPolicy, eval_env, learning_rate=0, n_steps=1024, n_epochs=1)
+        self.evaluator = PPO(
+            MaskedActorCriticPolicy, eval_env, learning_rate=0, n_steps=1024, n_epochs=1
+        )
 
     def _on_step(self) -> bool:
         return True
