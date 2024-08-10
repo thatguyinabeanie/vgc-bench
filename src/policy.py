@@ -3,14 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from gymnasium import Space
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution
 from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
-
-from data import ABILITYDEX, ITEMDEX, MOVEDEX, POKEDEX
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
@@ -19,7 +15,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             *args,
             **kwargs,
             net_arch=[256, 256, 256, 256, 256],
-            features_extractor_class=EmbeddingFeaturesExtractor,
+            # features_extractor_class=EmbeddingFeaturesExtractor,
         )
 
     @classmethod
@@ -61,27 +57,30 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution, values
 
 
-class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=8263)
-        self.embed_ability = torch.nn.Embedding(len(ABILITYDEX), 72)
-        self.embed_item = torch.nn.Embedding(len(ITEMDEX), 72)
-        self.embed_move = torch.nn.Embedding(len(MOVEDEX), 72)
-        self.embed_pokemon = torch.nn.Embedding(len(POKEDEX), 72)
+# class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
+#     def __init__(self, observation_space: Space[Any]):
+#         super().__init__(observation_space, features_dim=13 * 896)
+#         self.embed_ability = torch.nn.Embedding(len(ABILITYDEX), 72)
+#         self.embed_item = torch.nn.Embedding(len(ITEMDEX), 72)
+#         self.embed_move = torch.nn.Embedding(len(MOVEDEX), 72)
+#         self.embed_pokemon = torch.nn.Embedding(len(POKEDEX), 72)
+#         self.battle_layer = torch.nn.Linear(763, 896)
+#         self.pokemon_layer = torch.nn.Linear(625, 896)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        output = x[:, :763]
-        for i in range(12):
-            a = 763 + 128 * i
-            mon_output = torch.cat(
-                [
-                    self.embed_pokemon(x[:, a].int()),
-                    self.embed_ability(x[:, a + 1].int()),
-                    self.embed_item(x[:, a + 2].int()),
-                    self.embed_move(x[:, a + 3 : a + 7].int()).reshape(x.size(0), -1),
-                    x[:, a + 7 : a + 128],
-                ],
-                dim=1,
-            )
-            output = torch.cat([output, mon_output], dim=1)
-        return output
+#     def forward(self, x: torch.Tensor) -> torch.Tensor:
+#         output = self.battle_layer(x[:, :763])
+#         for i in range(12):
+#             a = 763 + 128 * i
+#             mon_output = torch.cat(
+#                 [
+#                     self.embed_pokemon(x[:, a].int()),
+#                     self.embed_ability(x[:, a + 1].int()),
+#                     self.embed_item(x[:, a + 2].int()),
+#                     self.embed_move(x[:, a + 3 : a + 7].int()).view(x.size(0), -1),
+#                     x[:, a + 7 : a + 128],
+#                 ],
+#                 dim=1,
+#             )
+#             mon_output = self.pokemon_layer(mon_output)
+#             output = torch.cat([output, mon_output], dim=1)
+#         return output

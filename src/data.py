@@ -29,10 +29,10 @@ if __name__ == "__main__":
 
 
 with open("json/abilities.json") as f:
-    ABILITYDEX = ["", None] + list(json.load(f).keys())
+    ABILITYDEX = ["?", "", None] + list(json.load(f).keys())
 with open("json/items.json") as f:
-    ITEMDEX = ["", None, "unknown_item"] + list(json.load(f).keys())
+    ITEMDEX = ["?", "unknown_item", "", None] + list(json.load(f).keys())
 with open("json/moves.json") as f:
-    MOVEDEX = ["unknown_move"] + list(json.load(f).keys())
+    MOVEDEX = ["?"] + list(json.load(f).keys())
 with open("json/pokedex.json") as f:
-    POKEDEX = list(json.load(f).keys())
+    POKEDEX = ["?"] + list(json.load(f).keys())

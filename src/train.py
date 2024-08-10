@@ -18,10 +18,6 @@ def train():
         cwd="pokemon-showdown",
     )
     time.sleep(5)
-    num_saved_timesteps = 0
-    if os.path.exists("saves") and len(os.listdir("saves")) > 0:
-        files = os.listdir("saves")
-        num_saved_timesteps = max([int(file[:-4]) for file in files])
     num_envs = 16
     battle_format = "gen9ou"
     env = SubprocVecEnv(
@@ -31,15 +27,17 @@ def train():
         MaskedActorCriticPolicy,
         env,
         learning_rate=lambda x: 1e-4 / (8 * (1 - x) + 1) ** 1.5,
-        n_steps=6144 // num_envs,
-        batch_size=128,
+        n_steps=2048 // num_envs,
         tensorboard_log="logs",
         device="cuda:0",
     )
-    if num_saved_timesteps > 0:
-        ppo.set_parameters(f"saves/{num_saved_timesteps}")
-    callback = Callback(num_saved_timesteps, save_interval=98_304, battle_format=battle_format)
-    ppo.learn(100_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
+    num_saved_timesteps = 0
+    if os.path.exists("saves") and len(os.listdir("saves")) > 0:
+        files = os.listdir("saves")
+        num_saved_timesteps = max([int(file[:-4]) for file in files])
+        ppo.set_parameters(f"saves/{num_saved_timesteps}.zip")
+    callback = Callback(num_saved_timesteps, save_interval=102_400, battle_format=battle_format)
+    ppo = ppo.learn(10_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
 
 
 if __name__ == "__main__":
