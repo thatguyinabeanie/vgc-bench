@@ -27,7 +27,8 @@ def train():
         MaskedActorCriticPolicy,
         env,
         learning_rate=lambda x: 1e-4 / (8 * (1 - x) + 1) ** 1.5,
-        n_steps=2048 // num_envs,
+        n_steps=16_384 // num_envs,
+        batch_size=256,
         tensorboard_log="logs",
         device="cuda:0",
     )
@@ -36,7 +37,7 @@ def train():
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
         ppo.set_parameters(f"saves/{num_saved_timesteps}.zip")
-    callback = Callback(num_saved_timesteps, save_interval=102_400, battle_format=battle_format)
+    callback = Callback(num_saved_timesteps, save_interval=409_600, battle_format=battle_format)
     ppo = ppo.learn(10_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
 
 

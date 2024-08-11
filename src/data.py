@@ -1,8 +1,47 @@
-import json
 import os
 import re
 
 import requests
+
+ABILITYDEX = [
+    "?",
+    None,
+    "contrary",
+    "protosynthesis",
+    "supremeoverlord",
+    "magicbounce",
+    "toxicdebris",
+    "intimidate",
+]
+ITEMDEX = ["?", None, "", "unknown_item", "leftovers", "boosterenergy", "focussash", "rockyhelmet"]
+MOVEDEX = [
+    "?",
+    "substitute",
+    "leafstorm",
+    "terablast",
+    "glare",
+    "dragondance",
+    "outrage",
+    "flareblitz",
+    "morningsun",
+    "swordsdance",
+    "lowkick",
+    "suckerpunch",
+    "ironhead",
+    "calmmind",
+    "drainingkiss",
+    "psyshock",
+    "mysticalfire",
+    "spikes",
+    "mortalspin",
+    "earthpower",
+    "powergem",
+    "stealthrock",
+    "earthquake",
+    "uturn",
+    "grassknot",
+]
+POKEDEX = ["?", "serperior", "gougingfire", "kingambit", "hatterene", "glimmora", "landorustherian"]
 
 
 def update_json_file(url: str, file: str):
@@ -26,13 +65,3 @@ if __name__ == "__main__":
     update_json_file("https://play.pokemonshowdown.com/data", "items.js")
     update_json_file("https://play.pokemonshowdown.com/data", "moves.js")
     update_json_file("https://play.pokemonshowdown.com/data", "pokedex.js")
-
-
-with open("json/abilities.json") as f:
-    ABILITYDEX = ["?", "", None] + list(json.load(f).keys())
-with open("json/items.json") as f:
-    ITEMDEX = ["?", "unknown_item", "", None] + list(json.load(f).keys())
-with open("json/moves.json") as f:
-    MOVEDEX = ["?"] + list(json.load(f).keys())
-with open("json/pokedex.json") as f:
-    POKEDEX = ["?"] + list(json.load(f).keys())

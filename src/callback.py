@@ -1,13 +1,14 @@
+import asyncio
 import os
 import random
 import warnings
 
-from poke_env.player import MaxBasePowerPlayer, Player, RandomPlayer, SimpleHeuristicsPlayer
+from poke_env import AccountConfiguration
+from poke_env.player import SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.vec_env import SubprocVecEnv
 
-from env import ShowdownEnv
+from agent import Agent
 from policy import MaskedActorCriticPolicy
 from teams import RandomTeamBuilder
 
@@ -22,26 +23,20 @@ class Callback(BaseCallback):
         self.policy_pool = [
             PPO.load(f"saves/{filename}").policy for filename in os.listdir("saves")
         ]
-        eval_opponents: list[type[Player]] = [
-            RandomPlayer,
-            MaxBasePowerPlayer,
-            SimpleHeuristicsPlayer,
-        ]
-        eval_env = SubprocVecEnv(
-            [
-                lambda i=i: ShowdownEnv.create_env(
-                    i,
-                    battle_format,
-                    opponent=eval_opponents[i](
-                        battle_format=battle_format, log_level=40, team=RandomTeamBuilder()
-                    ),
-                    username="EvalAgent",
-                )
-                for i in range(len(eval_opponents))
-            ]
+        self.eval_agent = Agent(
+            None,
+            account_configuration=AccountConfiguration("EvalAgent", None),
+            battle_format=battle_format,
+            log_level=40,
+            max_concurrent_battles=10,
+            team=RandomTeamBuilder(),
         )
-        self.evaluator = PPO(
-            MaskedActorCriticPolicy, eval_env, learning_rate=0, n_steps=1024, n_epochs=1
+        self.eval_opponent = SimpleHeuristicsPlayer(
+            account_configuration=AccountConfiguration("EvalOpponent", None),
+            battle_format=battle_format,
+            log_level=40,
+            max_concurrent_battles=10,
+            team=RandomTeamBuilder(),
         )
 
     def _on_step(self) -> bool:
@@ -52,23 +47,22 @@ class Callback(BaseCallback):
 
     def _on_rollout_start(self):
         assert self.model.env is not None
-        policies = [MaskedActorCriticPolicy.clone(self.model)] + self.policy_pool
+        policies = random.choices(
+            self.policy_pool + [MaskedActorCriticPolicy.clone(self.model)],
+            weights=range(1, len(self.policy_pool) + 2),
+            k=self.model.env.num_envs,
+        )
         for i in range(self.model.env.num_envs):
-            policy = random.choice(policies)
-            self.model.env.env_method("set_opp_policy", policy, indices=i)
+            self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_interval == 0:
             new_policy = MaskedActorCriticPolicy.clone(self.model)
+            self.eval_agent.set_policy(new_policy)
+            asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
+            win_rate = self.eval_agent.win_rate
+            self.eval_agent.reset_battles()
+            self.eval_opponent.reset_battles()
+            self.model.logger.record("train/heuristics", win_rate)
             self.policy_pool.append(new_policy)
             self.model.save(f"saves/{self.model.num_timesteps}")
-            self.evaluator.set_parameters(f"saves/{self.model.num_timesteps}")
-            self.evaluator.learn(3072)
-            assert self.evaluator.env is not None
-            [random_winrate, power_winrate, heuristics_winrate, *_] = self.evaluator.env.get_attr(
-                "win_rate"
-            )
-            self.model.logger.record("eval/random", round(random_winrate, 3))
-            self.model.logger.record("eval/power", round(power_winrate, 3))
-            self.model.logger.record("eval/heuristics", round(heuristics_winrate, 3))
-            self.evaluator.env.env_method("reset_env")

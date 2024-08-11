@@ -9,7 +9,7 @@ from gymnasium import Space
 from gymnasium.spaces import Box
 from poke_env import AccountConfiguration
 from poke_env.environment import AbstractBattle
-from poke_env.player import BattleOrder, Gen9EnvSinglePlayer, Player
+from poke_env.player import BattleOrder, Gen9EnvSinglePlayer
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 from agent import Agent
@@ -21,28 +21,23 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def create_env(
-        cls, i: int, battle_format: str, opponent: Player | None = None, username: str | None = None
-    ) -> ShowdownEnv:
+    def create_env(cls, i: int, battle_format: str) -> ShowdownEnv:
         num_gpus = torch.cuda.device_count()
-        if opponent is None:
-            opponent = Agent(
-                None,
-                device=torch.device(
-                    f"cuda:{i % (num_gpus - 1) + 1}"
-                    if num_gpus > 1
-                    else "cuda" if num_gpus > 0 else "cpu"
-                ),
-                account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
-                battle_format=battle_format,
-                log_level=40,
-                team=RandomTeamBuilder(),
-            )
-        if username is None:
-            username = "Agent"
+        opponent = Agent(
+            None,
+            device=torch.device(
+                f"cuda:{i % (num_gpus - 1) + 1}"
+                if num_gpus > 1
+                else "cuda" if num_gpus > 0 else "cpu"
+            ),
+            account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+            battle_format=battle_format,
+            log_level=40,
+            team=RandomTeamBuilder(),
+        )
         return cls(
             opponent,
-            account_configuration=AccountConfiguration(f"{username}{i + 1}", None),
+            account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
             battle_format=battle_format,
             log_level=40,
             team=RandomTeamBuilder(),

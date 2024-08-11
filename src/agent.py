@@ -9,8 +9,7 @@ from poke_env.environment import (
     Battle,
     DoubleBattle,
     Effect,
-    Move,
-    MoveCategory,
+    Field,
     Pokemon,
     PokemonGender,
     PokemonType,
@@ -21,12 +20,13 @@ from poke_env.environment import (
 from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import BasePolicy
 
+from data import ABILITYDEX, ITEMDEX, MOVEDEX, POKEDEX
 from policy import MaskedActorCriticPolicy
 
 
 class Agent(Player):
     __policy: BasePolicy
-    obs_len: int = 3415
+    obs_len: int = 6362
 
     def __init__(
         self,
@@ -70,7 +70,7 @@ class Agent(Player):
                     self.embed_battle(battle), device=self.__policy.device
                 ).view(1, -1)
                 action, _, _ = self.__policy.forward(embedded_battle)
-            lead_id = int(action.item()) - 19
+            lead_id = int(action.item()) + 1
             all_ids = "123456"
             return "/team " + str(lead_id) + all_ids[: lead_id - 1] + all_ids[lead_id:]
         elif isinstance(battle, DoubleBattle):
@@ -88,17 +88,17 @@ class Agent(Player):
                 return Player.choose_random_move(battle)
             elif action not in action_space:
                 raise LookupError(f"{action} not in {action_space}")
-            elif action < 20:
+            elif action < 6:
+                return Player.create_order(list(battle.team.values())[action])
+            else:
                 assert battle.active_pokemon is not None
                 return Player.create_order(
-                    list(battle.active_pokemon.moves.values())[action % 4],
-                    mega=4 <= action < 8,
-                    z_move=8 <= action < 12,
-                    dynamax=12 <= action < 16,
-                    terastallize=16 <= action < 20,
+                    list(battle.active_pokemon.moves.values())[(action - 6) % 4],
+                    mega=10 <= action < 14,
+                    z_move=14 <= action < 18,
+                    dynamax=18 <= action < 22,
+                    terastallize=22 <= action < 26,
                 )
-            else:
-                return Player.create_order(list(battle.team.values())[action - 20])
         else:
             return Player.choose_random_move(battle)
 
@@ -106,12 +106,30 @@ class Agent(Player):
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             mask = np.array([float(i not in Agent.get_action_space(battle)) for i in range(26)])
-            weather = Agent.embed_weather(battle)
-            force_switch = float(battle.force_switch)
+            weather = np.concatenate(
+                [
+                    [float(w not in battle.weather)]
+                    + [
+                        float(w in battle.weather and min(battle.turn - battle.weather[w], 8) == i)
+                        for i in range(9)
+                    ]
+                    for w in Weather
+                ]
+            )
+            fields = np.concatenate(
+                [
+                    [float(f not in battle.fields)]
+                    + [
+                        float(f in battle.fields and min(battle.turn - battle.fields[f], 8) == i)
+                        for i in range(9)
+                    ]
+                    for f in Field
+                ]
+            )
             side_conditions = Agent.embed_side_conditions(battle)
             if battle.active_pokemon is None:
-                boost_bins = [0] * 91
-                effects = np.zeros(len(Effect))
+                boost_bins = np.zeros(7 * 13)
+                effects = np.zeros(10 * len(Effect))
             else:
                 boost_bins = np.concatenate(
                     [
@@ -119,10 +137,22 @@ class Agent(Player):
                         for b in battle.active_pokemon.boosts.values()
                     ]
                 )
-                effects = [float(e in battle.active_pokemon.effects.keys()) for e in Effect]
+                effects = np.concatenate(
+                    [
+                        [float(e not in battle.active_pokemon.effects)]
+                        + [
+                            float(
+                                e in battle.active_pokemon.effects
+                                and min(battle.active_pokemon.effects[e], 8) == i
+                            )
+                            for i in range(9)
+                        ]
+                        for e in Effect
+                    ]
+                )
             if battle.opponent_active_pokemon is None:
-                opp_boost_bins = [0] * 91
-                opp_effects = np.zeros(len(Effect))
+                opp_boost_bins = np.zeros(7 * 13)
+                opp_effects = np.zeros(10 * len(Effect))
             else:
                 opp_boost_bins = np.concatenate(
                     [
@@ -130,9 +160,19 @@ class Agent(Player):
                         for b in battle.opponent_active_pokemon.boosts.values()
                     ]
                 )
-                opp_effects = [
-                    float(e in battle.opponent_active_pokemon.effects.keys()) for e in Effect
-                ]
+                opp_effects = np.concatenate(
+                    [
+                        [float(e not in battle.opponent_active_pokemon.effects)]
+                        + [
+                            float(
+                                e in battle.opponent_active_pokemon.effects
+                                and min(battle.opponent_active_pokemon.effects[e], 8) == i
+                            )
+                            for i in range(9)
+                        ]
+                        for e in Effect
+                    ]
+                )
             special = [
                 float(s)
                 for s in [
@@ -151,16 +191,27 @@ class Agent(Player):
                     battle.opponent_can_tera,
                 ]
             ]
+            force_switch = float(battle.force_switch)
+            num_unknown = [float(6 - len(battle.opponent_team) == i) for i in range(7)]
             team = [Agent.embed_pokemon(p, False) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(221 * (6 - len(battle.team)))])
+            unknown_team = np.concatenate(
+                [np.zeros((6 - len(battle.team), 123)), np.ones((6 - len(battle.team), 1))], axis=1
+            )
+            team = np.concatenate([*team, *unknown_team])
             opp_team = [Agent.embed_pokemon(p, True) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(221 * (6 - len(battle.opponent_team)))])
+            unknown_opp_team = np.concatenate(
+                [
+                    np.zeros((6 - len(battle.opponent_team), 123)),
+                    np.ones((6 - len(battle.opponent_team), 1)),
+                ],
+                axis=1,
+            )
+            opp_team = np.concatenate([*opp_team, *unknown_opp_team])
             return np.array(
                 [
                     *mask,
                     *weather,
-                    force_switch,
-                    1 - force_switch,
+                    *fields,
                     *side_conditions,
                     *boost_bins,
                     *opp_boost_bins,
@@ -168,6 +219,8 @@ class Agent(Player):
                     *opp_effects,
                     *special,
                     *opp_special,
+                    force_switch,
+                    *num_unknown,
                     *team,
                     *opp_team,
                 ],
@@ -179,118 +232,87 @@ class Agent(Player):
             raise TypeError()
 
     @staticmethod
-    def embed_weather(battle: AbstractBattle) -> npt.NDArray[np.float32]:
-        sun = [
-            float(
-                Weather.SUNNYDAY in battle.weather.keys()
-                and min(battle.turn - battle.weather[Weather.SUNNYDAY], 8) == i
-            )
-            for i in range(9)
-        ]
-        rain = [
-            float(
-                Weather.RAINDANCE in battle.weather.keys()
-                and min(battle.turn - battle.weather[Weather.RAINDANCE], 8) == i
-            )
-            for i in range(9)
-        ]
-        hail = [
-            float(
-                Weather.HAIL in battle.weather.keys()
-                and min(battle.turn - battle.weather[Weather.HAIL], 8) == i
-            )
-            for i in range(9)
-        ]
-        sand = [
-            float(
-                Weather.SANDSTORM in battle.weather.keys()
-                and min(battle.turn - battle.weather[Weather.SANDSTORM], 8) == i
-            )
-            for i in range(9)
-        ]
-        no_weather = not battle.weather
-        return np.array([*sun, *rain, *hail, *sand, no_weather])
-
-    @staticmethod
     def embed_side_conditions(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         stealth_rocks = float(SideCondition.STEALTH_ROCK in battle.side_conditions)
         opp_stealth_rocks = float(SideCondition.STEALTH_ROCK in battle.opponent_side_conditions)
-        spikes = [
+        spikes = [float(SideCondition.SPIKES not in battle.side_conditions)] + [
             float(
                 SideCondition.SPIKES in battle.side_conditions
                 and battle.side_conditions[SideCondition.SPIKES] == i
             )
-            for i in range(4)
+            for i in range(1, 4)
         ]
-        opp_spikes = [
+        opp_spikes = [float(SideCondition.SPIKES not in battle.opponent_side_conditions)] + [
             float(
                 SideCondition.SPIKES in battle.opponent_side_conditions
                 and battle.opponent_side_conditions[SideCondition.SPIKES] == i
             )
-            for i in range(4)
+            for i in range(1, 4)
         ]
-        toxic_spikes = [
+        toxic_spikes = [float(SideCondition.TOXIC_SPIKES not in battle.side_conditions)] + [
             float(
                 SideCondition.TOXIC_SPIKES in battle.side_conditions
                 and battle.side_conditions[SideCondition.TOXIC_SPIKES] == i
             )
-            for i in range(3)
+            for i in range(1, 3)
         ]
         opp_toxic_spikes = [
+            float(SideCondition.TOXIC_SPIKES not in battle.opponent_side_conditions)
+        ] + [
             float(
                 SideCondition.TOXIC_SPIKES in battle.opponent_side_conditions
                 and battle.opponent_side_conditions[SideCondition.TOXIC_SPIKES] == i
             )
-            for i in range(3)
+            for i in range(1, 3)
         ]
-        reflect = [
+        reflect = [float(SideCondition.REFLECT not in battle.side_conditions)] + [
             float(
                 SideCondition.REFLECT in battle.side_conditions
                 and battle.turn - battle.side_conditions[SideCondition.REFLECT] == i
             )
-            for i in range(10)
+            for i in range(9)
         ]
-        opp_reflect = [
+        opp_reflect = [float(SideCondition.REFLECT not in battle.opponent_side_conditions)] + [
             float(
                 SideCondition.REFLECT in battle.opponent_side_conditions
                 and battle.turn - battle.opponent_side_conditions[SideCondition.REFLECT] == i
             )
-            for i in range(10)
+            for i in range(9)
         ]
-        light_screen = [
+        light_screen = [float(SideCondition.LIGHT_SCREEN not in battle.side_conditions)] + [
             float(
                 SideCondition.LIGHT_SCREEN in battle.side_conditions
                 and battle.turn - battle.side_conditions[SideCondition.LIGHT_SCREEN] == i
             )
-            for i in range(10)
+            for i in range(9)
         ]
         opp_light_screen = [
+            float(SideCondition.LIGHT_SCREEN not in battle.opponent_side_conditions)
+        ] + [
             float(
                 SideCondition.LIGHT_SCREEN in battle.opponent_side_conditions
                 and battle.turn - battle.opponent_side_conditions[SideCondition.LIGHT_SCREEN] == i
             )
-            for i in range(10)
+            for i in range(9)
         ]
-        safeguard = [
+        safeguard = [float(SideCondition.SAFEGUARD not in battle.side_conditions)] + [
             float(
                 SideCondition.SAFEGUARD in battle.side_conditions
                 and battle.turn - battle.side_conditions[SideCondition.SAFEGUARD] == i
             )
-            for i in range(7)
+            for i in range(6)
         ]
-        opp_safeguard = [
+        opp_safeguard = [float(SideCondition.SAFEGUARD not in battle.opponent_side_conditions)] + [
             float(
                 SideCondition.SAFEGUARD in battle.opponent_side_conditions
                 and battle.turn - battle.opponent_side_conditions[SideCondition.SAFEGUARD] == i
             )
-            for i in range(7)
+            for i in range(6)
         ]
         return np.array(
             [
                 stealth_rocks,
-                1 - stealth_rocks,
                 opp_stealth_rocks,
-                1 - opp_stealth_rocks,
                 *spikes,
                 *opp_spikes,
                 *toxic_spikes,
@@ -306,17 +328,13 @@ class Agent(Player):
 
     @staticmethod
     def embed_pokemon(pokemon: Pokemon, is_opponent: bool) -> npt.NDArray[np.float32]:
-        # pokemon_id = POKEDEX.index(pokemon.species)
-        # ability_id = ABILITYDEX.index(pokemon.ability)
-        # item_id = ITEMDEX.index(pokemon.item)
-        # move_ids = [MOVEDEX.index(m.id) for m in pokemon.moves.values()]
-        # move_ids += [0] * (4 - len(move_ids))
-        # move_pps = [
-        #     np.floor((m.current_pp / m.max_pp) ** (1 / 3)) / 4 for m in pokemon.moves.values()
-        # ]
-        # move_pps += [0] * (4 - len(move_pps))
-        moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(26 * (4 - len(pokemon.moves)))])
+        pokemon_id = POKEDEX.index(pokemon.species)
+        ability_id = ABILITYDEX.index(pokemon.ability)
+        item_id = ITEMDEX.index(pokemon.item)
+        move_ids = [MOVEDEX.index(m.id) for m in pokemon.moves.values()]
+        move_ids += [0] * (4 - len(move_ids))
+        move_pps = [np.floor(m.current_pp ** (1 / 3)) / 4 for m in pokemon.moves.values()]
+        move_pps += [0] * (4 - len(move_pps))
         types = [float(t in pokemon.types) for t in PokemonType]
         hp_frac_bins = [float((i - 1) / 6 < pokemon.current_hp_fraction <= i / 6) for i in range(7)]
         gender = [float(g == pokemon.gender) for g in PokemonGender]
@@ -327,8 +345,8 @@ class Agent(Player):
         sleep_counter = [
             float(pokemon.status == Status.SLP and pokemon.status_counter == i) for i in range(11)
         ]
-        weight_bins = [float(round(np.log10(pokemon.weight)) == i) for i in range(5)]
-        height_bins = [float(round(np.log10(pokemon.weight)) == i) for i in range(4)]
+        weight_bins = [float(round(np.log10(pokemon.weight)) == i) for i in range(-1, 4)]
+        height_bins = [float(round(np.log10(pokemon.weight)) == i) for i in range(-1, 3)]
         first_turn = float(pokemon.first_turn)
         protect_counter = [float(pokemon.protect_counter == i) for i in range(6)]
         must_recharge = float(pokemon.must_recharge)
@@ -338,12 +356,11 @@ class Agent(Player):
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
         return np.array(
             [
-                # pokemon_id,
-                # ability_id,
-                # item_id,
-                # *move_ids,
-                # *move_pps,
-                *moves,
+                pokemon_id,
+                ability_id,
+                item_id,
+                *move_ids,
+                *move_pps,
                 *types,
                 *hp_frac_bins,
                 *gender,
@@ -354,52 +371,40 @@ class Agent(Player):
                 *weight_bins,
                 *height_bins,
                 first_turn,
-                1 - first_turn,
                 *protect_counter,
                 must_recharge,
-                1 - must_recharge,
                 preparing,
-                1 - preparing,
                 active,
-                1 - active,
                 float(is_opponent),
-                1 - float(is_opponent),
                 *tera_type,
                 *specials,
+                0,
             ]
         )
 
     @staticmethod
-    def embed_move(move: Move) -> npt.NDArray[np.float32]:
-        power = move.base_power / 250
-        acc = move.accuracy / 100
-        category = [float(c == move.category) for c in MoveCategory]
-        pp_frac = move.current_pp / move.max_pp
-        move_type = [float(t == move.type) for t in PokemonType]
-        return np.array([power, acc, *category, pp_frac, *move_type])
-
-    @staticmethod
     def get_action_space(battle: Battle) -> list[int]:
         switch_space = [
-            i + 20
+            i
             for i, pokemon in enumerate(battle.team.values())
-            if pokemon.species in [p.species for p in battle.available_switches]
+            if not battle.maybe_trapped
+            and pokemon.species in [p.species for p in battle.available_switches]
         ]
         if battle.active_pokemon is None:
             return switch_space
         else:
             move_space = [
-                i
+                i + 6
                 for i, move in enumerate(battle.active_pokemon.moves.values())
                 if move.id in [m.id for m in battle.available_moves]
             ]
-            mega_space = [i + 4 for i in move_space if battle.can_mega_evolve]
+            mega_space = [i + 10 for i in move_space if battle.can_mega_evolve]
             zmove_space = [
-                i + 8
+                i + 14
                 for i, move in enumerate(battle.active_pokemon.moves.values())
                 if move.id in [m.id for m in battle.active_pokemon.available_z_moves]
                 and battle.can_z_move
             ]
-            dynamax_space = [i + 12 for i in move_space if battle.can_dynamax]
-            tera_space = [i + 16 for i in move_space if battle.can_tera]
-            return move_space + mega_space + zmove_space + dynamax_space + tera_space + switch_space
+            dynamax_space = [i + 18 for i in move_space if battle.can_dynamax]
+            tera_space = [i + 22 for i in move_space if battle.can_tera]
+            return switch_space + move_space + mega_space + zmove_space + dynamax_space + tera_space
