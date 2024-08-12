@@ -37,8 +37,9 @@ def train():
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
         ppo.set_parameters(f"saves/{num_saved_timesteps}.zip")
-    callback = Callback(num_saved_timesteps, save_interval=409_600, battle_format=battle_format)
-    ppo = ppo.learn(10_000_000 - num_saved_timesteps, callback=callback, reset_num_timesteps=False)
+    ppo.num_timesteps = num_saved_timesteps
+    callback = Callback(save_interval=409_600, battle_format=battle_format)
+    ppo = ppo.learn(100_000_000, callback=callback, reset_num_timesteps=False)
 
 
 if __name__ == "__main__":

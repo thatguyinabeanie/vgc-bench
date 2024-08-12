@@ -16,9 +16,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Callback(BaseCallback):
-    def __init__(self, num_saved_timesteps: int, save_interval: int, battle_format: str):
+    def __init__(self, save_interval: int, battle_format: str):
         super().__init__()
-        self.num_saved_timesteps = num_saved_timesteps
         self.save_interval = save_interval
         self.policy_pool = [
             PPO.load(f"saves/{filename}").policy for filename in os.listdir("saves")
@@ -41,9 +40,6 @@ class Callback(BaseCallback):
 
     def _on_step(self) -> bool:
         return True
-
-    def _on_training_start(self):
-        self.model.num_timesteps = self.num_saved_timesteps
 
     def _on_rollout_start(self):
         assert self.model.env is not None
