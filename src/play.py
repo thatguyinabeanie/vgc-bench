@@ -19,7 +19,6 @@ async def play(n_games: int, play_on_ladder: bool):
         cwd="pokemon-showdown",
     )
     await asyncio.sleep(5)
-    num_saved_timesteps = 0
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
