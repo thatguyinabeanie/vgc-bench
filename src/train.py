@@ -18,7 +18,7 @@ def train():
         cwd="pokemon-showdown",
     )
     time.sleep(5)
-    num_envs = 16
+    num_envs = 32
     battle_format = "gen9ou"
     env = SubprocVecEnv(
         [lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(num_envs)]
