@@ -10,8 +10,6 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 
-from data import ABILITYDEX, ITEMDEX, MOVEDEX, POKEDEX
-
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, **kwargs: Any):
@@ -64,24 +62,25 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=13 * 896)
-        self.embed_ability = torch.nn.Embedding(len(ABILITYDEX), 72, max_norm=1)
-        self.embed_item = torch.nn.Embedding(len(ITEMDEX), 72, max_norm=1)
-        self.embed_move = torch.nn.Embedding(len(MOVEDEX), 72, max_norm=1)
-        self.embed_pokemon = torch.nn.Embedding(len(POKEDEX), 72, max_norm=1)
         self.battle_layer = torch.nn.Linear(4874, 896)
-        self.pokemon_layer = torch.nn.Linear(621, 896)
+        self.pokemon_layer = torch.nn.Linear(753, 896)
+        self.ability_desc_layer = torch.nn.Linear(768, 72)
+        self.item_desc_layer = torch.nn.Linear(768, 72)
+        self.move_desc_layer = torch.nn.Linear(768, 72)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         output = self.battle_layer(x[:, :4874])
         for i in range(12):
-            a = 4874 + 124 * i
+            a = 4874 + 4929 * i
             mon_output = torch.cat(
                 [
-                    self.embed_pokemon(x[:, a].int()),
-                    self.embed_ability(x[:, a + 1].int()),
-                    self.embed_item(x[:, a + 2].int()),
-                    self.embed_move(x[:, a + 3 : a + 7].int()).view(x.size(0), -1),
-                    x[:, a + 7 : a + 124],
+                    self.ability_desc_layer(x[:, a : a + 768]),
+                    self.item_desc_layer(x[:, a + 768 : a + 2 * 768]),
+                    self.move_desc_layer(x[:, a + 2 * 768 : a + 3 * 768]),
+                    self.move_desc_layer(x[:, a + 3 * 768 : a + 4 * 768]),
+                    self.move_desc_layer(x[:, a + 4 * 768 : a + 5 * 768]),
+                    self.move_desc_layer(x[:, a + 5 * 768 : a + 6 * 768]),
+                    x[:, a + 6 * 768 : a + 4929],
                 ],
                 dim=1,
             )
