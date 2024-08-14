@@ -61,17 +61,15 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=13 * 896)
-        self.battle_layer = torch.nn.Linear(4874, 896)
-        self.pokemon_layer = torch.nn.Linear(753, 896)
-        self.ability_desc_layer = torch.nn.Linear(768, 72)
-        self.item_desc_layer = torch.nn.Linear(768, 72)
-        self.move_desc_layer = torch.nn.Linear(768, 72)
+        super().__init__(observation_space, features_dim=4984)
+        self.ability_desc_layer = torch.nn.Linear(768, 32)
+        self.item_desc_layer = torch.nn.Linear(768, 32)
+        self.move_desc_layer = torch.nn.Linear(768, 32)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        output = self.battle_layer(x[:, :4874])
+        output = x[:, :556]
         for i in range(12):
-            a = 4874 + 4929 * i
+            a = 556 + 4785 * i
             mon_output = torch.cat(
                 [
                     self.ability_desc_layer(x[:, a : a + 768]),
@@ -80,10 +78,9 @@ class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
                     self.move_desc_layer(x[:, a + 3 * 768 : a + 4 * 768]),
                     self.move_desc_layer(x[:, a + 4 * 768 : a + 5 * 768]),
                     self.move_desc_layer(x[:, a + 5 * 768 : a + 6 * 768]),
-                    x[:, a + 6 * 768 : a + 4929],
+                    x[:, a + 6 * 768 : a + 4785],
                 ],
                 dim=1,
             )
-            mon_output = self.pokemon_layer(mon_output)
             output = torch.cat([output, mon_output], dim=1)
         return output
