@@ -13,7 +13,7 @@ from teams import RandomTeamBuilder
 async def play(n_games: int, play_on_ladder: bool):
     print("Setting up...")
     process = Popen(
-        ["node", "pokemon-showdown", "start", "--no-security"],
+        ["node", "pokemon-showdown", "start", "8001"],
         stdout=DEVNULL,
         stderr=DEVNULL,
         cwd="pokemon-showdown",
