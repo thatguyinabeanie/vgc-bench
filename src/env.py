@@ -65,4 +65,4 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
         return Agent.embed_battle(battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
-        return Box(0.0, 1.0, shape=(Agent.obs_len,), dtype=np.float32)
+        return Box(-1, 1, shape=(Agent.obs_len,), dtype=np.float32)
