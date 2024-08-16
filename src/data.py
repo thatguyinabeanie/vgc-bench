@@ -1,12 +1,14 @@
 import json
 import os
 import re
-from typing import Any
+import warnings
 
 import requests
+from sentence_transformers import SentenceTransformer
+from sklearn.decomposition import PCA
 
 
-def update_json_file(url: str, file: str):
+def update_desc_embeddings(url: str, file: str, extras: dict[str, dict[str, str]] = {}):
     response = requests.get(f"{url}/{file}")
     if ".json" in file:
         json_text = response.text
@@ -16,26 +18,29 @@ def update_json_file(url: str, file: str):
         js_literal = js_text[i:-1]
         json_text = re.sub(r"([{,])([a-zA-Z0-9_]+)(:)", r'\1"\2"\3', js_literal)
         file += "on"
+    dex = {k: v for k, v in {**json.loads(json_text), **extras}.items() if "desc" in v}
+    warnings.simplefilter(action="ignore", category=FutureWarning)
+    transformer = SentenceTransformer("paraphrase-mpnet-base-v2")
+    embeddings = transformer.encode([a["desc"] for a in dex.values()])
+    pca = PCA(32)
+    reduced_embeddings = pca.fit_transform(embeddings).tolist()  # type: ignore
     with open(f"json/{file}", "w") as f:
-        f.write(json_text)
+        json.dump(dict(zip(dex.keys(), reduced_embeddings)), f)
 
 
 if __name__ == "__main__":
     if not os.path.exists("json"):
         os.mkdir("json")
-    update_json_file("https://play.pokemonshowdown.com/data", "abilities.js")
-    update_json_file("https://play.pokemonshowdown.com/data", "items.js")
-    update_json_file("https://play.pokemonshowdown.com/data", "moves.js")
-    update_json_file("https://play.pokemonshowdown.com/data", "pokedex.js")
-
-with open("json/abilities.json") as f:
-    ABILITYDEX: dict[str | None, dict[str, Any]] = {**json.load(f), None: {"desc": "none"}}
-with open("json/items.json") as f:
-    ITEMDEX: dict[str | None, dict[str, Any]] = {
-        **json.load(f),
-        None: {"desc": "none"},
-        "": {"desc": "empty"},
-        "unknown_item": {"desc": "unknown"},
-    }
-with open("json/moves.json") as f:
-    MOVEDEX: dict[str, dict[str, Any]] = json.load(f)
+    update_desc_embeddings(
+        "https://play.pokemonshowdown.com/data", "abilities.js", extras={"null": {"desc": "none"}}
+    )
+    update_desc_embeddings(
+        "https://play.pokemonshowdown.com/data",
+        "items.js",
+        extras={
+            "null": {"desc": "none"},
+            "": {"desc": "empty"},
+            "unknown_item": {"desc": "unknown"},
+        },
+    )
+    update_desc_embeddings("https://play.pokemonshowdown.com/data", "moves.js")

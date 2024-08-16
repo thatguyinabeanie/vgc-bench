@@ -3,22 +3,15 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from gymnasium import Space
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution
 from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(
-            *args,
-            **kwargs,
-            net_arch=[256, 256, 256, 256, 256],
-            features_extractor_class=EmbeddingFeaturesExtractor,
-        )
+        super().__init__(*args, **kwargs, net_arch=[256, 256, 256, 256, 256])
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
@@ -57,30 +50,3 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         values = self.value_net(latent_vf)
         return distribution, values
-
-
-class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=4984)
-        self.ability_desc_layer = torch.nn.Linear(768, 32)
-        self.item_desc_layer = torch.nn.Linear(768, 32)
-        self.move_desc_layer = torch.nn.Linear(768, 32)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        output = x[:, :556]
-        for i in range(12):
-            a = 556 + 4785 * i
-            mon_output = torch.cat(
-                [
-                    self.ability_desc_layer(x[:, a : a + 768]),
-                    self.item_desc_layer(x[:, a + 768 : a + 2 * 768]),
-                    self.move_desc_layer(x[:, a + 2 * 768 : a + 3 * 768]),
-                    self.move_desc_layer(x[:, a + 3 * 768 : a + 4 * 768]),
-                    self.move_desc_layer(x[:, a + 4 * 768 : a + 5 * 768]),
-                    self.move_desc_layer(x[:, a + 5 * 768 : a + 6 * 768]),
-                    x[:, a + 6 * 768 : a + 4785],
-                ],
-                dim=1,
-            )
-            output = torch.cat([output, mon_output], dim=1)
-        return output
