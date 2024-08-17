@@ -3,15 +3,17 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from gymnasium import Space
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution
 from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs, net_arch=[256, 256, 256, 256, 256])
+        super().__init__(*args, **kwargs, net_arch=[512, 256, 128])
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
@@ -50,3 +52,16 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
         values = self.value_net(latent_vf)
         return distribution, values
+
+
+class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space: Space[Any]):
+        super().__init__(observation_space, features_dim=1053)
+        self.battle_layer = torch.nn.Linear(556, 81)
+        self.mon_layer = torch.nn.Linear(369, 81)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        chunk_sizes = [self.battle_layer.in_features] + [self.mon_layer.in_features] * 12
+        chunks = torch.split(x, chunk_sizes, dim=1)
+        proc_chunks = [self.battle_layer(chunks[0])] + [self.mon_layer(c) for c in chunks[1:]]
+        return torch.cat(proc_chunks, dim=1)
