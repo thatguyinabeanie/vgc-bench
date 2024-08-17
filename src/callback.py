@@ -53,7 +53,7 @@ class Callback(BaseCallback):
         assert self.model.env is not None
         policies = random.choices(
             self.policy_pool + [MaskedActorCriticPolicy.clone(self.model)],
-            weights=self.win_rates + [sum(self.win_rates or [1])],
+            weights=self.win_rates + [1],
             k=self.model.env.num_envs,
         )
         for i in range(self.model.env.num_envs):
