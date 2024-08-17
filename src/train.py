@@ -3,6 +3,7 @@ import time
 from subprocess import DEVNULL, Popen
 
 from stable_baselines3 import PPO
+from stable_baselines3.common.logger import configure
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from callback import Callback
@@ -26,11 +27,12 @@ def train():
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=lambda x: max(1e-6, 1e-4 / (800 * (1 - x) + 1) ** 1.5),
+        learning_rate=lambda x: 1e-4 / (8 * (1 - x) + 1) ** 1.5,
         n_steps=2048 // num_envs,
-        tensorboard_log="logs",
         device="cuda:0",
     )
+    logger = configure("logs", ["json", "tensorboard"])
+    ppo.set_logger(logger)
     num_saved_timesteps = 0
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
@@ -38,7 +40,7 @@ def train():
         ppo.set_parameters(f"saves/{num_saved_timesteps}.zip")
     ppo.num_timesteps = num_saved_timesteps
     callback = Callback(save_interval=102_400, battle_format=battle_format)
-    ppo = ppo.learn(102_400_000, callback=callback, reset_num_timesteps=False)
+    ppo = ppo.learn(10_000_000, callback=callback, reset_num_timesteps=False)
 
 
 if __name__ == "__main__":
