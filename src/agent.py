@@ -114,7 +114,7 @@ class Agent(Player):
     @staticmethod
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
-            mask = np.array([float(i not in Agent.get_action_space(battle)) for i in range(26)])
+            mask = [float(i not in Agent.get_action_space(battle)) for i in range(26)]
             weather = [
                 min(battle.turn - battle.weather[w], 8) / 8 if w in battle.weather else 0
                 for w in Weather
@@ -164,10 +164,10 @@ class Agent(Player):
                 for s in SideCondition
             ]
             if battle.active_pokemon is None:
-                boost_bins = np.zeros(7)
+                boosts = np.zeros(7)
                 effects = np.zeros(len(Effect))
             else:
-                boost_bins = [b / 6 for b in battle.active_pokemon.boosts.values()]
+                boosts = [b / 6 for b in battle.active_pokemon.boosts.values()]
                 effects = [
                     (
                         min(battle.active_pokemon.effects[e], 8) / 8
@@ -177,10 +177,10 @@ class Agent(Player):
                     for e in Effect
                 ]
             if battle.opponent_active_pokemon is None:
-                opp_boost_bins = np.zeros(7)
+                opp_boosts = np.zeros(7)
                 opp_effects = np.zeros(len(Effect))
             else:
-                opp_boost_bins = [b / 6 for b in battle.opponent_active_pokemon.boosts.values()]
+                opp_boosts = [b / 6 for b in battle.opponent_active_pokemon.boosts.values()]
                 opp_effects = [
                     (
                         min(battle.opponent_active_pokemon.effects[e], 8) / 8
@@ -220,8 +220,8 @@ class Agent(Player):
                     *fields,
                     *side_conditions,
                     *opp_side_conditions,
-                    *boost_bins,
-                    *opp_boost_bins,
+                    *boosts,
+                    *opp_boosts,
                     *effects,
                     *opp_effects,
                     *special,
