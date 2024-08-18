@@ -1,8 +1,10 @@
 import argparse
 import asyncio
+import json
 import os
 from subprocess import DEVNULL, Popen
 
+import numpy as np
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
 from stable_baselines3 import PPO
 
@@ -19,10 +21,13 @@ async def play(n_games: int, play_on_ladder: bool):
         cwd="pokemon-showdown",
     )
     await asyncio.sleep(5)
+    with open("logs/win_rates.json") as f:
+        win_rates = json.load(f)
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
-        num_saved_timesteps = max([int(file[:-4]) for file in files])
-        policy = PPO.load(f"saves/{num_saved_timesteps}").policy
+        i = np.argmax(win_rates)
+        policy = PPO.load(f"saves/{files[i][:-4]}").policy
+        print(f"Loaded {files[i]}")
     else:
         raise FileNotFoundError()
     agent = Agent(
