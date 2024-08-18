@@ -1,9 +1,10 @@
+import json
 import os
 import time
 from subprocess import DEVNULL, Popen
+from typing import Callable
 
 from stable_baselines3 import PPO
-from stable_baselines3.common.logger import configure
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from callback import Callback
@@ -19,28 +20,32 @@ def train():
         cwd="pokemon-showdown",
     )
     time.sleep(5)
+    total_timesteps = 102_400_000
     num_envs = 32
     battle_format = "gen9ou"
     env = SubprocVecEnv(
         [lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(num_envs)]
     )
+    lr_fn: Callable[[float], float] = lambda x: 1e-4 / (8 * x + 1) ** 1.5
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=lambda x: 1e-4 / (8 * (1 - x) + 1) ** 1.5,
+        learning_rate=lambda x: max(lr_fn((1 - x) * total_timesteps / 1e7), lr_fn(1)),
         n_steps=2048 // num_envs,
+        tensorboard_log="logs",
         device="cuda:0",
     )
-    logger = configure("logs", ["json", "tensorboard"])
-    ppo.set_logger(logger)
     num_saved_timesteps = 0
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
         files = os.listdir("saves")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
         ppo.set_parameters(f"saves/{num_saved_timesteps}.zip")
+    if num_saved_timesteps == 0:
+        with open("logs/win_rates.json", "w") as f:
+            json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
     callback = Callback(save_interval=102_400, battle_format=battle_format)
-    ppo = ppo.learn(10_000_000, callback=callback, reset_num_timesteps=False)
+    ppo = ppo.learn(total_timesteps, callback=callback, reset_num_timesteps=False)
 
 
 if __name__ == "__main__":

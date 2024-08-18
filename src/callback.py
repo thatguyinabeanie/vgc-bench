@@ -23,13 +23,8 @@ class Callback(BaseCallback):
         self.policy_pool = [
             PPO.load(f"saves/{filename}").policy for filename in os.listdir("saves")
         ]
-        with open("logs/progress.json") as f:
-            json_objects = [json.loads(line) for line in f]
-        self.win_rates = [
-            json_obj["train/heuristics"]
-            for json_obj in json_objects
-            if "train/heuristics" in json_obj
-        ]
+        with open("logs/win_rates.json") as f:
+            self.win_rates = json.load(f)
         self.eval_agent = Agent(
             None,
             account_configuration=AccountConfiguration("EvalAgent", None),
@@ -66,6 +61,8 @@ class Callback(BaseCallback):
             asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
             win_rate = self.eval_agent.win_rate
             self.win_rates.append(win_rate)
+            with open("logs/win_rates.json", "w") as f:
+                json.dump(self.win_rates, f)
             self.eval_agent.reset_battles()
             self.eval_opponent.reset_battles()
             self.model.logger.record("train/heuristics", win_rate)
