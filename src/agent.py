@@ -35,7 +35,7 @@ with open("json/moves.json") as f:
 
 class Agent(Player):
     __policy: BasePolicy
-    obs_len: int = 4984
+    obs_len: int = 4932
 
     def __init__(
         self,
@@ -166,6 +166,10 @@ class Agent(Player):
             if battle.active_pokemon is None:
                 boosts = np.zeros(7)
                 effects = np.zeros(len(Effect))
+                first_turn = 0
+                protect_counter = 0
+                must_recharge = 0
+                preparing = 0
             else:
                 boosts = [b / 6 for b in battle.active_pokemon.boosts.values()]
                 effects = [
@@ -176,9 +180,17 @@ class Agent(Player):
                     )
                     for e in Effect
                 ]
+                first_turn = float(battle.active_pokemon.first_turn)
+                protect_counter = battle.active_pokemon.protect_counter / 5
+                must_recharge = float(battle.active_pokemon.must_recharge)
+                preparing = float(battle.active_pokemon.preparing)
             if battle.opponent_active_pokemon is None:
                 opp_boosts = np.zeros(7)
                 opp_effects = np.zeros(len(Effect))
+                opp_first_turn = 0
+                opp_protect_counter = 0
+                opp_must_recharge = 0
+                opp_preparing = 0
             else:
                 opp_boosts = [b / 6 for b in battle.opponent_active_pokemon.boosts.values()]
                 opp_effects = [
@@ -189,6 +201,10 @@ class Agent(Player):
                     )
                     for e in Effect
                 ]
+                opp_first_turn = float(battle.opponent_active_pokemon.first_turn)
+                opp_protect_counter = battle.opponent_active_pokemon.protect_counter / 5
+                opp_must_recharge = float(battle.opponent_active_pokemon.must_recharge)
+                opp_preparing = float(battle.opponent_active_pokemon.preparing)
             special = [
                 float(s)
                 for s in [
@@ -210,9 +226,9 @@ class Agent(Player):
             force_switch = float(battle.force_switch)
             num_unknown = (6 - len(battle.opponent_team)) / 6
             team = [Agent.embed_pokemon(p, False) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(369 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(364 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p, True) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(369 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(364 * (6 - len(battle.opponent_team)))])
             return np.array(
                 [
                     *mask,
@@ -224,6 +240,14 @@ class Agent(Player):
                     *opp_boosts,
                     *effects,
                     *opp_effects,
+                    first_turn,
+                    opp_first_turn,
+                    protect_counter,
+                    opp_protect_counter,
+                    must_recharge,
+                    opp_must_recharge,
+                    preparing,
+                    opp_preparing,
                     *special,
                     *opp_special,
                     force_switch,
@@ -254,12 +278,7 @@ class Agent(Player):
         gender = [float(g == pokemon.gender) for g in PokemonGender]
         status = [float(s == pokemon.status) for s in Status]
         status_counter = pokemon.status_counter / 16
-        height = pokemon.height / 20
         weight = pokemon.weight / 1000
-        first_turn = float(pokemon.first_turn)
-        protect_counter = pokemon.protect_counter / 5
-        must_recharge = float(pokemon.must_recharge)
-        preparing = float(pokemon.preparing)
         active = float(pokemon.active or False)
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
@@ -276,12 +295,7 @@ class Agent(Player):
                 active,
                 *status,
                 status_counter,
-                height,
                 weight,
-                first_turn,
-                protect_counter,
-                must_recharge,
-                preparing,
                 active,
                 float(is_opponent),
                 *tera_type,
