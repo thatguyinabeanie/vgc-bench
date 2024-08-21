@@ -13,7 +13,9 @@ from stable_baselines3.common.type_aliases import PyTorchObs
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs, net_arch=[512, 256, 128])
+        super().__init__(
+            *args, **kwargs, net_arch=[512, 256, 128], features_extractor_class=FeaturesExtractor
+        )
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
@@ -54,11 +56,11 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution, values
 
 
-class EmbeddingFeaturesExtractor(BaseFeaturesExtractor):
+class FeaturesExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=1053)
-        self.battle_layer = torch.nn.Linear(556, 81)
-        self.mon_layer = torch.nn.Linear(369, 81)
+        self.battle_layer = torch.nn.Linear(564, 81)
+        self.mon_layer = torch.nn.Linear(364, 81)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         chunk_sizes = [self.battle_layer.in_features] + [self.mon_layer.in_features] * 12
