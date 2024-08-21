@@ -63,11 +63,7 @@ class FeaturesExtractor(BaseFeaturesExtractor):
         self.pokemon_layer = torch.nn.Linear(364, 256)
         self.chunk_sizes = [self.battle_layer.in_features] + [self.pokemon_layer.in_features] * 12
         self.transformer = torch.nn.Transformer(
-            d_model=256,
-            nhead=4,
-            num_encoder_layers=1, 
-            num_decoder_layers=1, 
-            dim_feedforward=256
+            d_model=256, nhead=4, num_encoder_layers=1, num_decoder_layers=1, dim_feedforward=256
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
