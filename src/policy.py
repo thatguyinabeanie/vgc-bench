@@ -14,7 +14,12 @@ from stable_baselines3.common.type_aliases import PyTorchObs
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
-            *args, **kwargs, net_arch=[256, 256, 256], features_extractor_class=FeaturesExtractor
+            *args,
+            **kwargs,
+            net_arch=[512, 256, 128, 64],
+            activation_fn=torch.nn.ReLU,
+            features_extractor_class=CrossAttentionReducer,
+            # optimizer_kwargs={"weight_decay": 1e-4},
         )
 
     @classmethod
@@ -56,19 +61,21 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution, values
 
 
-class FeaturesExtractor(BaseFeaturesExtractor):
+class CrossAttentionReducer(BaseFeaturesExtractor):
     def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=256)
-        self.battle_layer = torch.nn.Linear(564, 256)
-        self.pokemon_layer = torch.nn.Linear(364, 256)
-        self.chunk_sizes = [self.battle_layer.in_features] + [self.pokemon_layer.in_features] * 12
-        self.transformer = torch.nn.Transformer(
-            d_model=256, nhead=4, num_encoder_layers=1, num_decoder_layers=1, dim_feedforward=256
+        super().__init__(observation_space, features_dim=1024)
+        self.query_layer = torch.nn.Linear(564, 1024)
+        self.key_layer = torch.nn.Linear(392, 1024)
+        self.value_layer = torch.nn.Linear(392, 1024)
+        self.chunk_sizes = [self.query_layer.in_features] + [self.key_layer.in_features] * 12
+        self.cross_attention = torch.nn.MultiheadAttention(
+            embed_dim=1024, num_heads=16, batch_first=True  # , dropout=0.1
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         chunks = torch.split(x, self.chunk_sizes, dim=1)
-        battle_output = self.battle_layer(chunks[0]).unsqueeze(0)
-        pokemon_outputs = torch.cat([self.pokemon_layer(c).unsqueeze(0) for c in chunks[1:]])
-        output = self.transformer(src=pokemon_outputs, tgt=battle_output).squeeze(0)
-        return output
+        query = self.query_layer(chunks[0]).unsqueeze(1)
+        key = torch.stack([self.key_layer(c) for c in chunks[1:]], dim=1)
+        value = torch.stack([self.value_layer(c) for c in chunks[1:]], dim=1)
+        output, _ = self.cross_attention(query=query, key=key, value=value)
+        return output.squeeze(1)

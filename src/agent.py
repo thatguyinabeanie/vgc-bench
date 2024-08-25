@@ -35,7 +35,7 @@ with open("json/moves.json") as f:
 
 class Agent(Player):
     __policy: BasePolicy
-    obs_len: int = 4932
+    obs_len: int = 5268
 
     def __init__(
         self,
@@ -226,9 +226,9 @@ class Agent(Player):
             force_switch = float(battle.force_switch)
             num_unknown = (6 - len(battle.opponent_team)) / 6
             team = [Agent.embed_pokemon(p, False) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(364 * (6 - len(battle.team)))])
+            team = np.concatenate([*team, np.zeros(392 * (6 - len(battle.team)))])
             opp_team = [Agent.embed_pokemon(p, True) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(364 * (6 - len(battle.opponent_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(392 * (6 - len(battle.opponent_team)))])
             return np.array(
                 [
                     *mask,
@@ -267,7 +267,7 @@ class Agent(Player):
         ability_desc = ability_descs[pokemon.ability or "null"]
         item_desc = item_descs[pokemon.item or "null"]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(59 * (4 - len(pokemon.moves)))])
+        moves = np.concatenate([*moves, np.zeros(66 * (4 - len(pokemon.moves)))])
         types = [float(t in pokemon.types) for t in PokemonType]
         hp = pokemon.max_hp / 714
         if pokemon.stats is None:
@@ -309,10 +309,34 @@ class Agent(Player):
         power = move.base_power / 250
         acc = move.accuracy / 100
         category = [float(c == move.category) for c in MoveCategory]
+        priority = (move.priority + 7) / 12
+        crit_ratio = move.crit_ratio
+        drain = move.drain
+        force_switch = float(move.force_switch)
+        recoil = move.recoil
+        self_destruct = float(move.self_destruct is not None)
+        self_switch = float(move.self_switch is not False)
         pp = move.max_pp / 64
         pp_frac = move.current_pp / move.max_pp
         move_type = [float(t == move.type) for t in PokemonType]
-        return np.array([*desc, power, acc, *category, pp, pp_frac, *move_type])
+        return np.array(
+            [
+                *desc,
+                power,
+                acc,
+                *category,
+                priority,
+                crit_ratio,
+                drain,
+                force_switch,
+                recoil,
+                self_destruct,
+                self_switch,
+                pp,
+                pp_frac,
+                *move_type,
+            ]
+        )
 
     @staticmethod
     def get_action_space(battle: Battle) -> list[int]:
