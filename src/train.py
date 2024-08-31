@@ -2,6 +2,7 @@ import json
 import os
 import time
 from subprocess import DEVNULL, Popen
+from typing import Callable
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
@@ -25,10 +26,11 @@ def train():
     env = SubprocVecEnv(
         [lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(num_envs)]
     )
+    lr_fn: Callable[[float], float] = lambda x: 1e-4 / (8 * x + 1) ** 1.5
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=3e-5,
+        learning_rate=lambda x: max(lr_fn((1 - x) * total_timesteps / 1e7), lr_fn(1)),
         n_steps=2048 // num_envs,
         tensorboard_log="logs",
         device="cuda:0",

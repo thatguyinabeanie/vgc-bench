@@ -18,8 +18,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             **kwargs,
             net_arch=[512, 256, 128, 64],
             activation_fn=torch.nn.ReLU,
-            features_extractor_class=CrossAttentionReducer,
-            # optimizer_kwargs={"weight_decay": 1e-4},
+            features_extractor_class=AttentionExtractor,
         )
 
     @classmethod
@@ -61,21 +60,28 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution, values
 
 
-class CrossAttentionReducer(BaseFeaturesExtractor):
+class AttentionExtractor(BaseFeaturesExtractor):
+    battle_len: int = 564
+    pokemon_len: int = 397
+    feature_len: int = 1024
+    num_heads: int = 16
+
     def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=1024)
-        self.query_layer = torch.nn.Linear(564, 1024)
-        self.key_layer = torch.nn.Linear(392, 1024)
-        self.value_layer = torch.nn.Linear(392, 1024)
-        self.chunk_sizes = [self.query_layer.in_features] + [self.key_layer.in_features] * 12
-        self.cross_attention = torch.nn.MultiheadAttention(
-            embed_dim=1024, num_heads=16, batch_first=True  # , dropout=0.1
+        super().__init__(observation_space, features_dim=self.feature_len)
+        self.chunk_sizes = [self.battle_len] + [self.pokemon_len] * 12
+        self.linear = torch.nn.Linear(self.battle_len + self.pokemon_len, self.feature_len)
+        encoder_layer = torch.nn.TransformerEncoderLayer(
+            d_model=self.feature_len,
+            nhead=self.num_heads,
+            dim_feedforward=self.feature_len,
+            dropout=0,
+            batch_first=True,
         )
+        self.encoder = torch.nn.TransformerEncoder(encoder_layer, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        chunks = torch.split(x, self.chunk_sizes, dim=1)
-        query = self.query_layer(chunks[0]).unsqueeze(1)
-        key = torch.stack([self.key_layer(c) for c in chunks[1:]], dim=1)
-        value = torch.stack([self.value_layer(c) for c in chunks[1:]], dim=1)
-        output, _ = self.cross_attention(query=query, key=key, value=value)
-        return output.squeeze(1)
+        battle, *pokemons = torch.split(x, self.chunk_sizes, dim=1)
+        sequence = [self.linear(torch.cat([battle, p], dim=1)) for p in pokemons]
+        x = torch.stack(sequence, dim=1)
+        output = self.encoder.forward(x)
+        return output.mean(1)

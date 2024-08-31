@@ -35,7 +35,7 @@ with open("json/moves.json") as f:
 
 class Agent(Player):
     __policy: BasePolicy
-    obs_len: int = 5268
+    obs_len: int = 5328
 
     def __init__(
         self,
@@ -225,10 +225,13 @@ class Agent(Player):
             ]
             force_switch = float(battle.force_switch)
             num_unknown = (6 - len(battle.opponent_team)) / 6
-            team = [Agent.embed_pokemon(p, False) for p in battle.team.values()]
-            team = np.concatenate([*team, np.zeros(392 * (6 - len(battle.team)))])
-            opp_team = [Agent.embed_pokemon(p, True) for p in battle.opponent_team.values()]
-            opp_team = np.concatenate([*opp_team, np.zeros(392 * (6 - len(battle.opponent_team)))])
+            team = [Agent.embed_pokemon(p, i, True) for i, p in enumerate(battle.team.values())]
+            team = np.concatenate([*team, np.zeros(397 * (6 - len(team)))])
+            opp_team = [
+                Agent.embed_pokemon(p, i, False)
+                for i, p in enumerate(battle.opponent_team.values())
+            ]
+            opp_team = np.concatenate([*opp_team, np.zeros(397 * (6 - len(opp_team)))])
             return np.array(
                 [
                     *mask,
@@ -263,7 +266,7 @@ class Agent(Player):
             raise TypeError()
 
     @staticmethod
-    def embed_pokemon(pokemon: Pokemon, is_opponent: bool) -> npt.NDArray[np.float32]:
+    def embed_pokemon(pokemon: Pokemon, pos: int, is_mine: bool) -> npt.NDArray[np.float32]:
         ability_desc = ability_descs[pokemon.ability or "null"]
         item_desc = item_descs[pokemon.item or "null"]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
@@ -280,6 +283,7 @@ class Agent(Player):
         status_counter = pokemon.status_counter / 16
         weight = pokemon.weight / 1000
         active = float(pokemon.active or False)
+        pos_onehot = [float(pos == i) for i in range(6)]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
         return np.array(
@@ -292,12 +296,12 @@ class Agent(Player):
                 *stats,
                 hp_frac,
                 *gender,
-                active,
                 *status,
                 status_counter,
                 weight,
                 active,
-                float(is_opponent),
+                float(is_mine),
+                *pos_onehot,
                 *tera_type,
                 *specials,
             ]
