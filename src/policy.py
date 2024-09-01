@@ -18,7 +18,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             **kwargs,
             net_arch=[512, 256, 128, 64],
             activation_fn=torch.nn.ReLU,
-            features_extractor_class=AttentionExtractor,
+            features_extractor_class=SelfAttentionExtractor,
         )
 
     @classmethod
@@ -60,11 +60,10 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution, values
 
 
-class AttentionExtractor(BaseFeaturesExtractor):
+class SelfAttentionExtractor(BaseFeaturesExtractor):
     battle_len: int = 564
     pokemon_len: int = 397
     feature_len: int = 1024
-    num_heads: int = 16
 
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
@@ -72,7 +71,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.linear = torch.nn.Linear(self.battle_len + self.pokemon_len, self.feature_len)
         encoder_layer = torch.nn.TransformerEncoderLayer(
             d_model=self.feature_len,
-            nhead=self.num_heads,
+            nhead=16,
             dim_feedforward=self.feature_len,
             dropout=0,
             batch_first=True,
@@ -85,3 +84,27 @@ class AttentionExtractor(BaseFeaturesExtractor):
         x = torch.stack(sequence, dim=1)
         output = self.encoder.forward(x)
         return output.mean(1)
+
+
+class CrossAttentionReducer(BaseFeaturesExtractor):
+    battle_len: int = 564
+    pokemon_len: int = 397
+    feature_len: int = 1024
+
+    def __init__(self, observation_space: Space[Any]):
+        super().__init__(observation_space, features_dim=self.feature_len)
+        self.query_layer = torch.nn.Linear(self.battle_len, self.feature_len)
+        self.key_layer = torch.nn.Linear(self.pokemon_len, self.feature_len)
+        self.value_layer = torch.nn.Linear(self.pokemon_len, self.feature_len)
+        self.chunk_sizes = [self.battle_len] + [self.pokemon_len] * 12
+        self.cross_attention = torch.nn.MultiheadAttention(
+            embed_dim=self.feature_len, num_heads=16, batch_first=True
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        battle, *pokemons = torch.split(x, self.chunk_sizes, dim=1)
+        query = self.query_layer(battle).unsqueeze(1)
+        key = torch.stack([self.key_layer(p) for p in pokemons], dim=1)
+        value = torch.stack([self.value_layer(p) for p in pokemons], dim=1)
+        output, _ = self.cross_attention(query=query, key=key, value=value)
+        return output.squeeze(1)
