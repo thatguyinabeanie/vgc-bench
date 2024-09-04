@@ -9,6 +9,7 @@ from stable_baselines3.common.distributions import Distribution
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
+from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
@@ -16,9 +17,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         super().__init__(
             *args,
             **kwargs,
-            net_arch=[512, 256, 128, 64],
+            net_arch=[512, 256, 128],
             activation_fn=torch.nn.ReLU,
-            features_extractor_class=SelfAttentionExtractor,
+            features_extractor_class=AttentionExtractor,
         )
 
     @classmethod
@@ -60,51 +61,30 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution, values
 
 
-class SelfAttentionExtractor(BaseFeaturesExtractor):
+class AttentionExtractor(BaseFeaturesExtractor):
     battle_len: int = 564
-    pokemon_len: int = 397
+    pokemon_len: int = 390
     feature_len: int = 1024
 
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
         self.chunk_sizes = [self.battle_len] + [self.pokemon_len] * 12
-        self.linear = torch.nn.Linear(self.battle_len + self.pokemon_len, self.feature_len)
-        encoder_layer = torch.nn.TransformerEncoderLayer(
+        self.feature_proj = nn.Linear(self.battle_len + self.pokemon_len, self.feature_len)
+        self.register_buffer("positions", torch.arange(12).unsqueeze(0))
+        self.pos_embedding = nn.Embedding(12, self.feature_len)
+        encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
             nhead=16,
             dim_feedforward=self.feature_len,
             dropout=0,
             batch_first=True,
         )
-        self.encoder = torch.nn.TransformerEncoder(encoder_layer, 1)
+        self.encoder = nn.TransformerEncoder(encoder_layer, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         battle, *pokemons = torch.split(x, self.chunk_sizes, dim=1)
-        sequence = [self.linear(torch.cat([battle, p], dim=1)) for p in pokemons]
-        x = torch.stack(sequence, dim=1)
-        output = self.encoder.forward(x)
-        return output.mean(1)
-
-
-class CrossAttentionReducer(BaseFeaturesExtractor):
-    battle_len: int = 564
-    pokemon_len: int = 397
-    feature_len: int = 1024
-
-    def __init__(self, observation_space: Space[Any]):
-        super().__init__(observation_space, features_dim=self.feature_len)
-        self.query_layer = torch.nn.Linear(self.battle_len, self.feature_len)
-        self.key_layer = torch.nn.Linear(self.pokemon_len, self.feature_len)
-        self.value_layer = torch.nn.Linear(self.pokemon_len, self.feature_len)
-        self.chunk_sizes = [self.battle_len] + [self.pokemon_len] * 12
-        self.cross_attention = torch.nn.MultiheadAttention(
-            embed_dim=self.feature_len, num_heads=16, batch_first=True
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        battle, *pokemons = torch.split(x, self.chunk_sizes, dim=1)
-        query = self.query_layer(battle).unsqueeze(1)
-        key = torch.stack([self.key_layer(p) for p in pokemons], dim=1)
-        value = torch.stack([self.value_layer(p) for p in pokemons], dim=1)
-        output, _ = self.cross_attention(query=query, key=key, value=value)
-        return output.squeeze(1)
+        seq = torch.stack([torch.cat([battle, p], dim=1) for p in pokemons], dim=1)
+        seq = self.feature_proj.forward(seq)
+        seq += self.pos_embedding.forward(self.positions)
+        output = self.encoder.forward(seq)
+        return output[:, 0, :]

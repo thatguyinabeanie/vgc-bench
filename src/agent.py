@@ -35,7 +35,7 @@ with open("json/moves.json") as f:
 
 class Agent(Player):
     __policy: BasePolicy
-    obs_len: int = 5328
+    obs_len: int = 5244
 
     def __init__(
         self,
@@ -98,7 +98,7 @@ class Agent(Player):
             elif action not in action_space:
                 raise LookupError(f"{action} not in {action_space}")
             elif action < 6:
-                return Player.create_order(list(battle.team.values())[action])
+                return Player.create_order(Agent.active_first(list(battle.team.values()))[action])
             else:
                 assert battle.active_pokemon is not None
                 return Player.create_order(
@@ -224,14 +224,14 @@ class Agent(Player):
                 ]
             ]
             force_switch = float(battle.force_switch)
-            num_unknown = (6 - len(battle.opponent_team)) / 6
-            team = [Agent.embed_pokemon(p, i, True) for i, p in enumerate(battle.team.values())]
-            team = np.concatenate([*team, np.zeros(397 * (6 - len(team)))])
+            preview = float(battle.in_team_preview)
+            team = np.concatenate(
+                [Agent.embed_pokemon(p) for p in Agent.active_first(list(battle.team.values()))]
+            )
             opp_team = [
-                Agent.embed_pokemon(p, i, False)
-                for i, p in enumerate(battle.opponent_team.values())
+                Agent.embed_pokemon(p) for p in Agent.active_first(list(battle.team.values()))
             ]
-            opp_team = np.concatenate([*opp_team, np.zeros(397 * (6 - len(opp_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(390 * (6 - len(opp_team)))])
             return np.array(
                 [
                     *mask,
@@ -254,7 +254,7 @@ class Agent(Player):
                     *special,
                     *opp_special,
                     force_switch,
-                    num_unknown,
+                    preview,
                     *team,
                     *opp_team,
                 ],
@@ -266,7 +266,7 @@ class Agent(Player):
             raise TypeError()
 
     @staticmethod
-    def embed_pokemon(pokemon: Pokemon, pos: int, is_mine: bool) -> npt.NDArray[np.float32]:
+    def embed_pokemon(pokemon: Pokemon) -> npt.NDArray[np.float32]:
         ability_desc = ability_descs[pokemon.ability or "null"]
         item_desc = item_descs[pokemon.item or "null"]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
@@ -283,7 +283,6 @@ class Agent(Player):
         status_counter = pokemon.status_counter / 16
         weight = pokemon.weight / 1000
         active = float(pokemon.active or False)
-        pos_onehot = [float(pos == i) for i in range(6)]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         specials = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
         return np.array(
@@ -300,8 +299,6 @@ class Agent(Player):
                 status_counter,
                 weight,
                 active,
-                float(is_mine),
-                *pos_onehot,
                 *tera_type,
                 *specials,
             ]
@@ -346,7 +343,7 @@ class Agent(Player):
     def get_action_space(battle: Battle) -> list[int]:
         switch_space = [
             i
-            for i, pokemon in enumerate(battle.team.values())
+            for i, pokemon in enumerate(Agent.active_first(list(battle.team.values())))
             if not battle.maybe_trapped
             and pokemon.species in [p.species for p in battle.available_switches]
         ]
@@ -368,3 +365,11 @@ class Agent(Player):
             dynamax_space = [i + 12 for i in move_space if battle.can_dynamax]
             tera_space = [i + 16 for i in move_space if battle.can_tera]
             return switch_space + move_space + mega_space + zmove_space + dynamax_space + tera_space
+
+    @staticmethod
+    def active_first(pokemons: list[Pokemon]) -> list[Pokemon]:
+        actives = [p for p in pokemons if p.active]
+        if not actives:
+            return pokemons
+        else:
+            return actives + [p for p in pokemons if not p.active]
