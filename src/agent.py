@@ -270,7 +270,7 @@ class Agent(Player):
         ability_desc = ability_descs[pokemon.ability or "null"]
         item_desc = item_descs[pokemon.item or "null"]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(66 * (4 - len(pokemon.moves)))])
+        moves = np.concatenate([*moves, np.zeros(66 * (4 - len(moves)))])
         types = [float(t in pokemon.types) for t in PokemonType]
         hp = pokemon.max_hp / 714
         if pokemon.stats is None:
@@ -306,7 +306,7 @@ class Agent(Player):
 
     @staticmethod
     def embed_move(move: Move) -> npt.NDArray[np.float32]:
-        desc = move_descs[move.id]
+        desc = move_descs[move.id if move.id[:11] != "hiddenpower" else "hiddenpower"]
         power = move.base_power / 250
         acc = move.accuracy / 100
         category = [float(c == move.category) for c in MoveCategory]
