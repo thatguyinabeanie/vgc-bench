@@ -17,9 +17,10 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Callback(BaseCallback):
-    def __init__(self, save_interval: int, battle_format: str):
+    def __init__(self, save_interval: int, battle_format: str, self_play: bool):
         super().__init__()
         self.save_interval = save_interval
+        self.self_play = self_play
         self.policy_pool = [
             PPO.load(f"saves/{filename}").policy for filename in os.listdir("saves")
         ]
@@ -45,14 +46,15 @@ class Callback(BaseCallback):
         return True
 
     def _on_rollout_start(self):
-        assert self.model.env is not None
-        policies = random.choices(
-            self.policy_pool + [MaskedActorCriticPolicy.clone(self.model)],
-            weights=self.win_rates + [1],
-            k=self.model.env.num_envs,
-        )
-        for i in range(self.model.env.num_envs):
-            self.model.env.env_method("set_opp_policy", policies[i], indices=i)
+        if self.self_play:
+            assert self.model.env is not None
+            policies = random.choices(
+                self.policy_pool + [MaskedActorCriticPolicy.clone(self.model)],
+                weights=self.win_rates + [1],
+                k=self.model.env.num_envs,
+            )
+            for i in range(self.model.env.num_envs):
+                self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_interval == 0:

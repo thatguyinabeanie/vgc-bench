@@ -23,8 +23,9 @@ def train():
     total_timesteps = 102_400_000
     num_envs = 32
     battle_format = "gen9ou"
+    self_play = False
     env = SubprocVecEnv(
-        [lambda i=i: ShowdownEnv.create_env(i, battle_format) for i in range(num_envs)]
+        [lambda i=i: ShowdownEnv.create_env(i, battle_format, self_play) for i in range(num_envs)]
     )
     lr_fn: Callable[[float], float] = lambda x: 1e-4 / (8 * x + 1) ** 1.5
     ppo = PPO(
@@ -44,7 +45,7 @@ def train():
         with open("logs/win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
-    callback = Callback(save_interval=102_400, battle_format=battle_format)
+    callback = Callback(102_400, battle_format, self_play)
     ppo = ppo.learn(total_timesteps, callback=callback, reset_num_timesteps=False)
 
 
