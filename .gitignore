@@ -4,4 +4,4 @@ bin
 json
 logs*
 saves*
-debug.log
+profile.prof

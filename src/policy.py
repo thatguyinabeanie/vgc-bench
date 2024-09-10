@@ -17,7 +17,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         super().__init__(
             *args,
             **kwargs,
-            net_arch=[512, 256, 128],
+            net_arch=[128, 128],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
         )
@@ -53,7 +53,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             pi_features, latent_vf = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
         mean_actions = self.action_net(latent_pi)
-        mask = obs[:, :26]  # type: ignore
+        mask = obs[:, : self.action_space.n]  # type: ignore
         mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)  # type: ignore
         mask = torch.where(mask == 1, float("-inf"), mask)
         distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
@@ -62,9 +62,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    battle_len: int = 564
-    pokemon_len: int = 390
-    feature_len: int = 1024
+    battle_len: int = 140
+    pokemon_len: int = 270
+    feature_len: int = 128
 
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
@@ -74,7 +74,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.pos_embedding = nn.Embedding(12, self.feature_len)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
-            nhead=16,
+            nhead=4,
             dim_feedforward=self.feature_len,
             dropout=0,
             batch_first=True,

@@ -9,7 +9,6 @@ from poke_env.environment import (
     AbstractBattle,
     Battle,
     DoubleBattle,
-    Effect,
     Field,
     Move,
     MoveCategory,
@@ -21,7 +20,6 @@ from poke_env.environment import (
     Weather,
 )
 from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
-from stable_baselines3.common.policies import BasePolicy
 
 from policy import MaskedActorCriticPolicy
 
@@ -34,12 +32,12 @@ with open("json/moves.json") as f:
 
 
 class Agent(Player):
-    __policy: BasePolicy
-    obs_len: int = 5244
+    __policy: MaskedActorCriticPolicy
+    obs_len: int = 3380
 
     def __init__(
         self,
-        policy: BasePolicy | None,
+        policy: MaskedActorCriticPolicy | None,
         device: torch.device | None = None,
         *args: Any,
         **kwargs: Any,
@@ -56,7 +54,7 @@ class Agent(Player):
                 lr_schedule=lambda _: 1e-4,
             ).to(device)
 
-    def set_policy(self, policy: BasePolicy):
+    def set_policy(self, policy: MaskedActorCriticPolicy):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
@@ -165,42 +163,42 @@ class Agent(Player):
             ]
             if battle.active_pokemon is None:
                 boosts = np.zeros(7)
-                effects = np.zeros(len(Effect))
+                # effects = np.zeros(len(Effect))
                 first_turn = 0
                 protect_counter = 0
                 must_recharge = 0
                 preparing = 0
             else:
                 boosts = [b / 6 for b in battle.active_pokemon.boosts.values()]
-                effects = [
-                    (
-                        min(battle.active_pokemon.effects[e], 8) / 8
-                        if e in battle.active_pokemon.effects
-                        else 0
-                    )
-                    for e in Effect
-                ]
+                # effects = [
+                #     (
+                #         min(battle.active_pokemon.effects[e], 8) / 8
+                #         if e in battle.active_pokemon.effects
+                #         else 0
+                #     )
+                #     for e in Effect
+                # ]
                 first_turn = float(battle.active_pokemon.first_turn)
                 protect_counter = battle.active_pokemon.protect_counter / 5
                 must_recharge = float(battle.active_pokemon.must_recharge)
                 preparing = float(battle.active_pokemon.preparing)
             if battle.opponent_active_pokemon is None:
                 opp_boosts = np.zeros(7)
-                opp_effects = np.zeros(len(Effect))
+                # opp_effects = np.zeros(len(Effect))
                 opp_first_turn = 0
                 opp_protect_counter = 0
                 opp_must_recharge = 0
                 opp_preparing = 0
             else:
                 opp_boosts = [b / 6 for b in battle.opponent_active_pokemon.boosts.values()]
-                opp_effects = [
-                    (
-                        min(battle.opponent_active_pokemon.effects[e], 8) / 8
-                        if e in battle.opponent_active_pokemon.effects
-                        else 0
-                    )
-                    for e in Effect
-                ]
+                # opp_effects = [
+                #     (
+                #         min(battle.opponent_active_pokemon.effects[e], 8) / 8
+                #         if e in battle.opponent_active_pokemon.effects
+                #         else 0
+                #     )
+                #     for e in Effect
+                # ]
                 opp_first_turn = float(battle.opponent_active_pokemon.first_turn)
                 opp_protect_counter = battle.opponent_active_pokemon.protect_counter / 5
                 opp_must_recharge = float(battle.opponent_active_pokemon.must_recharge)
@@ -225,13 +223,12 @@ class Agent(Player):
             ]
             force_switch = float(battle.force_switch)
             preview = float(battle.in_team_preview)
-            team = np.concatenate(
-                [Agent.embed_pokemon(p) for p in Agent.active_first(list(battle.team.values()))]
-            )
+            team = [Agent.embed_pokemon(p) for p in Agent.active_first(list(battle.team.values()))]
+            team = np.concatenate([*team, np.zeros(270 * (6 - len(team)))])
             opp_team = [
                 Agent.embed_pokemon(p) for p in Agent.active_first(list(battle.team.values()))
             ]
-            opp_team = np.concatenate([*opp_team, np.zeros(390 * (6 - len(opp_team)))])
+            opp_team = np.concatenate([*opp_team, np.zeros(270 * (6 - len(opp_team)))])
             return np.array(
                 [
                     *mask,
@@ -241,8 +238,8 @@ class Agent(Player):
                     *opp_side_conditions,
                     *boosts,
                     *opp_boosts,
-                    *effects,
-                    *opp_effects,
+                    # *effects,
+                    # *opp_effects,
                     first_turn,
                     opp_first_turn,
                     protect_counter,
@@ -270,13 +267,10 @@ class Agent(Player):
         ability_desc = ability_descs[pokemon.ability or "null"]
         item_desc = item_descs[pokemon.item or "null"]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(66 * (4 - len(moves)))])
+        moves = np.concatenate([*moves, np.zeros(46 * (4 - len(moves)))])
         types = [float(t in pokemon.types) for t in PokemonType]
         hp = pokemon.max_hp / 714
-        if pokemon.stats is None:
-            stats = np.zeros(5)
-        else:
-            stats = [(s or 0) / 255 for s in pokemon.stats.values()]
+        stats = [(s or 0) / 255 for s in pokemon.stats.values()]
         hp_frac = pokemon.current_hp_fraction
         gender = [float(g == pokemon.gender) for g in PokemonGender]
         status = [float(s == pokemon.status) for s in Status]

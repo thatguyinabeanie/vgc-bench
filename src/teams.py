@@ -1,4 +1,5 @@
 import random
+from subprocess import run
 
 from poke_env.teambuilder import Teambuilder
 
@@ -6,12 +7,21 @@ from poke_env.teambuilder import Teambuilder
 class RandomTeamBuilder(Teambuilder):
     teams: list[str]
 
-    def __init__(self):
+    def __init__(self, battle_format: str):
         self.teams = []
-        for team in TEAMS[:1]:
-            parsed_team = self.parse_showdown_team(team)
-            packed_team = self.join_team(parsed_team)
-            self.teams.append(packed_team)
+        for team in TEAMS:
+            result = run(
+                ["node", "pokemon-showdown", "validate-team", battle_format],
+                input=f'"{team[1:]}"'.encode(),
+                cwd="pokemon-showdown",
+                capture_output=True,
+            )
+            if result.returncode == 1:
+                print(f"team {TEAMS.index(team)}: {result.stderr.decode()}")
+            else:
+                parsed_team = self.parse_showdown_team(team)
+                packed_team = self.join_team(parsed_team)
+                self.teams.append(packed_team)
 
     def yield_team(self) -> str:
         return random.choice(self.teams)
@@ -637,3 +647,866 @@ Hasty Nature
 - Thunder Wave
 - U-turn""",
 ]
+
+GEN4TEAMS = [
+    """
+Empoleon @ Focus Sash
+Ability: Torrent
+EVs: 4 Atk / 252 SpA / 252 Spe
+Modest Nature
+- Stealth Rock
+- Hydro Pump
+- Aqua Jet
+- Grass Knot
+
+Jirachi @ Leftovers
+Ability: Serene Grace
+EVs: 56 HP / 232 SpA / 220 Spe
+Timid Nature
+IVs: 2 Atk / 30 SpA / 30 Spe
+- Calm Mind
+- Psychic
+- Grass Knot
+- Hidden Power [Fire]
+
+Starmie @ Colbur Berry
+Ability: Natural Cure
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Hydro Pump
+- Thunderbolt
+- Ice Beam
+- Rapid Spin
+
+Bronzong @ Macho Brace
+Ability: Levitate
+EVs: 252 HP / 252 Atk / 4 SpD
+Brave Nature
+IVs: 0 Spe
+- Trick Room
+- Gyro Ball
+- Earthquake
+- Explosion
+
+Tyranitar @ Choice Band
+Ability: Sand Stream
+EVs: 128 HP / 252 Atk / 128 Spe
+Adamant Nature
+- Crunch
+- Pursuit
+- Stone Edge
+- Superpower
+
+Dragonite @ Lum Berry
+Ability: Inner Focus
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Dragon Dance
+- Outrage
+- Fire Punch
+- Extreme Speed""",
+    """
+Metagross @ Focus Sash
+Ability: Clear Body
+EVs: 80 HP / 252 Atk / 176 Spe
+Adamant Nature
+- Meteor Mash
+- Earthquake
+- Bullet Punch
+- Explosion
+
+Scizor @ Leftovers
+Ability: Technician
+EVs: 248 HP / 56 Atk / 12 Def / 192 SpD
+Adamant Nature
+- Bullet Punch
+- Swords Dance
+- Brick Break
+- Roost
+
+Tyranitar @ Custap Berry
+Ability: Sand Stream
+EVs: 252 HP / 108 Atk / 148 SpD
+Adamant Nature
+- Crunch
+- Pursuit
+- Earthquake
+- Stealth Rock
+
+Infernape @ Expert Belt
+Ability: Blaze
+EVs: 56 Atk / 252 SpA / 200 Spe
+Naive Nature
+- Fire Blast
+- Hidden Power [Ice]
+- Close Combat
+- Grass Knot
+
+Rotom-Wash @ Choice Scarf
+Ability: Levitate
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 2 Atk / 30 Def
+- Thunderbolt
+- Shadow Ball
+- Hidden Power [Ice]
+- Trick
+
+Latias @ Choice Specs
+Ability: Levitate
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Trick
+- Draco Meteor
+- Grass Knot
+- Surf""",
+    """
+Zapdos @ Leftovers
+Ability: Pressure
+Shiny: Yes
+EVs: 248 HP / 248 Def / 12 SpD
+Bold Nature
+IVs: 2 Atk / 30 Def
+- Discharge
+- Heat Wave
+- Hidden Power [Ice]
+- Roost
+
+Heatran (M) @ Choice Scarf
+Ability: Flash Fire
+Shiny: Yes
+EVs: 4 Atk / 252 SpA / 252 Spe
+Naive Nature
+- Fire Blast
+- Earth Power
+- Hidden Power [Ice]
+- Explosion
+
+Metagross @ Leftovers
+Ability: Clear Body
+EVs: 252 HP / 68 Atk / 20 Def / 168 SpD
+Adamant Nature
+- Meteor Mash
+- Earthquake
+- Explosion
+- Protect
+
+Blissey @ Leftovers
+Ability: Natural Cure
+Shiny: Yes
+EVs: 252 HP / 252 Def / 4 SpD
+Bold Nature
+- Stealth Rock
+- Seismic Toss
+- Soft-Boiled
+- Flamethrower
+
+Starmie @ Leftovers
+Ability: Natural Cure
+Shiny: Yes
+EVs: 248 HP / 44 Def / 216 Spe
+Timid Nature
+IVs: 0 Atk
+- Surf
+- Psychic
+- Recover
+- Rapid Spin
+
+Breloom (M) @ Toxic Orb
+Ability: Poison Heal
+Shiny: Yes
+EVs: 204 HP / 252 Atk / 20 SpD / 32 Spe
+Adamant Nature
+- Spore
+- Superpower
+- Seed Bomb
+- Mach Punch""",
+    """
+Azelf @ Lum Berry
+Ability: Levitate
+EVs: 200 HP / 224 Def / 24 SpD / 60 Spe
+Jolly Nature
+- Taunt
+- Stealth Rock
+- Thunder Wave
+- Explosion
+
+Gyarados (M) @ Lum Berry
+Ability: Intimidate
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Dragon Dance
+- Waterfall
+- Earthquake
+- Ice Fang
+
+Zapdos @ Life Orb
+Ability: Pressure
+Shiny: Yes
+EVs: 252 SpA / 4 SpD / 252 Spe
+Modest Nature
+IVs: 2 Atk / 30 SpA
+- Agility
+- Thunderbolt
+- Heat Wave
+- Hidden Power [Grass]
+
+Metagross @ Iron Ball
+Ability: Clear Body
+Shiny: Yes
+EVs: 248 HP / 136 Atk / 20 Def / 76 SpD / 28 Spe
+Adamant Nature
+- Meteor Mash
+- Earthquake
+- Trick
+- Explosion
+
+Tyranitar (M) @ Shuca Berry
+Ability: Sand Stream
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- Dragon Dance
+- Stone Edge
+- Earthquake
+- Ice Punch
+
+Jirachi @ Shuca Berry
+Ability: Serene Grace
+EVs: 252 SpA / 4 SpD / 252 Spe
+Modest Nature
+IVs: 3 Atk / 30 SpA / 30 SpD
+- Calm Mind
+- Psychic
+- Grass Knot
+- Hidden Power [Ground]""",
+    """
+Roserade @ Focus Sash
+Ability: Poison Point
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 3 Atk / 30 SpA / 30 SpD
+- Sleep Powder
+- Leaf Storm
+- Toxic Spikes
+- Hidden Power [Ground]
+
+Heatran @ Leftovers
+Ability: Flash Fire
+EVs: 240 HP / 24 Atk / 244 SpD
+Sassy Nature
+- Stealth Rock
+- Lava Plume
+- Protect
+- Explosion
+
+Jirachi @ Choice Scarf
+Ability: Serene Grace
+EVs: 16 HP / 212 Atk / 28 SpD / 252 Spe
+Jolly Nature
+- U-turn
+- Iron Head
+- Fire Punch
+- Trick
+
+Suicune @ Leftovers
+Ability: Pressure
+EVs: 252 HP / 120 SpA / 136 Spe
+Timid Nature
+IVs: 0 Atk
+- Calm Mind
+- Hydro Pump
+- Ice Beam
+- Substitute
+
+Latias @ Choice Specs
+Ability: Levitate
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Trick
+- Draco Meteor
+- Surf
+- Healing Wish
+
+Rotom-Heat @ Leftovers
+Ability: Levitate
+EVs: 112 HP / 192 SpA / 204 Spe
+Timid Nature
+IVs: 0 Atk
+- Substitute
+- Charge Beam
+- Shadow Ball
+- Thunderbolt""",
+    """
+Skarmory @ Lum Berry
+Ability: Keen Eye
+EVs: 248 HP / 48 Atk / 20 Def / 8 SpD / 184 Spe
+Jolly Nature
+- Taunt
+- Stealth Rock
+- Spikes
+- Drill Peck
+
+Flygon @ Life Orb
+Ability: Levitate
+EVs: 4 Atk / 252 SpA / 252 Spe
+Naive Nature
+- Roost
+- Fire Blast
+- Draco Meteor
+- Earthquake
+
+Tyranitar @ Leftovers
+Ability: Sand Stream
+EVs: 252 HP / 172 Atk / 72 SpA / 12 Spe
+Lonely Nature
+- Substitute
+- Focus Punch
+- Ice Beam
+- Crunch
+
+Gyarados @ Lum Berry
+Ability: Intimidate
+EVs: 40 HP / 252 Atk / 216 Spe
+Adamant Nature
+- Dragon Dance
+- Waterfall
+- Ice Fang
+- Earthquake
+
+Lucario @ Life Orb
+Ability: Inner Focus
+EVs: 4 HP / 252 Atk / 252 Spe
+Adamant Nature
+- Swords Dance
+- Close Combat
+- Extreme Speed
+- Bullet Punch
+
+Rotom-Heat @ Choice Scarf
+Ability: Levitate
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Thunderbolt
+- Shadow Ball
+- Overheat
+- Trick""",
+    """
+Jirachi @ Leftovers
+Ability: Serene Grace
+EVs: 252 HP / 196 Def / 60 SpD
+Impish Nature
+- Iron Head
+- Body Slam
+- Wish
+- Protect
+
+Flygon (M) @ Choice Scarf
+Ability: Levitate
+Shiny: Yes
+EVs: 244 Atk / 12 Def / 252 Spe
+Jolly Nature
+- U-turn
+- Earthquake
+- Outrage
+- Toxic
+
+Milotic (F) @ Leftovers
+Ability: Marvel Scale
+Shiny: Yes
+EVs: 248 HP / 252 Def / 8 SpD
+Bold Nature
+IVs: 0 Atk
+- Surf
+- Ice Beam
+- Recover
+- Haze
+
+Gliscor (M) @ Leftovers
+Ability: Hyper Cutter
+Shiny: Yes
+EVs: 252 HP / 40 Def / 216 Spe
+Impish Nature
+- Taunt
+- Earthquake
+- Wing Attack
+- Roost
+
+Clefable (F) @ Leftovers
+Ability: Magic Guard
+Shiny: Yes
+EVs: 252 HP / 16 Def / 240 SpD
+Calm Nature
+- Stealth Rock
+- Seismic Toss
+- Knock Off
+- Soft-Boiled
+
+Magnezone @ Leftovers
+Ability: Magnet Pull
+EVs: 32 HP / 4 Def / 252 SpA / 220 Spe
+Modest Nature
+IVs: 2 Atk / 30 SpA / 30 Spe
+- Thunderbolt
+- Hidden Power [Fire]
+- Magnet Rise
+- Protect""",
+    """
+Hippowdon @ Leftovers
+Ability: Sand Stream
+EVs: 248 HP / 8 Def / 252 SpD
+Careful Nature
+- Stealth Rock
+- Earthquake
+- Slack Off
+- Roar
+
+Skarmory @ Leftovers
+Ability: Keen Eye
+EVs: 248 HP / 216 Def / 44 Spe
+Impish Nature
+IVs: 0 Atk
+- Taunt
+- Spikes
+- Roost
+- Whirlwind
+
+Clefable @ Leftovers
+Ability: Magic Guard
+EVs: 252 HP / 4 Def / 252 SpD
+Careful Nature
+- Seismic Toss
+- Knock Off
+- Stealth Rock
+- Soft-Boiled
+
+Starmie @ Leftovers
+Ability: Natural Cure
+EVs: 248 HP / 204 Def / 56 Spe
+Bold Nature
+IVs: 0 Atk
+- Hydro Pump
+- Psychic
+- Recover
+- Rapid Spin
+
+Gliscor @ Leftovers
+Ability: Hyper Cutter
+EVs: 248 HP / 44 Def / 216 Spe
+Jolly Nature
+- Taunt
+- Earthquake
+- Ice Fang
+- Roost
+
+Jirachi @ Leftovers
+Ability: Serene Grace
+EVs: 252 HP / 36 Atk / 44 Def / 176 SpD
+Careful Nature
+- Wish
+- Protect
+- Iron Head
+- Body Slam""",
+    """
+Tyranitar (M) @ Choice Scarf
+Ability: Sand Stream
+Shiny: Yes
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- Crunch
+- Thunder Wave
+- Stealth Rock
+- Pursuit
+
+Skarmory @ Shed Shell
+Ability: Keen Eye
+EVs: 248 HP / 244 Def / 16 Spe
+Impish Nature
+- Brave Bird
+- Roost
+- Spikes
+- Whirlwind
+
+Quagsire (M) @ Leftovers
+Ability: Water Absorb
+EVs: 252 HP / 100 Def / 156 SpD
+Impish Nature
+- Earthquake
+- Encore
+- Recover
+- Toxic
+
+Jirachi @ Leftovers
+Ability: Serene Grace
+EVs: 180 HP / 180 Atk / 148 Spe
+Jolly Nature
+- Iron Head
+- Fire Punch
+- Body Slam
+- Protect
+
+Latias @ Leftovers
+Ability: Levitate
+EVs: 252 HP / 160 Def / 96 Spe
+Bold Nature
+- Ice Beam
+- Earthquake
+- Thunder Wave
+- Recover
+
+Clefable (F) @ Leftovers
+Ability: Magic Guard
+EVs: 252 HP / 56 Def / 200 SpD
+Calm Nature
+- Seismic Toss
+- Thunder Wave
+- Soft-Boiled
+- Knock Off""",
+    """
+Rotom-Frost @ Leftovers
+Ability: Levitate
+EVs: 244 HP / 108 SpA / 68 SpD / 88 Spe
+Modest Nature
+IVs: 0 Atk
+- Thunderbolt
+- Blizzard
+- Will-O-Wisp
+- Pain Split
+
+Skarmory (M) @ Leftovers
+Ability: Sturdy
+EVs: 252 HP / 192 SpD / 64 Spe
+Careful Nature
+IVs: 0 Atk
+- Spikes
+- Taunt
+- Roost
+- Whirlwind
+
+Swampert (M) @ Leftovers
+Ability: Torrent
+EVs: 204 HP / 104 Atk / 112 Def / 88 SpD
+Adamant Nature
+- Stealth Rock
+- Earthquake
+- Waterfall
+- Ice Punch
+
+Jirachi @ Leftovers
+Ability: Serene Grace
+EVs: 156 HP / 176 SpA / 176 Spe
+Modest Nature
+IVs: 3 Atk / 30 SpA / 30 SpD
+- Draco Meteor
+- Thunder
+- Hidden Power [Ground]
+- Calm Mind
+
+Latias (F) @ Choice Specs
+Ability: Levitate
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Draco Meteor
+- Dragon Pulse
+- Surf
+- Sleep Talk
+
+Lucario (M) @ Choice Scarf
+Ability: Inner Focus
+EVs: 4 HP / 252 Atk / 252 Spe
+Adamant Nature
+- Close Combat
+- Ice Punch
+- Thunder Punch
+- Crunch""",
+    """
+Bronzong @ Leftovers
+Ability: Levitate
+EVs: 252 HP / 28 Atk / 152 Def / 76 SpD
+Relaxed Nature
+IVs: 0 Spe
+- Stealth Rock
+- Gyro Ball
+- Protect
+- Toxic
+
+Skarmory (M) @ Leftovers
+Ability: Keen Eye
+EVs: 252 HP / 4 Def / 252 SpD
+Calm Nature
+IVs: 0 Atk
+- Spikes
+- Counter
+- Roost
+- Whirlwind
+
+Clefable (F) @ Leftovers
+Ability: Magic Guard
+EVs: 252 HP / 72 Def / 184 SpD
+Careful Nature
+IVs: 30 Spe
+- Seismic Toss
+- Knock Off
+- Thunder Wave
+- Soft-Boiled
+
+Latias @ Leftovers
+Ability: Levitate
+EVs: 204 HP / 120 SpA / 184 Spe
+Timid Nature
+IVs: 2 Atk / 30 SpA / 30 Spe
+- Calm Mind
+- Dragon Pulse
+- Hidden Power [Fire]
+- Recover
+
+Flygon (M) @ Life Orb
+Ability: Levitate
+EVs: 32 Atk / 224 SpA / 252 Spe
+Naive Nature
+- Earthquake
+- Draco Meteor
+- Fire Blast
+- Roost
+
+Rotom-Frost @ Leftovers
+Ability: Levitate
+EVs: 252 HP / 248 Def / 8 Spe
+Bold Nature
+IVs: 0 Atk
+- Discharge
+- Shadow Ball
+- Rest
+- Sleep Talk""",
+    """
+Zapdos @ Leftovers
+Ability: Pressure
+EVs: 248 HP / 216 Def / 12 SpD / 32 Spe
+Bold Nature
+IVs: 2 Atk / 30 Def
+- Thunderbolt
+- Hidden Power [Ice]
+- Roost
+- Substitute
+
+Forretress @ Leftovers
+Ability: Sturdy
+EVs: 248 HP / 8 Def / 252 SpD
+Careful Nature
+- Spikes
+- Rapid Spin
+- Rest
+- Payback
+
+Latias @ Leftovers
+Ability: Levitate
+EVs: 204 HP / 120 SpA / 184 Spe
+Timid Nature
+IVs: 2 Atk / 30 SpA / 30 Spe
+- Calm Mind
+- Dragon Pulse
+- Hidden Power [Fire]
+- Recover
+
+Jirachi @ Leftovers
+Ability: Serene Grace
+EVs: 248 HP / 168 Def / 60 SpD / 32 Spe
+Impish Nature
+- Wish
+- Protect
+- Body Slam
+- Iron Head
+
+Swampert @ Leftovers
+Ability: Torrent
+EVs: 248 HP / 216 Def / 40 SpD / 4 Spe
+Relaxed Nature
+- Stealth Rock
+- Earthquake
+- Ice Beam
+- Roar
+
+Blissey (F) @ Leftovers
+Ability: Natural Cure
+EVs: 252 HP / 252 Def / 4 SpA
+Bold Nature
+IVs: 0 Atk
+- Seismic Toss
+- Ice Beam
+- Soft-Boiled
+- Heal Bell""",
+    """
+Swampert @ Leftovers
+Ability: Torrent
+EVs: 36 Def / 252 SpA / 220 Spe
+Modest Nature
+IVs: 0 Atk
+- Stealth Rock
+- Hydro Pump
+- Earth Power
+- Ice Beam
+
+Latias (F) @ Choice Scarf
+Ability: Levitate
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Draco Meteor
+- Thunder Wave
+- Trick
+- Healing Wish
+
+Jirachi @ Lum Berry
+Ability: Serene Grace
+EVs: 40 Atk / 252 SpA / 216 Spe
+Hasty Nature
+- Thunder
+- Iron Head
+- Psychic
+- Fire Punch
+
+Metagross @ Iron Ball
+Ability: Clear Body
+EVs: 236 HP / 84 Atk / 8 Def / 152 SpD / 28 Spe
+Adamant Nature
+- Meteor Mash
+- Earthquake
+- Trick
+- Explosion
+
+Tyranitar @ Lum Berry
+Ability: Sand Stream
+EVs: 152 SpA / 104 SpD / 252 Spe
+Hasty Nature
+- Crunch
+- Fire Blast
+- Superpower
+- Toxic
+
+Gengar @ Black Sludge
+Ability: Levitate
+EVs: 4 Atk / 252 SpA / 252 Spe
+Naive Nature
+- Shadow Ball
+- Focus Blast
+- Will-O-Wisp
+- Explosion""",
+]
+
+TEAM1 = """
+Bronzong @ Lum Berry
+Ability: Heatproof
+EVs: 248 HP / 252 Atk / 4 Def / 4 SpD
+Brave Nature
+IVs: 0 Spe
+- Stealth Rock
+- Gyro Ball
+- Earthquake
+- Explosion
+
+Gengar @ Life Orb
+Ability: Levitate
+EVs: 4 Atk / 252 SpA / 252 Spe
+Naive Nature
+- Shadow Ball
+- Focus Blast
+- Explosion
+- Hidden Power [Fire]
+
+Tyranitar (M) @ Choice Band
+Ability: Sand Stream
+EVs: 252 Atk / 44 SpD / 212 Spe
+Adamant Nature
+- Stone Edge
+- Crunch
+- Pursuit
+- Superpower
+
+Kingdra @ Choice Specs
+Ability: Swift Swim
+EVs: 252 SpA / 4 SpD / 252 Spe
+Modest Nature
+IVs: 0 Atk
+- Hydro Pump
+- Draco Meteor
+- Surf
+- Dragon Pulse
+
+Flygon (M) @ Choice Scarf
+Ability: Levitate
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- U-turn
+- Outrage
+- Earthquake
+- Thunder Punch
+
+Lucario @ Life Orb
+Ability: Inner Focus
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Close Combat
+- Swords Dance
+- Bullet Punch
+- Extreme Speed"""
+
+TEAM2 = """
+Bronzong @ Lum Berry
+Ability: Heatproof
+EVs: 248 HP / 252 Atk / 8 SpD
+Brave Nature
+IVs: 0 Spe
+- Gyro Ball
+- Stealth Rock
+- Earthquake
+- Explosion
+
+Dragonite (M) @ Choice Band
+Ability: Inner Focus
+EVs: 48 HP / 252 Atk / 208 Spe
+Adamant Nature
+- Outrage
+- Dragon Claw
+- Extreme Speed
+- Earthquake
+
+Mamoswine (M) @ Life Orb
+Ability: Oblivious
+EVs: 252 Atk / 4 Def / 252 Spe
+Jolly Nature
+- Ice Shard
+- Earthquake
+- Stone Edge
+- Superpower
+
+Magnezone @ Leftovers
+Ability: Magnet Pull
+EVs: 140 HP / 252 SpA / 116 Spe
+Modest Nature
+IVs: 2 Atk / 30 SpA / 30 Spe
+- Thunderbolt
+- Thunder Wave
+- Substitute
+- Hidden Power [Fire]
+
+Flygon @ Choice Scarf
+Ability: Levitate
+EVs: 252 Atk / 6 Def / 252 Spe
+Adamant Nature
+- Outrage
+- Earthquake
+- Stone Edge
+- U-turn
+
+Kingdra (M) @ Chesto Berry
+Ability: Swift Swim
+EVs: 144 HP / 160 Atk / 40 SpD / 164 Spe
+Adamant Nature
+- Dragon Dance
+- Waterfall
+- Outrage
+- Rest"""

@@ -5,6 +5,7 @@ from subprocess import DEVNULL, Popen
 from typing import Callable
 
 from stable_baselines3 import PPO
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from callback import Callback
@@ -20,19 +21,25 @@ def train():
         cwd="pokemon-showdown",
     )
     time.sleep(5)
-    total_timesteps = 102_400_000
+    total_timesteps = 983_040_000
     num_envs = 32
     battle_format = "gen9ou"
     self_play = False
     env = SubprocVecEnv(
-        [lambda i=i: ShowdownEnv.create_env(i, battle_format, self_play) for i in range(num_envs)]
+        [
+            lambda i=i: Monitor(ShowdownEnv.create_env(i, battle_format, self_play))
+            for i in range(num_envs)
+        ]
     )
     lr_fn: Callable[[float], float] = lambda x: 1e-4 / (8 * x + 1) ** 1.5
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=lambda x: max(lr_fn((1 - x) * total_timesteps / 1e7), lr_fn(1)),
+        learning_rate=lambda x: max(lr_fn((1 - x) * total_timesteps / 1e6), lr_fn(1)),
         n_steps=2048 // num_envs,
+        batch_size=64,
+        # rollout_buffer_class=MultiAgentBuffer,
+        # rollout_buffer_kwargs={"buffer_size_override": 2048 // num_envs * 2},
         tensorboard_log="logs",
         device="cuda:0",
     )
@@ -45,7 +52,7 @@ def train():
         with open("logs/win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
-    callback = Callback(102_400, battle_format, self_play)
+    callback = Callback(98_304, battle_format, self_play)
     ppo = ppo.learn(total_timesteps, callback=callback, reset_num_timesteps=False)
 
 
