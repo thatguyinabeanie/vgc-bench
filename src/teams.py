@@ -9,7 +9,7 @@ class RandomTeamBuilder(Teambuilder):
 
     def __init__(self, battle_format: str):
         self.teams = []
-        for team in TEAMS:
+        for team in TEAMS[:1]:
             result = run(
                 ["node", "pokemon-showdown", "validate-team", battle_format],
                 input=f'"{team[1:]}"'.encode(),
