@@ -84,8 +84,8 @@ class AttentionExtractor(BaseFeaturesExtractor):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         battle, *pokemons = torch.split(x, self.chunk_sizes, dim=1)
         battle = battle.unsqueeze(1).repeat(1, 12, 1)
-        pokemon = torch.stack(pokemons, dim=1)
-        seq = torch.cat([battle, pokemon], dim=2)
+        pokemons = torch.stack(pokemons, dim=1)
+        seq = torch.cat([battle, pokemons], dim=2)
         seq = self.feature_proj.forward(seq)
         seq += self.pos_embedding.forward(self.positions)
         output = self.encoder.forward(seq)
