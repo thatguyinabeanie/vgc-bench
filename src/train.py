@@ -36,8 +36,6 @@ def train():
         learning_rate=1e-5,
         n_steps=2048 // num_envs,
         batch_size=64,
-        # rollout_buffer_class=MultiAgentBuffer,
-        # rollout_buffer_kwargs={"buffer_size_override": 2048 // num_envs * 2},
         tensorboard_log="logs",
         device="cuda:0",
     )
