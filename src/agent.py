@@ -33,7 +33,7 @@ with open("json/moves.json") as f:
 
 class Agent(Player):
     __policy: MaskedActorCriticPolicy
-    obs_len: int = 3380
+    obs_len: int = 3368
 
     def __init__(
         self,
@@ -269,8 +269,7 @@ class Agent(Player):
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
         moves = np.concatenate([*moves, np.zeros(46 * (4 - len(moves)))])
         types = [float(t in pokemon.types) for t in PokemonType]
-        hp = pokemon.max_hp / 714
-        stats = [(s or 0) / 255 for s in pokemon.stats.values()]
+        stats = [(s or 0) / 1000 for s in pokemon.stats.values()]
         hp_frac = pokemon.current_hp_fraction
         gender = [float(g == pokemon.gender) for g in PokemonGender]
         status = [float(s == pokemon.status) for s in Status]
@@ -285,7 +284,6 @@ class Agent(Player):
                 *item_desc,
                 *moves,
                 *types,
-                hp,
                 *stats,
                 hp_frac,
                 *gender,

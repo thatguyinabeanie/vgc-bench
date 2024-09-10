@@ -62,7 +62,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    battle_len: int = 140
+    battle_len: int = 128
     pokemon_len: int = 270
     feature_len: int = 128
 
@@ -74,12 +74,12 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.pos_embedding = nn.Embedding(12, self.feature_len)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
-            nhead=4,
+            nhead=1,
             dim_feedforward=self.feature_len,
             dropout=0,
             batch_first=True,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, 1)
+        self.encoder = nn.TransformerEncoder(encoder_layer, 3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         battle, *pokemons = torch.split(x, self.chunk_sizes, dim=1)
