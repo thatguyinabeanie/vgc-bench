@@ -42,25 +42,6 @@ class Callback(BaseCallback):
             team=RandomTeamBuilder(battle_format),
         )
 
-    def _on_step(self) -> bool:
-        # assert self.model.env is not None
-        # last_obs, action, reward, last_episode_starts = zip(
-        #     *self.model.env.env_method("get_opp_exp")
-        # )
-        # last_obs = np.stack(last_obs)
-        # obs_tensor = obs_as_tensor(last_obs, self.model.device)
-        # action = torch.tensor(action).to(self.model.device)
-        # reward = np.array(reward)
-        # last_episode_starts = np.array(last_episode_starts)
-        # with torch.no_grad():
-        #     assert isinstance(self.model.policy, MaskedActorCriticPolicy)
-        #     value, log_prob, _ = self.model.policy.evaluate_actions(obs_tensor, action)
-        # action = action.cpu().numpy()
-        # buffer = self.locals["rollout_buffer"]
-        # buffer.add(last_obs, action, reward, last_episode_starts, value, log_prob)
-        # self.update_locals({"rollout_buffer": buffer})
-        return True
-
     def _on_rollout_start(self):
         if self.self_play:
             assert self.model.env is not None
