@@ -41,7 +41,7 @@ class Callback(BaseCallback):
             max_concurrent_battles=10,
             team=RandomTeamBuilder(battle_format),
         )
-    
+
     def _on_step(self) -> bool:
         return True
 
