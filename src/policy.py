@@ -20,6 +20,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             net_arch=[128, 128],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
+            # optimizer_kwargs={"weight_decay": 1e-5},
         )
 
     @classmethod
@@ -62,16 +63,12 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    battle_len: int = 128
-    pokemon_len: int = 270
+    chunk_len: int = 340
     feature_len: int = 128
 
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
-        self.chunk_sizes = [self.battle_len] + [self.pokemon_len] * 12
-        self.feature_proj = nn.Linear(self.battle_len + self.pokemon_len, self.feature_len)
-        self.register_buffer("positions", torch.arange(12).unsqueeze(0))
-        self.pos_embedding = nn.Embedding(12, self.feature_len)
+        self.feature_proj = nn.Linear(self.chunk_len, self.feature_len)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
             nhead=1,
@@ -82,11 +79,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.encoder = nn.TransformerEncoder(encoder_layer, 3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        battle, *pokemons = torch.split(x, self.chunk_sizes, dim=1)
-        battle = battle.unsqueeze(1).repeat(1, 12, 1)
-        pokemons = torch.stack(pokemons, dim=1)
-        seq = torch.cat([battle, pokemons], dim=2)
+        seq = x[:, 26:].view(-1, 12, self.chunk_len)
         seq = self.feature_proj.forward(seq)
-        seq += self.pos_embedding.forward(self.positions)
         output = self.encoder.forward(seq)
         return output[:, 0, :]
