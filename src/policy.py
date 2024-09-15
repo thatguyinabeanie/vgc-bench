@@ -17,9 +17,10 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         super().__init__(
             *args,
             **kwargs,
-            net_arch=[128, 128, 128],
+            net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
+            share_features_extractor=False,
             # optimizer_kwargs={"weight_decay": 1e-5},
         )
 
@@ -51,8 +52,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
         else:
-            pi_features, latent_vf = features
+            pi_features, vf_features = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
+            latent_vf = self.mlp_extractor.forward_critic(vf_features)
         mean_actions = self.action_net(latent_pi)
         mask = obs[:, : self.action_space.n]  # type: ignore
         mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)  # type: ignore
@@ -68,11 +70,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
 
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
-        self.feature_proj = nn.Sequential(
-            nn.Linear(self.chunk_len, self.feature_len),
-            nn.ReLU(),
-            nn.Linear(self.feature_len, self.feature_len),
-        )
+        self.feature_proj = nn.Linear(self.chunk_len, self.feature_len)
         self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
@@ -81,7 +79,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
             dropout=0,
             batch_first=True,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, 2)
+        self.encoder = nn.TransformerEncoder(encoder_layer, 6)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         seq = x[:, 26:].view(-1, 12, self.chunk_len)
