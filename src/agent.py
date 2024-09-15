@@ -9,6 +9,7 @@ from poke_env.environment import (
     AbstractBattle,
     Battle,
     DoubleBattle,
+    Effect,
     Field,
     Move,
     MoveCategory,
@@ -33,7 +34,7 @@ with open("json/moves.json") as f:
 
 class Agent(Player):
     __policy: MaskedActorCriticPolicy
-    obs_len: int = 4106
+    obs_len: int = 6734
 
     def __init__(
         self,
@@ -139,7 +140,7 @@ class Agent(Player):
                 opp=True,
             )
             opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
-            opp_side = np.concatenate([*opp_side, np.zeros(340 * (6 - len(opp_side)))])
+            opp_side = np.concatenate([*opp_side, np.zeros(559 * (6 - len(opp_side)))])
             return np.concatenate([mask, side, opp_side], dtype=np.float32)
         elif isinstance(battle, DoubleBattle):
             return np.array([])
@@ -208,7 +209,7 @@ class Agent(Player):
         status = [float(s == pokemon.status) for s in Status]
         status_counter = pokemon.status_counter / 16
         boosts = [b / 6 for b in pokemon.boosts.values()]
-        # effects = [(min(pokemon.effects[e], 8) / 8 if e in pokemon.effects else 0) for e in Effect]
+        effects = [(min(pokemon.effects[e], 8) / 8 if e in pokemon.effects else 0) for e in Effect]
         first_turn = float(pokemon.first_turn)
         protect_counter = pokemon.protect_counter / 5
         must_recharge = float(pokemon.must_recharge)
@@ -230,7 +231,7 @@ class Agent(Player):
                 *status,
                 status_counter,
                 *boosts,
-                # *effects,
+                *effects,
                 first_turn,
                 protect_counter,
                 must_recharge,

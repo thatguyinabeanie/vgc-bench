@@ -17,7 +17,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         super().__init__(
             *args,
             **kwargs,
-            net_arch=[128, 128],
+            net_arch=[128, 128, 128],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
             # optimizer_kwargs={"weight_decay": 1e-5},
@@ -63,12 +63,17 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    chunk_len: int = 340
+    chunk_len: int = 559
     feature_len: int = 128
 
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
-        self.feature_proj = nn.Linear(self.chunk_len, self.feature_len)
+        self.feature_proj = nn.Sequential(
+            nn.Linear(self.chunk_len, self.feature_len),
+            nn.ReLU(),
+            nn.Linear(self.feature_len, self.feature_len),
+        )
+        self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
             nhead=1,
@@ -76,10 +81,11 @@ class AttentionExtractor(BaseFeaturesExtractor):
             dropout=0,
             batch_first=True,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, 3)
+        self.encoder = nn.TransformerEncoder(encoder_layer, 2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         seq = x[:, 26:].view(-1, 12, self.chunk_len)
         seq = self.feature_proj.forward(seq)
+        seq = torch.cat([self.cls_token.repeat(seq.size(0), 1, 1), seq], dim=1)
         output = self.encoder.forward(seq)
         return output[:, 0, :]
