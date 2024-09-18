@@ -36,6 +36,7 @@ def train():
         learning_rate=1e-5,
         n_steps=2048 // num_envs,
         batch_size=64,
+        gamma=1,
         tensorboard_log="logs",
         device="cuda:0",
     )
