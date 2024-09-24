@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import numpy as np
@@ -21,24 +20,19 @@ from poke_env.environment import (
     Weather,
 )
 from poke_env.player import BattleOrder, ForfeitBattleOrder, Player
+from stable_baselines3.common.policies import ActorCriticPolicy
 
+from data import ability_descs, item_descs, move_descs
 from policy import MaskedActorCriticPolicy
-
-with open("json/abilities.json") as f:
-    ability_descs: dict[str, dict[str, npt.NDArray[np.float32]]] = json.load(f)
-with open("json/items.json") as f:
-    item_descs: dict[str, dict[str, npt.NDArray[np.float32]]] = json.load(f)
-with open("json/moves.json") as f:
-    move_descs: dict[str, dict[str, npt.NDArray[np.float32]]] = json.load(f)
 
 
 class Agent(Player):
-    __policy: MaskedActorCriticPolicy
+    __policy: ActorCriticPolicy
     obs_len: int = 6734
 
     def __init__(
         self,
-        policy: MaskedActorCriticPolicy | None,
+        policy: ActorCriticPolicy | None,
         device: torch.device | None = None,
         *args: Any,
         **kwargs: Any,
@@ -195,8 +189,8 @@ class Agent(Player):
     @staticmethod
     def embed_pokemon(pokemon: Pokemon, pos: int, from_opponent: bool) -> npt.NDArray[np.float32]:
         # (mostly) stable fields
-        ability_desc = ability_descs[pokemon.ability or "null"]
-        item_desc = item_descs[pokemon.item or "null"]
+        ability_desc = ability_descs["null" if pokemon.ability is None else pokemon.ability]
+        item_desc = item_descs["null" if pokemon.item is None else pokemon.item]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
         moves = np.concatenate([*moves, np.zeros(46 * (4 - len(moves)))])
         types = [float(t in pokemon.types) for t in PokemonType]

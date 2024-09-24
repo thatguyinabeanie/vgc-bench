@@ -1,1 +1,0 @@
-export PATH="/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:$PATH"

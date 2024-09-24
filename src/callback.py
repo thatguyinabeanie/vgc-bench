@@ -4,7 +4,7 @@ import os
 import random
 import warnings
 
-from poke_env import AccountConfiguration
+from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.player import SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
@@ -17,29 +17,42 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Callback(BaseCallback):
-    def __init__(self, save_interval: int, battle_format: str, self_play: bool):
+    def __init__(
+        self, save_interval: int, battle_format: str, run_id: int, num_teams: int, self_play: bool
+    ):
         super().__init__()
         self.save_interval = save_interval
+        self.num_teams = num_teams
         self.self_play = self_play
-        self.policy_pool = [
-            PPO.load(f"saves/{filename}").policy for filename in os.listdir("saves")
-        ]
-        with open("logs/win_rates.json") as f:
-            self.win_rates = json.load(f)
+        if self_play:
+            self.policy_pool = [
+                PPO.load(f"saves/{num_teams}-teams/{filename}").policy
+                for filename in os.listdir(f"saves/{num_teams}-teams")
+            ]
+            with open(f"logs/{num_teams}-teams-win_rates.json") as f:
+                self.win_rates = json.load(f)
         self.eval_agent = Agent(
             None,
-            account_configuration=AccountConfiguration("EvalAgent", None),
+            account_configuration=AccountConfiguration(f"EvalAgent{run_id}", None),
+            server_configuration=ServerConfiguration(
+                f"ws://localhost:{8000 + run_id}/showdown/websocket",
+                "https://play.pokemonshowdown.com/action.php?",
+            ),
             battle_format=battle_format,
             log_level=40,
             max_concurrent_battles=10,
-            team=RandomTeamBuilder(battle_format),
+            team=RandomTeamBuilder(num_teams, battle_format),
         )
         self.eval_opponent = SimpleHeuristicsPlayer(
-            account_configuration=AccountConfiguration("EvalOpponent", None),
+            account_configuration=AccountConfiguration(f"EvalOpponent{run_id}", None),
+            server_configuration=ServerConfiguration(
+                f"ws://localhost:{8000 + run_id}/showdown/websocket",
+                "https://play.pokemonshowdown.com/action.php?",
+            ),
             battle_format=battle_format,
             log_level=40,
             max_concurrent_battles=10,
-            team=RandomTeamBuilder(battle_format),
+            team=RandomTeamBuilder(num_teams, battle_format),
         )
 
     def _on_step(self) -> bool:
@@ -62,11 +75,12 @@ class Callback(BaseCallback):
             self.eval_agent.set_policy(new_policy)
             asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
             win_rate = self.eval_agent.win_rate
-            self.win_rates.append(win_rate)
-            with open("logs/win_rates.json", "w") as f:
-                json.dump(self.win_rates, f)
             self.eval_agent.reset_battles()
             self.eval_opponent.reset_battles()
+            self.model.save(f"saves/{self.num_teams}-teams/{self.model.num_timesteps}")
             self.model.logger.record("train/heuristics", win_rate)
-            self.policy_pool.append(new_policy)
-            self.model.save(f"saves/{self.model.num_timesteps}")
+            if self.self_play:
+                self.policy_pool.append(new_policy)
+                self.win_rates.append(win_rate)
+                with open(f"logs/{self.num_teams}-teams-win_rates.json", "w") as f:
+                    json.dump(self.win_rates, f)

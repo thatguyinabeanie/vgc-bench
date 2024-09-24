@@ -7,12 +7,13 @@ import numpy.typing as npt
 import torch
 from gymnasium import Space
 from gymnasium.spaces import Box
-from poke_env import AccountConfiguration
+from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.environment import AbstractBattle
 from poke_env.player import (
     BattleOrder,
     Gen9EnvSinglePlayer,
     MaxBasePowerPlayer,
+    Player,
     RandomPlayer,
     SimpleHeuristicsPlayer,
 )
@@ -27,7 +28,9 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def create_env(cls, i: int, battle_format: str, self_play: bool) -> ShowdownEnv:
+    def create_env(
+        cls, i: int, battle_format: str, port: int, num_teams: int, self_play: bool
+    ) -> ShowdownEnv:
         if self_play:
             num_gpus = torch.cuda.device_count()
             opponent = Agent(
@@ -38,25 +41,49 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
                     else "cuda" if num_gpus > 0 else "cpu"
                 ),
                 account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+                server_configuration=ServerConfiguration(
+                    f"ws://localhost:{port}/showdown/websocket",
+                    "https://play.pokemonshowdown.com/action.php?",
+                ),
                 battle_format=battle_format,
                 log_level=40,
-                team=RandomTeamBuilder(battle_format),
+                team=RandomTeamBuilder(num_teams, battle_format),
             )
         else:
             opp_classes = [RandomPlayer, MaxBasePowerPlayer, SimpleHeuristicsPlayer]
             opponent = opp_classes[i % 3](
                 account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+                server_configuration=ServerConfiguration(
+                    f"ws://localhost:{port}/showdown/websocket",
+                    "https://play.pokemonshowdown.com/action.php?",
+                ),
                 battle_format=battle_format,
                 log_level=40,
-                team=RandomTeamBuilder(battle_format),
+                team=RandomTeamBuilder(num_teams, battle_format),
             )
         return cls(
             opponent,
             account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
+            server_configuration=ServerConfiguration(
+                f"ws://localhost:{port}/showdown/websocket",
+                "https://play.pokemonshowdown.com/action.php?",
+            ),
             battle_format=battle_format,
             log_level=40,
-            team=RandomTeamBuilder(battle_format),
+            team=RandomTeamBuilder(num_teams, battle_format),
         )
+
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[npt.NDArray[np.float32], dict[str, Any]]:
+        result = super().reset(seed=seed, options=options)
+        assert isinstance(self._opponent, Player)
+        tags = [k for k in self.battles.keys()]
+        for tag in tags:
+            if self.current_battle is None or tag != self.current_battle.battle_tag:
+                self.agent._battles.pop(tag)
+                self._opponent._battles.pop(tag)
+        return result
 
     def set_opp_policy(self, policy: MaskedActorCriticPolicy):
         assert isinstance(self._opponent, Agent)

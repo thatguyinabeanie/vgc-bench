@@ -14,13 +14,6 @@ from teams import RandomTeamBuilder
 
 async def play(n_games: int, play_on_ladder: bool):
     print("Setting up...")
-    process = Popen(
-        ["node", "pokemon-showdown", "start", "8001"],
-        stdout=DEVNULL,
-        stderr=DEVNULL,
-        cwd="pokemon-showdown",
-    )
-    await asyncio.sleep(5)
     with open("logs/win_rates.json") as f:
         win_rates = json.load(f)
     if os.path.exists("saves") and len(os.listdir("saves")) > 0:
@@ -38,10 +31,8 @@ async def play(n_games: int, play_on_ladder: bool):
         max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
         start_timer_on_battle_start=play_on_ladder,
-        team=RandomTeamBuilder(),
+        team=RandomTeamBuilder(1, "gen9ou"),
     )
-    process.terminate()
-    process.wait()
     if play_on_ladder:
         print("Entering ladder")
         await agent.ladder(n_games=n_games)

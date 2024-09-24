@@ -3,6 +3,8 @@ import os
 import re
 import warnings
 
+import numpy as np
+import numpy.typing as npt
 import requests
 from sentence_transformers import SentenceTransformer
 from sklearn.decomposition import PCA
@@ -32,15 +34,32 @@ if __name__ == "__main__":
     if not os.path.exists("json"):
         os.mkdir("json")
     update_desc_embeddings(
-        "https://play.pokemonshowdown.com/data", "abilities.js", extras={"null": {"desc": "none"}}
+        "https://play.pokemonshowdown.com/data",
+        "abilities.js",
+        extras={"?": {"desc": "?"}, "null": {"desc": "null"}},
     )
     update_desc_embeddings(
         "https://play.pokemonshowdown.com/data",
         "items.js",
         extras={
-            "null": {"desc": "none"},
+            "?": {"desc": "?"},
+            "null": {"desc": "null"},
             "": {"desc": "empty"},
-            "unknown_item": {"desc": "unknown"},
+            "unknown_item": {"desc": "unknown item"},
         },
     )
-    update_desc_embeddings("https://play.pokemonshowdown.com/data", "moves.js")
+    update_desc_embeddings(
+        "https://play.pokemonshowdown.com/data", "moves.js", extras={"?": {"desc": "?"}}
+    )
+with open("json/abilities.json") as f:
+    ability_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
+    abilities = list(ability_descs.keys())
+    ability_embeds = list(ability_descs.values())
+with open("json/items.json") as f:
+    item_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
+    items = list(item_descs.keys())
+    item_embeds = list(item_descs.values())
+with open("json/moves.json") as f:
+    move_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
+    moves = list(move_descs.keys())
+    move_embeds = list(move_descs.values())
