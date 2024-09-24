@@ -48,7 +48,7 @@ def train(run_id: int):
         n_steps=2048 // num_envs,
         batch_size=64,
         gamma=1,
-        tensorboard_log=f"logs",
+        tensorboard_log="logs",
         device=f"cuda:{run_id % torch.cuda.device_count()}",
     )
     run_name = f"{num_teams[run_id]}-teams"
@@ -58,8 +58,8 @@ def train(run_id: int):
         num_saved_timesteps = max([int(file[:-4]) for file in files])
         ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
     if num_saved_timesteps == 0:
-        if not os.path.exists(f"logs"):
-            os.mkdir(f"logs")
+        if not os.path.exists("logs"):
+            os.mkdir("logs")
         with open(f"logs/{run_name}-win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
