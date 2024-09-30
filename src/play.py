@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import json
 import os
-from subprocess import DEVNULL, Popen
 
 import numpy as np
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
@@ -12,26 +11,26 @@ from agent import Agent
 from teams import RandomTeamBuilder
 
 
-async def play(n_games: int, play_on_ladder: bool):
+async def play(n_games: int, play_on_ladder: bool, n_teams: int = 1):
     print("Setting up...")
-    with open("logs/win_rates.json") as f:
-        win_rates = json.load(f)
-    if os.path.exists("saves") and len(os.listdir("saves")) > 0:
-        files = os.listdir("saves")
+    if os.path.exists(f"saves/{n_teams}_teams") and len(os.listdir(f"saves/{n_teams}_teams")) > 0:
+        files = os.listdir(f"saves/{n_teams}_teams")
+        with open(f"logs/{n_teams}_teams_win_rates.json") as f:
+            win_rates = json.load(f)
         i = np.argmax(win_rates)
-        policy = PPO.load(f"saves/{files[i][:-4]}").policy
-        print(f"Loaded {files[i]}")
+        policy = PPO.load(f"saves/{n_teams}_teams/{files[i][:-4]}").policy
+        print(f"Loaded {files[i]}.")
     else:
         raise FileNotFoundError()
     agent = Agent(
         policy,
-        account_configuration=AccountConfiguration("", ""),  # fill in
-        battle_format="gen9ou",
+        account_configuration=AccountConfiguration("DexterAI", "7291120315182"),  # fill in
+        battle_format="gen9vgc2024regh",
         log_level=40,
         max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
         start_timer_on_battle_start=play_on_ladder,
-        team=RandomTeamBuilder(1, "gen9ou"),
+        team=RandomTeamBuilder(1, "gen9vgc2024regh"),
     )
     if play_on_ladder:
         print("Entering ladder")

@@ -65,7 +65,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    chunk_len: int = 559
+    chunk_len: int = 561
     feature_len: int = 128
 
     def __init__(self, observation_space: Space[Any]):
@@ -79,10 +79,10 @@ class AttentionExtractor(BaseFeaturesExtractor):
             dropout=0,
             batch_first=True,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, 6)
+        self.encoder = nn.TransformerEncoder(encoder_layer, 3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        seq = x[:, 26:].view(-1, 12, self.chunk_len)
+        seq = x[:, 2209:].view(-1, 12, self.chunk_len)
         seq = self.feature_proj.forward(seq)
         seq = torch.cat([self.cls_token.repeat(seq.size(0), 1, 1), seq], dim=1)
         output = self.encoder.forward(seq)

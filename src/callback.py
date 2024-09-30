@@ -5,7 +5,7 @@ import random
 import warnings
 
 from poke_env import AccountConfiguration, ServerConfiguration
-from poke_env.player import SimpleHeuristicsPlayer
+from poke_env.player import MaxBasePowerPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -40,10 +40,10 @@ class Callback(BaseCallback):
             ),
             battle_format=battle_format,
             log_level=40,
-            max_concurrent_battles=10,
+            accept_open_team_sheet=True,
             team=RandomTeamBuilder(num_teams, battle_format),
         )
-        self.eval_opponent = SimpleHeuristicsPlayer(
+        self.eval_opponent = MaxBasePowerPlayer(
             account_configuration=AccountConfiguration(f"EvalOpponent{run_id}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{8000 + run_id}/showdown/websocket",
@@ -51,7 +51,7 @@ class Callback(BaseCallback):
             ),
             battle_format=battle_format,
             log_level=40,
-            max_concurrent_battles=10,
+            accept_open_team_sheet=True,
             team=RandomTeamBuilder(num_teams, battle_format),
         )
 
@@ -78,7 +78,7 @@ class Callback(BaseCallback):
             self.eval_agent.reset_battles()
             self.eval_opponent.reset_battles()
             self.model.save(f"saves/{self.num_teams}-teams/{self.model.num_timesteps}")
-            self.model.logger.record("train/heuristics", win_rate)
+            self.model.logger.record("train/eval", win_rate)
             if self.self_play:
                 self.policy_pool.append(new_policy)
                 self.win_rates.append(win_rate)

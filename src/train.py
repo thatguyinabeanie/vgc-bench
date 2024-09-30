@@ -7,7 +7,7 @@ from subprocess import DEVNULL, Popen
 import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 from callback import Callback
 from env import ShowdownEnv
@@ -23,19 +23,14 @@ def train(run_id: int):
     )
     time.sleep(5)
     total_timesteps = 983_040_000
-    num_envs = 32
-    battle_format = "gen9ou"
-    num_teams = [1, 2, 4, 8]
+    num_envs = 1
+    battle_format = "gen9vgc2024regh"
     self_play = False
-    env = SubprocVecEnv(
+    env = DummyVecEnv(
         [
             lambda i=i: Monitor(
                 ShowdownEnv.create_env(
-                    num_envs * run_id + i,
-                    battle_format,
-                    8000 + run_id,
-                    num_teams[run_id],
-                    self_play,
+                    num_envs * run_id + i, battle_format, 8000 + run_id, run_id + 1, self_play
                 )
             )
             for i in range(num_envs)
@@ -51,7 +46,7 @@ def train(run_id: int):
         tensorboard_log="logs",
         device=f"cuda:{run_id % torch.cuda.device_count()}",
     )
-    run_name = f"{num_teams[run_id]}-teams"
+    run_name = f"{run_id + 1}-teams"
     num_saved_timesteps = 0
     if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
         files = os.listdir(f"saves/{run_name}")
@@ -63,7 +58,7 @@ def train(run_id: int):
         with open(f"logs/{run_name}-win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
-    callback = Callback(98_304, battle_format, run_id, num_teams[run_id], self_play)
+    callback = Callback(98_304, battle_format, run_id, run_id + 1, self_play)
     ppo.learn(total_timesteps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
 
 

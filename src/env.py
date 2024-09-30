@@ -9,21 +9,16 @@ from gymnasium import Space
 from gymnasium.spaces import Box
 from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.environment import AbstractBattle
-from poke_env.player import (
-    BattleOrder,
-    Gen9EnvSinglePlayer,
-    MaxBasePowerPlayer,
-    Player,
-    RandomPlayer,
-    SimpleHeuristicsPlayer,
-)
+from poke_env.player import BattleOrder, EnvPlayer, MaxBasePowerPlayer, Player, RandomPlayer
 
 from agent import Agent
 from policy import MaskedActorCriticPolicy
 from teams import RandomTeamBuilder
 
 
-class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
+class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], int]):
+    _ACTION_SPACE = list(range(2209))
+
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
@@ -47,11 +42,12 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
                 ),
                 battle_format=battle_format,
                 log_level=40,
+                accept_open_team_sheet=True,
                 team=RandomTeamBuilder(num_teams, battle_format),
             )
         else:
-            opp_classes = [RandomPlayer, MaxBasePowerPlayer, SimpleHeuristicsPlayer]
-            opponent = opp_classes[i % 3](
+            opp_classes = [MaxBasePowerPlayer, RandomPlayer]
+            opponent = opp_classes[i % 2](
                 account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
@@ -59,6 +55,7 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
                 ),
                 battle_format=battle_format,
                 log_level=40,
+                accept_open_team_sheet=True,
                 team=RandomTeamBuilder(num_teams, battle_format),
             )
         return cls(
@@ -70,6 +67,7 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
             ),
             battle_format=battle_format,
             log_level=40,
+            accept_open_team_sheet=True,
             team=RandomTeamBuilder(num_teams, battle_format),
         )
 
@@ -89,8 +87,7 @@ class ShowdownEnv(Gen9EnvSinglePlayer[npt.NDArray[np.float32], int]):
         assert isinstance(self._opponent, Agent)
         self._opponent.set_policy(policy)
 
-    @staticmethod
-    def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
+    def action_to_move(self, action: int, battle: AbstractBattle) -> BattleOrder:
         return Agent.action_to_move(action, battle)
 
     def calc_reward(self, last_battle: AbstractBattle, current_battle: AbstractBattle) -> float:
