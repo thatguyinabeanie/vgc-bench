@@ -24,7 +24,7 @@ async def play(n_games: int, play_on_ladder: bool, n_teams: int = 1):
         raise FileNotFoundError()
     agent = Agent(
         policy,
-        account_configuration=AccountConfiguration("DexterAI", "7291120315182"),  # fill in
+        account_configuration=AccountConfiguration("", ""),  # fill in
         battle_format="gen9vgc2024regh",
         log_level=40,
         max_concurrent_battles=10,
