@@ -331,4 +331,10 @@ class Agent(Player):
             ]
             move_space = [i for s in move_spaces for i in s]
             tera_space = [i + 20 for i in move_space if battle.can_tera[pos]]
+            if (
+                not move_space
+                and len(battle.available_moves[pos]) == 1
+                and battle.available_moves[pos][0].id in ["struggle", "recharge"]
+            ):
+                move_space = [9]
             return (switch_space + move_space + tera_space) or [0]
