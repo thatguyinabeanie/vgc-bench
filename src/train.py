@@ -25,7 +25,7 @@ def train(run_id: int):
     total_timesteps = 983_040_000
     num_envs = 32
     battle_format = "gen9vgc2024regh"
-    self_play = False
+    self_play = True
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
