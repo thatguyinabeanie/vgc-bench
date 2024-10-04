@@ -7,7 +7,7 @@ from subprocess import DEVNULL, Popen
 import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from callback import Callback
 from env import ShowdownEnv
@@ -23,10 +23,10 @@ def train(run_id: int):
     )
     time.sleep(5)
     total_timesteps = 983_040_000
-    num_envs = 1
+    num_envs = 32
     battle_format = "gen9vgc2024regh"
     self_play = False
-    env = DummyVecEnv(
+    env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
                 ShowdownEnv.create_env(

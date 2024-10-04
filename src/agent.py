@@ -6,7 +6,6 @@ import torch
 from gymnasium.spaces import Box, Discrete
 from poke_env.environment import (
     AbstractBattle,
-    Battle,
     DoubleBattle,
     Effect,
     Field,
@@ -19,12 +18,7 @@ from poke_env.environment import (
     Status,
     Weather,
 )
-from poke_env.player import (
-    BattleOrder,
-    DoubleBattleOrder,
-    ForfeitBattleOrder,
-    Player,
-)
+from poke_env.player import BattleOrder, DoubleBattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 from data import ability_descs, item_descs, move_descs
@@ -65,27 +59,27 @@ class Agent(Player):
             action, _, _ = self.__policy.forward(embedded_battle)
         return Agent.action_to_move(int(action.int()), battle)
 
-    def teampreview(self, battle: AbstractBattle) -> str:
-        if isinstance(battle, DoubleBattle):
-            with torch.no_grad():
-                embedded_battle = torch.tensor(
-                    self.embed_battle(battle), device=self.__policy.device
-                ).view(1, -1)
-                action, _, _ = self.__policy.forward(embedded_battle)
-            order_message = "/team "
-            all_ids = [str(i) for i in range(1, 7)]
-            order_message += all_ids.pop(action // 60)
-            action %= 120
-            order_message += all_ids.pop(action // 12)
-            action %= 24
-            order_message += all_ids.pop(action // 3)
-            action %= 6
-            order_message += all_ids.pop(action)
-            return order_message
-        elif isinstance(battle, Battle):
-            return self.random_teampreview(battle)
-        else:
-            raise TypeError()
+    # def teampreview(self, battle: AbstractBattle) -> str:
+    #     if isinstance(battle, DoubleBattle):
+    #         with torch.no_grad():
+    #             embedded_battle = torch.tensor(
+    #                 self.embed_battle(battle), device=self.__policy.device
+    #             ).view(1, -1)
+    #             action, _, _ = self.__policy.forward(embedded_battle)
+    #         order_message = "/team "
+    #         all_ids = [str(i) for i in range(1, 7)]
+    #         order_message += all_ids.pop(action // 60)
+    #         action %= 120
+    #         order_message += all_ids.pop(action // 12)
+    #         action %= 24
+    #         order_message += all_ids.pop(action // 3)
+    #         action %= 6
+    #         order_message += all_ids.pop(action)
+    #         return order_message
+    #     elif isinstance(battle, Battle):
+    #         return self.random_teampreview(battle)
+    #     else:
+    #         raise TypeError()
 
     @staticmethod
     def action_to_move(action: int, battle: AbstractBattle) -> BattleOrder:
@@ -312,14 +306,18 @@ class Agent(Player):
 
     @staticmethod
     def get_action_space_ind(battle: DoubleBattle, pos: int) -> list[int]:
-        if battle.teampreview:
-            return list(range(360))
+        if battle.finished:
+            return []
         switch_space = [
             i + 1
             for i, pokemon in enumerate(battle.team.values())
             if not battle.maybe_trapped[pos]
             and battle.force_switch != [[False, True], [True, False]][pos]
-            and not (len(battle.available_switches[0]) == 1 and battle.force_switch == [True, True] and pos == 1)
+            and not (
+                len(battle.available_switches[0]) == 1
+                and battle.force_switch == [True, True]
+                and pos == 1
+            )
             and pokemon.species in [p.species for p in battle.available_switches[pos]]
         ]
         active_mon = battle.active_pokemon[pos]

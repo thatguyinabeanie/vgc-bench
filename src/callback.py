@@ -25,10 +25,14 @@ class Callback(BaseCallback):
         self.num_teams = num_teams
         self.self_play = self_play
         if self_play:
-            self.policy_pool = [
-                PPO.load(f"saves/{num_teams}-teams/{filename}").policy
-                for filename in os.listdir(f"saves/{num_teams}-teams")
-            ]
+            self.policy_pool = (
+                []
+                if not os.path.exists(f"saves/{num_teams}-teams")
+                else [
+                    PPO.load(f"saves/{num_teams}-teams/{filename}").policy
+                    for filename in os.listdir(f"saves/{num_teams}-teams")
+                ]
+            )
             with open(f"logs/{num_teams}-teams-win_rates.json") as f:
                 self.win_rates = json.load(f)
         self.eval_agent = Agent(
