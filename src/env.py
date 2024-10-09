@@ -6,19 +6,25 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from gymnasium import Space
-from gymnasium.spaces import Box
+from gymnasium.core import ActType
+from gymnasium.spaces import Box, Discrete, MultiDiscrete
 from poke_env import AccountConfiguration, ServerConfiguration
-from poke_env.environment import AbstractBattle
-from poke_env.player import BattleOrder, EnvPlayer, MaxBasePowerPlayer, Player, RandomPlayer
+from poke_env.environment import AbstractBattle, Battle, DoubleBattle
+from poke_env.player import (
+    BattleOrder,
+    EnvPlayer,
+    MaxBasePowerPlayer,
+    Player,
+    RandomPlayer,
+    SimpleHeuristicsPlayer,
+)
 
 from agent import Agent
 from policy import MaskedActorCriticPolicy
 from teams import RandomTeamBuilder
 
 
-class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], int]):
-    _ACTION_SPACE = list(range(2209))
-
+class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
@@ -46,8 +52,12 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], int]):
                 team=RandomTeamBuilder(num_teams, battle_format),
             )
         else:
-            opp_classes = [MaxBasePowerPlayer, RandomPlayer]
-            opponent = opp_classes[i % 2](
+            opp_classes = (
+                [MaxBasePowerPlayer, RandomPlayer]
+                if "vgc" in battle_format
+                else [SimpleHeuristicsPlayer, MaxBasePowerPlayer, RandomPlayer]
+            )
+            opponent = opp_classes[i % len(opp_classes)](
                 account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
@@ -87,9 +97,6 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], int]):
         assert isinstance(self._opponent, Agent)
         self._opponent.set_policy(policy)
 
-    def action_to_move(self, action: int, battle: AbstractBattle) -> BattleOrder:
-        return Agent.action_to_move(action, battle)
-
     def calc_reward(self, last_battle: AbstractBattle, current_battle: AbstractBattle) -> float:
         if not current_battle.finished:
             return 0
@@ -103,5 +110,34 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], int]):
     def embed_battle(self, battle: AbstractBattle) -> npt.NDArray[np.float32]:
         return Agent.embed_battle(battle)
 
+
+class ShowdownSinglesEnv(ShowdownEnv[np.int64]):
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+
+    def action_to_move(self, action: np.int64, battle: AbstractBattle) -> BattleOrder:
+        assert isinstance(battle, Battle)
+        return Agent.singles_action_to_move(int(action), battle)
+
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
-        return Box(-1, 1, shape=(Agent.obs_len,), dtype=np.float32)
+        return Box(-1, 1, shape=(Agent.singles_obs_len,), dtype=np.float32)
+
+    def describe_action(self) -> Space[np.int64]:
+        return Discrete(Agent.singles_act_len)
+
+
+class ShowdownDoublesEnv(ShowdownEnv[npt.NDArray[np.integer]]):
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+
+    def action_to_move(
+        self, action: npt.NDArray[np.integer], battle: AbstractBattle
+    ) -> BattleOrder:
+        assert isinstance(battle, DoubleBattle)
+        return Agent.doubles_action_to_move(action[0], action[1], battle)
+
+    def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
+        return Box(-1, 1, shape=(Agent.doubles_obs_len,), dtype=np.float32)
+
+    def describe_action(self) -> Space[npt.NDArray[np.integer]]:
+        return MultiDiscrete([Agent.doubles_act_len, Agent.doubles_act_len])

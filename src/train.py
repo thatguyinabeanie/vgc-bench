@@ -9,8 +9,9 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
+from agent import Agent
 from callback import Callback
-from env import ShowdownEnv
+from env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from policy import MaskedActorCriticPolicy
 
 
@@ -26,10 +27,11 @@ def train(run_id: int):
     num_envs = 32
     battle_format = "gen9vgc2024regh"
     self_play = True
+    env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
-                ShowdownEnv.create_env(
+                env_class.create_env(
                     num_envs * run_id + i, battle_format, 8000 + run_id, run_id + 1, self_play
                 )
             )
@@ -44,6 +46,11 @@ def train(run_id: int):
         batch_size=64,
         gamma=1,
         tensorboard_log="logs",
+        policy_kwargs={
+            "mask_len": (
+                2 * Agent.doubles_act_len if "vgc" in battle_format else Agent.singles_act_len
+            )
+        },
         device=f"cuda:{run_id % torch.cuda.device_count()}",
     )
     run_name = f"{run_id + 1}-teams"

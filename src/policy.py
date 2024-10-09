@@ -4,8 +4,9 @@ from typing import Any
 
 import torch
 from gymnasium import Space
+from gymnasium.spaces import Discrete
 from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.distributions import Distribution
+from stable_baselines3.common.distributions import Distribution, MultiCategoricalDistribution
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
@@ -13,41 +14,61 @@ from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, mask_len: int, **kwargs: Any):
+        self.mask_len = mask_len
         super().__init__(
             *args,
             **kwargs,
             net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
+            features_extractor_kwargs={"mask_len": mask_len},
             share_features_extractor=False,
             # optimizer_kwargs={"weight_decay": 1e-5},
         )
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
-        new_policy = cls(model.observation_space, model.action_space, model.lr_schedule)
+        new_policy = cls(
+            model.observation_space,
+            model.action_space,
+            model.lr_schedule,
+            mask_len=model.policy.mask_len,
+        )
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
 
     def forward(
         self, obs: torch.Tensor, deterministic: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        distribution, values = self.get_distribution_and_values(obs)
+        action_logits, value_logits = self.get_logits(obs)
+        distribution = self.get_dist_from_logits(obs, action_logits)
         actions = distribution.get_actions(deterministic=deterministic)
+        if isinstance(distribution, MultiCategoricalDistribution):
+            distribution2 = self.get_dist_from_logits(obs, action_logits, actions[:, :1])
+            assert isinstance(distribution2, MultiCategoricalDistribution)
+            actions2 = distribution2.get_actions(deterministic=deterministic)
+            distribution.distribution[1] = distribution2.distribution[1]
+            actions[:, 1] = actions2[:, 1]
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
-        return actions, values, log_prob
+        return actions, value_logits, log_prob
 
     def evaluate_actions(
         self, obs: PyTorchObs, actions: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
-        distribution, values = self.get_distribution_and_values(obs)
+        assert isinstance(obs, torch.Tensor)
+        action_logits, value_logits = self.get_logits(obs)
+        distribution = self.get_dist_from_logits(obs, action_logits)
+        if isinstance(distribution, MultiCategoricalDistribution):
+            distribution2 = self.get_dist_from_logits(obs, action_logits, actions[:, :1])
+            assert isinstance(distribution2, MultiCategoricalDistribution)
+            distribution.distribution[1] = distribution2.distribution[1]
         log_prob = distribution.log_prob(actions)
         entropy = distribution.entropy()
-        return values, log_prob, entropy
+        return value_logits, log_prob, entropy
 
-    def get_distribution_and_values(self, obs: PyTorchObs) -> tuple[Distribution, torch.Tensor]:
+    def get_logits(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         features = self.extract_features(obs)  # type: ignore
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
@@ -55,21 +76,45 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             pi_features, vf_features = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
-        mean_actions = self.action_net(latent_pi)
-        mask = obs[:, : self.action_space.n]  # type: ignore
-        mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)  # type: ignore
-        mask = torch.where(mask == 1, float("-inf"), mask)
-        distribution = self.action_dist.proba_distribution(action_logits=mean_actions + mask)
-        values = self.value_net(latent_vf)
-        return distribution, values
+        action_logits = self.action_net(latent_pi)
+        value_logits = self.value_net(latent_vf)
+        return action_logits, value_logits
+
+    def get_dist_from_logits(
+        self, obs: torch.Tensor, action_logits: torch.Tensor, action: torch.Tensor | None = None
+    ) -> Distribution:
+        mask = self.get_mask(obs, action)
+        distribution = self.action_dist.proba_distribution(action_logits + mask)
+        return distribution
+
+    def get_mask(self, obs: torch.Tensor, action: torch.Tensor | None = None) -> torch.Tensor:
+        if isinstance(self.action_space, Discrete):
+            mask = obs[:, : self.action_space.n]  # type: ignore
+            mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
+            mask = torch.where(mask == 1, float("-inf"), mask)
+            return mask
+        else:
+            act_len = self.action_space.nvec[0]  # type: ignore
+            if action is None:
+                mask = obs[:, : 2 * act_len]
+            else:
+                mask = obs[:, act_len : 2 * act_len]
+                condition = ((1 <= action) & (action < 7)) | (action >= 27)
+                indices = torch.arange(act_len, device=mask.device).unsqueeze(0).expand_as(mask)
+                action_mask = indices == action
+                mask = torch.where(condition & action_mask, 1.0, mask)
+                mask = torch.cat([obs[:, :act_len], mask], dim=1)
+            mask = torch.where(mask == 1, float("-inf"), mask)
+            return mask
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    chunk_len: int = 561
+    chunk_len: int = 621
     feature_len: int = 128
 
-    def __init__(self, observation_space: Space[Any]):
+    def __init__(self, observation_space: Space[Any], mask_len: int):
         super().__init__(observation_space, features_dim=self.feature_len)
+        self.mask_len = mask_len
         self.feature_proj = nn.Linear(self.chunk_len, self.feature_len)
         self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
         encoder_layer = nn.TransformerEncoderLayer(
@@ -82,7 +127,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.encoder = nn.TransformerEncoder(encoder_layer, 3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        seq = x[:, 2209:].view(-1, 12, self.chunk_len)
+        seq = x[:, self.mask_len :].view(-1, 12, self.chunk_len)
         seq = self.feature_proj.forward(seq)
         seq = torch.cat([self.cls_token.repeat(seq.size(0), 1, 1), seq], dim=1)
         output = self.encoder.forward(seq)

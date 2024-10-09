@@ -5,7 +5,7 @@ import random
 import warnings
 
 from poke_env import AccountConfiguration, ServerConfiguration
-from poke_env.player import MaxBasePowerPlayer
+from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -47,7 +47,8 @@ class Callback(BaseCallback):
             accept_open_team_sheet=True,
             team=RandomTeamBuilder(num_teams, battle_format),
         )
-        self.eval_opponent = MaxBasePowerPlayer(
+        opp_class = MaxBasePowerPlayer if "vgc" in battle_format else SimpleHeuristicsPlayer
+        self.eval_opponent = opp_class(
             account_configuration=AccountConfiguration(f"EvalOpponent{run_id}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{8000 + run_id}/showdown/websocket",
