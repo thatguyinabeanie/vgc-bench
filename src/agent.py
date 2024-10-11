@@ -89,22 +89,7 @@ class Agent(Player):
             all_ids = "123456"
             return "/team " + str(lead_id) + all_ids[: lead_id - 1] + all_ids[lead_id:]
         elif isinstance(battle, DoubleBattle):
-            # with torch.no_grad():
-            #     embedded_battle = torch.tensor(
-            #         self.embed_battle(battle), device=self.__policy.device
-            #     ).view(1, -1)
-            #     action, _, _ = self.__policy.forward(embedded_battle)
-            # order_message = "/team "
-            # all_ids = [str(i) for i in range(1, 7)]
-            # order_message += all_ids.pop(action // 60)
-            # action %= 120
-            # order_message += all_ids.pop(action // 12)
-            # action %= 24
-            # order_message += all_ids.pop(action // 3)
-            # action %= 6
-            # order_message += all_ids.pop(action)
-            # return order_message
-            return self.random_teampreview(battle)
+            return "123456"
         else:
             raise TypeError()
 
