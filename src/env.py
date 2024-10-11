@@ -53,7 +53,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             )
         else:
             opp_classes = (
-                [MaxBasePowerPlayer, RandomPlayer]
+                [MaxBasePowerPlayer]
                 if "vgc" in battle_format
                 else [SimpleHeuristicsPlayer, MaxBasePowerPlayer, RandomPlayer]
             )
