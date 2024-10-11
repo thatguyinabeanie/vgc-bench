@@ -16,23 +16,24 @@ from policy import MaskedActorCriticPolicy
 
 
 def train(run_id: int):
-    Popen(
+    server = Popen(
         ["node", "pokemon-showdown", "start", str(8000 + run_id), "--no-security"],
         stdout=DEVNULL,
         stderr=DEVNULL,
         cwd="pokemon-showdown",
     )
     time.sleep(5)
-    total_timesteps = 983_040_000
+    steps = 98_304
     num_envs = 32
     battle_format = "gen9vgc2024regh"
-    self_play = True
+    num_teams = run_id + 1
+    self_play = False
     env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
                 env_class.create_env(
-                    num_envs * run_id + i, battle_format, 8000 + run_id, run_id + 1, self_play
+                    num_envs * run_id + i, battle_format, 8000 + run_id, num_teams, self_play
                 )
             )
             for i in range(num_envs)
@@ -53,7 +54,7 @@ def train(run_id: int):
         },
         device=f"cuda:{run_id % torch.cuda.device_count()}",
     )
-    run_name = f"{run_id + 1}-teams"
+    run_name = f"{num_teams}-teams"
     num_saved_timesteps = 0
     if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
         files = os.listdir(f"saves/{run_name}")
@@ -65,12 +66,15 @@ def train(run_id: int):
         with open(f"logs/{run_name}-win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
-    callback = Callback(98_304, battle_format, run_id, run_id + 1, self_play)
-    ppo.learn(total_timesteps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
+    callback = Callback(steps, battle_format, run_id, num_teams, self_play)
+    ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
+    server.terminate()
+    server.wait()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--run_id", type=int)
     args = parser.parse_args()
-    train(args.run_id)
+    while True:
+        train(args.run_id)
