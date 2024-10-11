@@ -103,76 +103,76 @@ IVs: 0 Atk / 0 Spe
 - Helping Hand
 - Trick Room
 """,
-        """
-Tyranitar @ Assault Vest
-Ability: Sand Stream
-Level: 50
-Tera Type: Flying
-EVs: 124 HP / 252 Atk / 36 Def / 12 SpD / 84 Spe
-Adamant Nature
-- Rock Slide
-- Knock Off
-- Tera Blast
-- Low Kick
+#         """
+# Tyranitar @ Assault Vest
+# Ability: Sand Stream
+# Level: 50
+# Tera Type: Flying
+# EVs: 124 HP / 252 Atk / 36 Def / 12 SpD / 84 Spe
+# Adamant Nature
+# - Rock Slide
+# - Knock Off
+# - Tera Blast
+# - Low Kick
 
-Excadrill @ Clear Amulet
-Ability: Sand Rush
-Level: 50
-Shiny: Yes
-Tera Type: Ghost
-EVs: 180 HP / 116 Atk / 20 Def / 28 SpD / 164 Spe
-Adamant Nature
-- Earthquake
-- Iron Head
-- High Horsepower
-- Protect
+# Excadrill @ Clear Amulet
+# Ability: Sand Rush
+# Level: 50
+# Shiny: Yes
+# Tera Type: Ghost
+# EVs: 180 HP / 116 Atk / 20 Def / 28 SpD / 164 Spe
+# Adamant Nature
+# - Earthquake
+# - Iron Head
+# - High Horsepower
+# - Protect
 
-Sinistcha @ Rocky Helmet
-Ability: Hospitality
-Level: 50
-Tera Type: Dark
-EVs: 236 HP / 36 Def / 236 SpD
-Sassy Nature
-IVs: 0 Atk / 0 Spe
-- Matcha Gotcha
-- Life Dew
-- Trick Room
-- Rage Powder
+# Sinistcha @ Rocky Helmet
+# Ability: Hospitality
+# Level: 50
+# Tera Type: Dark
+# EVs: 236 HP / 36 Def / 236 SpD
+# Sassy Nature
+# IVs: 0 Atk / 0 Spe
+# - Matcha Gotcha
+# - Life Dew
+# - Trick Room
+# - Rage Powder
 
-Dragonite @ Choice Band
-Ability: Inner Focus
-Level: 50
-Tera Type: Normal
-EVs: 68 HP / 252 Atk / 4 Def / 4 SpD / 180 Spe
-Adamant Nature
-- Outrage
-- Extreme Speed
-- Ice Spinner
-- Aerial Ace
+# Dragonite @ Choice Band
+# Ability: Inner Focus
+# Level: 50
+# Tera Type: Normal
+# EVs: 68 HP / 252 Atk / 4 Def / 4 SpD / 180 Spe
+# Adamant Nature
+# - Outrage
+# - Extreme Speed
+# - Ice Spinner
+# - Aerial Ace
 
-Primarina @ Throat Spray
-Ability: Liquid Voice
-Level: 50
-Tera Type: Grass
-EVs: 252 HP / 68 Def / 108 SpA / 4 SpD / 76 Spe
-Modest Nature
-IVs: 0 Atk
-- Moonblast
-- Hyper Voice
-- Haze
-- Protect
+# Primarina @ Throat Spray
+# Ability: Liquid Voice
+# Level: 50
+# Tera Type: Grass
+# EVs: 252 HP / 68 Def / 108 SpA / 4 SpD / 76 Spe
+# Modest Nature
+# IVs: 0 Atk
+# - Moonblast
+# - Hyper Voice
+# - Haze
+# - Protect
 
-Volcarona @ Leftovers
-Ability: Flame Body
-Level: 50
-Tera Type: Dragon
-EVs: 252 HP / 28 Def / 36 SpA / 4 SpD / 188 Spe
-Modest Nature
-IVs: 0 Atk
-- Fiery Dance
-- Giga Drain
-- Quiver Dance
-- Protect""",
+# Volcarona @ Leftovers
+# Ability: Flame Body
+# Level: 50
+# Tera Type: Dragon
+# EVs: 252 HP / 28 Def / 36 SpA / 4 SpD / 188 Spe
+# Modest Nature
+# IVs: 0 Atk
+# - Fiery Dance
+# - Giga Drain
+# - Quiver Dance
+# - Protect""",
         """
 Annihilape @ Lum Berry
 Ability: Defiant
@@ -312,75 +312,75 @@ IVs: 0 Spe
 - Psycho Cut
 - Wide Guard
 - Trick Room""",
-        """
-Dragonite @ Choice Band
-Ability: Inner Focus
-Level: 50
-Tera Type: Normal
-EVs: 196 HP / 252 Atk / 4 Def / 4 SpD / 52 Spe
-Adamant Nature
-- Extreme Speed
-- Ice Spinner
-- Aerial Ace
-- Outrage
+#         """
+# Dragonite @ Choice Band
+# Ability: Inner Focus
+# Level: 50
+# Tera Type: Normal
+# EVs: 196 HP / 252 Atk / 4 Def / 4 SpD / 52 Spe
+# Adamant Nature
+# - Extreme Speed
+# - Ice Spinner
+# - Aerial Ace
+# - Outrage
 
-Gholdengo @ Choice Specs
-Ability: Good as Gold
-Level: 50
-Tera Type: Steel
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Make It Rain
-- Shadow Ball
-- Thunderbolt
-- Trick
+# Gholdengo @ Choice Specs
+# Ability: Good as Gold
+# Level: 50
+# Tera Type: Steel
+# EVs: 252 SpA / 4 SpD / 252 Spe
+# Timid Nature
+# IVs: 0 Atk
+# - Make It Rain
+# - Shadow Ball
+# - Thunderbolt
+# - Trick
 
-Talonflame @ Covert Cloak
-Ability: Gale Wings
-Level: 50
-Tera Type: Flying
-EVs: 4 HP / 244 Atk / 4 Def / 4 SpD / 252 Spe
-Jolly Nature
-- Tailwind
-- Taunt
-- Brave Bird
-- Will-O-Wisp
+# Talonflame @ Covert Cloak
+# Ability: Gale Wings
+# Level: 50
+# Tera Type: Flying
+# EVs: 4 HP / 244 Atk / 4 Def / 4 SpD / 252 Spe
+# Jolly Nature
+# - Tailwind
+# - Taunt
+# - Brave Bird
+# - Will-O-Wisp
 
-Glimmora @ Power Herb
-Ability: Toxic Debris
-Level: 50
-Tera Type: Grass
-EVs: 12 HP / 4 Def / 236 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Sludge Bomb
-- Meteor Beam
-- Earth Power
-- Spiky Shield
+# Glimmora @ Power Herb
+# Ability: Toxic Debris
+# Level: 50
+# Tera Type: Grass
+# EVs: 12 HP / 4 Def / 236 SpA / 4 SpD / 252 Spe
+# Timid Nature
+# IVs: 0 Atk
+# - Sludge Bomb
+# - Meteor Beam
+# - Earth Power
+# - Spiky Shield
 
-Dondozo @ Leftovers
-Ability: Unaware
-Level: 50
-Tera Type: Grass
-EVs: 20 HP / 252 Atk / 4 Def / 4 SpD / 228 Spe
-Jolly Nature
-- Order Up
-- Wave Crash
-- Tera Blast
-- Protect
+# Dondozo @ Leftovers
+# Ability: Unaware
+# Level: 50
+# Tera Type: Grass
+# EVs: 20 HP / 252 Atk / 4 Def / 4 SpD / 228 Spe
+# Jolly Nature
+# - Order Up
+# - Wave Crash
+# - Tera Blast
+# - Protect
 
-Tatsugiri @ Choice Scarf
-Ability: Commander
-Level: 50
-Tera Type: Water
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Draco Meteor
-- Muddy Water
-- Icy Wind
-- Dragon Pulse""",
+# Tatsugiri @ Choice Scarf
+# Ability: Commander
+# Level: 50
+# Tera Type: Water
+# EVs: 252 SpA / 4 SpD / 252 Spe
+# Timid Nature
+# IVs: 0 Atk
+# - Draco Meteor
+# - Muddy Water
+# - Icy Wind
+# - Dragon Pulse""",
         """
 Pelipper @ Focus Sash
 Ability: Drizzle
