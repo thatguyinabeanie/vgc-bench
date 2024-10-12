@@ -31,8 +31,9 @@ class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
     doubles_act_len: int = 47
-    singles_obs_len: int = singles_act_len + 7452
-    doubles_obs_len: int = 2 * doubles_act_len + 7452
+    base_obs_len: int = 7452
+    singles_obs_len: int = singles_act_len + base_obs_len
+    doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
 
     def __init__(
         self,
