@@ -3,6 +3,6 @@ if [[ ":$PATH:" != "/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:"* ]];
     export PATH="/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:$PATH"
 fi
 for i in {0..3}; do
-    python src/train.py --num_teams $((i + 1)) --device $i &
+    python src/train.py --num_teams $((i + 1)) --device cuda:$i &
 done
 wait
