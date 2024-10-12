@@ -79,19 +79,11 @@ class Agent(Player):
             raise TypeError()
 
     def teampreview(self, battle: AbstractBattle) -> str:
-        if isinstance(battle, Battle):
-            with torch.no_grad():
-                embedded_battle = torch.tensor(
-                    self.embed_battle(battle), device=self.__policy.device
-                ).view(1, -1)
-                action, _, _ = self.__policy.forward(embedded_battle)
-            lead_id = int(action.item()) + 1
-            all_ids = "123456"
-            return "/team " + str(lead_id) + all_ids[: lead_id - 1] + all_ids[lead_id:]
-        elif isinstance(battle, DoubleBattle):
-            return "/team 123456"
-        else:
-            raise TypeError()
+        return Agent.teampreview_(battle)
+
+    @staticmethod
+    def teampreview_(battle: AbstractBattle) -> str:
+        return "/team 123456"
 
     @staticmethod
     def singles_action_to_move(action: int, battle: Battle) -> BattleOrder:

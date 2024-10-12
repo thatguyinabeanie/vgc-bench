@@ -27,6 +27,7 @@ from teams import RandomTeamBuilder
 class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
+        self.agent.teampreview = Agent.teampreview_
 
     @classmethod
     def create_env(
@@ -68,6 +69,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 accept_open_team_sheet=True,
                 team=RandomTeamBuilder(num_teams, battle_format),
             )
+            opponent.teampreview = Agent.teampreview_
         return cls(
             opponent,
             account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
