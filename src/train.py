@@ -31,9 +31,7 @@ def train(num_teams: int):
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
-                env_class.create_env(
-                    num_envs * num_teams + i, battle_format, 8000 + num_teams, num_teams, self_play
-                )
+                env_class.create_env(i, battle_format, 8000 + num_teams, num_teams, self_play)
             )
             for i in range(num_envs)
         ]

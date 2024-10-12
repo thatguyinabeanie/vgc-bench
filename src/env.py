@@ -35,14 +35,16 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
     ) -> ShowdownEnv:
         if self_play:
             num_gpus = torch.cuda.device_count()
+            main_gpu_id = num_teams % num_gpus
+            other_gpu_ids = [str(i) for i in range(num_gpus) if i != main_gpu_id]
             opponent = Agent(
                 None,
                 device=torch.device(
-                    f"cuda:{i % (num_gpus - 1) + 1}"
+                    f"cuda:{other_gpu_ids[i % len(other_gpu_ids)]}"
                     if num_gpus > 1
                     else "cuda" if num_gpus > 0 else "cpu"
                 ),
-                account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+                account_configuration=AccountConfiguration(f"Opponent{num_teams}-{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
                     "https://play.pokemonshowdown.com/action.php?",
@@ -59,7 +61,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 else [SimpleHeuristicsPlayer, MaxBasePowerPlayer, RandomPlayer]
             )
             opponent = opp_classes[i % len(opp_classes)](
-                account_configuration=AccountConfiguration(f"Opponent{i + 1}", None),
+                account_configuration=AccountConfiguration(f"Opponent{num_teams}-{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
                     "https://play.pokemonshowdown.com/action.php?",
@@ -72,7 +74,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             opponent.teampreview = Agent.teampreview_
         return cls(
             opponent,
-            account_configuration=AccountConfiguration(f"Agent{i + 1}", None),
+            account_configuration=AccountConfiguration(f"Agent{num_teams}-{i + 1}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
