@@ -89,7 +89,7 @@ class Agent(Player):
             all_ids = "123456"
             return "/team " + str(lead_id) + all_ids[: lead_id - 1] + all_ids[lead_id:]
         elif isinstance(battle, DoubleBattle):
-            return "123456"
+            return "/team 123456"
         else:
             raise TypeError()
 
