@@ -31,7 +31,8 @@ class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
     doubles_act_len: int = 47
-    base_obs_len: int = 7452
+    sentence_embed_len: int = 12
+    base_obs_len: int = 6588 + 12 * 6 * sentence_embed_len
     singles_obs_len: int = singles_act_len + base_obs_len
     doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
 
@@ -189,7 +190,9 @@ class Agent(Player):
             opp=True,
         )
         opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
-        opp_side = np.concatenate([*opp_side, np.zeros(621 * (6 - len(opp_side)))])
+        opp_side = np.concatenate(
+            [*opp_side, np.zeros((549 + 6 * Agent.sentence_embed_len) * (6 - len(opp_side)))]
+        )
         return np.concatenate([mask, side, opp_side], dtype=np.float32)
 
     @staticmethod
@@ -253,7 +256,9 @@ class Agent(Player):
         ability_desc = ability_descs["null" if pokemon.ability is None else pokemon.ability]
         item_desc = item_descs["null" if pokemon.item is None else pokemon.item]
         moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate([*moves, np.zeros(61 * (4 - len(moves)))])
+        moves = np.concatenate(
+            [*moves, np.zeros((49 + Agent.sentence_embed_len) * (4 - len(moves)))]
+        )
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         stats = [(s or 0) / 1000 for s in pokemon.stats.values()]
