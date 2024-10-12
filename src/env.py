@@ -31,18 +31,15 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
 
     @classmethod
     def create_env(
-        cls, i: int, battle_format: str, port: int, num_teams: int, self_play: bool
+        cls, i: int, battle_format: str, port: int, num_teams: int, self_play: bool, device: str
     ) -> ShowdownEnv:
         if self_play:
             num_gpus = torch.cuda.device_count()
-            main_gpu_id = num_teams % num_gpus
-            other_gpu_ids = [str(i) for i in range(num_gpus) if i != main_gpu_id]
+            other_gpu_ids = [f"cuda:{i}" for i in range(num_gpus) if f"cuda:{i}" != device]
             opponent = Agent(
                 None,
                 device=torch.device(
-                    f"cuda:{other_gpu_ids[i % len(other_gpu_ids)]}"
-                    if num_gpus > 1
-                    else "cuda" if num_gpus > 0 else "cpu"
+                    other_gpu_ids[i % len(other_gpu_ids)] if num_gpus > 0 else "cpu"
                 ),
                 account_configuration=AccountConfiguration(f"Opponent{num_teams}-{i + 1}", None),
                 server_configuration=ServerConfiguration(

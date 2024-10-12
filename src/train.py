@@ -15,7 +15,7 @@ from env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from policy import MaskedActorCriticPolicy
 
 
-def train(num_teams: int):
+def train(num_teams: int, device: str):
     server = Popen(
         ["node", "pokemon-showdown", "start", str(8000 + num_teams), "--no-security"],
         stdout=DEVNULL,
@@ -31,7 +31,9 @@ def train(num_teams: int):
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
-                env_class.create_env(i, battle_format, 8000 + num_teams, num_teams, self_play)
+                env_class.create_env(
+                    i, battle_format, 8000 + num_teams, num_teams, self_play, device
+                )
             )
             for i in range(num_envs)
         ]
@@ -49,7 +51,7 @@ def train(num_teams: int):
                 2 * Agent.doubles_act_len if "vgc" in battle_format else Agent.singles_act_len
             )
         },
-        device=f"cuda:{num_teams % torch.cuda.device_count()}",
+        device=device,
     )
     run_name = f"{num_teams}-teams"
     num_saved_timesteps = 0
@@ -72,6 +74,7 @@ def train(num_teams: int):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_teams", type=int)
+    parser.add_argument("--device", type=str)
     args = parser.parse_args()
     while True:
-        train(args.num_teams)
+        train(args.num_teams, args.device)
