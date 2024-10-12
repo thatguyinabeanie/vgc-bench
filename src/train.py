@@ -15,9 +15,9 @@ from env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from policy import MaskedActorCriticPolicy
 
 
-def train(run_id: int):
+def train(num_teams: int):
     server = Popen(
-        ["node", "pokemon-showdown", "start", str(8000 + run_id), "--no-security"],
+        ["node", "pokemon-showdown", "start", str(8000 + num_teams), "--no-security"],
         stdout=DEVNULL,
         stderr=DEVNULL,
         cwd="pokemon-showdown",
@@ -26,14 +26,13 @@ def train(run_id: int):
     steps = 98_304
     num_envs = 32
     battle_format = "gen9vgc2024regh"
-    num_teams = run_id + 1
     self_play = False
     env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
                 env_class.create_env(
-                    num_envs * run_id + i, battle_format, 8000 + run_id, num_teams, self_play
+                    num_envs * num_teams + i, battle_format, 8000 + num_teams, num_teams, self_play
                 )
             )
             for i in range(num_envs)
@@ -52,7 +51,7 @@ def train(run_id: int):
                 2 * Agent.doubles_act_len if "vgc" in battle_format else Agent.singles_act_len
             )
         },
-        device=f"cuda:{run_id % torch.cuda.device_count()}",
+        device=f"cuda:{num_teams % torch.cuda.device_count()}",
     )
     run_name = f"{num_teams}-teams"
     num_saved_timesteps = 0
@@ -66,7 +65,7 @@ def train(run_id: int):
         with open(f"logs/{run_name}-win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
-    callback = Callback(steps, battle_format, run_id, num_teams, self_play)
+    callback = Callback(steps, battle_format, num_teams, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()
     server.wait()
@@ -74,7 +73,7 @@ def train(run_id: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--run_id", type=int)
+    parser.add_argument("--num_teams", type=int)
     args = parser.parse_args()
     while True:
-        train(args.run_id)
+        train(args.num_teams)
