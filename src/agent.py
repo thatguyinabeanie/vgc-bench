@@ -140,6 +140,12 @@ class Agent(Player):
         if isinstance(battle, Battle):
             action_space = Agent.get_action_space(battle)
             mask = [float(i not in action_space) for i in range(Agent.singles_act_len)]
+            actives = [] if battle.active_pokemon is None else [battle.active_pokemon.name]
+            opp_actives = (
+                []
+                if battle.opponent_active_pokemon is None
+                else [battle.opponent_active_pokemon.name]
+            )
             gimmicks = [
                 battle.can_mega_evolve,
                 battle.can_z_move,
@@ -158,6 +164,8 @@ class Agent(Player):
             action_space2 = Agent.get_action_space(battle, 1)
             mask2 = [float(i not in action_space2) for i in range(Agent.doubles_act_len)]
             mask = mask1 + mask2
+            actives = [p.name for p in battle.active_pokemon if p is not None]
+            opp_actives = [p.name for p in battle.opponent_active_pokemon if p is not None]
             gimmicks = [
                 battle.can_mega_evolve[0],
                 battle.can_z_move[0],
@@ -173,20 +181,14 @@ class Agent(Player):
         else:
             raise TypeError()
         glob_features = Agent.embed_global(battle)
-        side = Agent.embed_side(
-            battle.side_conditions,
-            gimmicks,
-            battle.team,
-            battle.turn,
-            "vgc" in (battle.format or ""),
-        )
+        side = Agent.embed_side(actives, battle.side_conditions, gimmicks, battle.team, battle.turn)
         side = np.concatenate([np.concatenate([glob_features, s]) for s in side])
         opp_side = Agent.embed_side(
+            opp_actives,
             battle.opponent_side_conditions,
             opp_gimmicks,
             battle.opponent_team,
             battle.turn,
-            "vgc" in (battle.format or ""),
             opp=True,
         )
         opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
@@ -215,11 +217,11 @@ class Agent(Player):
 
     @staticmethod
     def embed_side(
+        actives: list[str],
         side_conds: dict[SideCondition, int],
         gimmicks: list[bool],
         team: dict[str, Pokemon],
         turn: int,
-        doubles: bool,
         opp: bool = False,
     ) -> list[npt.NDArray[np.float32]]:
         side_conditions = [
@@ -244,13 +246,20 @@ class Agent(Player):
         ]
         gims = [float(g) for g in gimmicks]
         pokemons = [
-            Agent.embed_pokemon(p, n, i, opp, doubles) for i, (n, p) in enumerate(team.items())
+            Agent.embed_pokemon(
+                p,
+                i,
+                opp,
+                len(actives) > 0 and p.name == actives[0],
+                len(actives) > 1 and p.name == actives[1],
+            )
+            for i, p in enumerate(team.values())
         ]
         return [np.concatenate([side_conditions, gims, p]) for p in pokemons]
 
     @staticmethod
     def embed_pokemon(
-        pokemon: Pokemon, ident: str, pos: int, from_opponent: bool, doubles: bool
+        pokemon: Pokemon, pos: int, from_opponent: bool, active_a: bool, active_b: bool
     ) -> npt.NDArray[np.float32]:
         # (mostly) stable fields
         ability_desc = ability_descs["null" if pokemon.ability is None else pokemon.ability]
@@ -275,12 +284,6 @@ class Agent(Player):
         must_recharge = float(pokemon.must_recharge)
         preparing = float(pokemon.preparing)
         gimmicks = [float(s) for s in [pokemon.is_dynamaxed, pokemon.is_terastallized]]
-        if doubles:
-            active_a = float((pokemon.active or False) and ident.split()[0] in ["p1a", "p2a"])
-            active_b = float((pokemon.active or False) and ident.split()[0] in ["p1b", "p2b"])
-        else:
-            active_a = float(pokemon.active or False)
-            active_b = 0
         pos_onehot = [float(pos == i) for i in range(6)]
         return np.array(
             [
@@ -302,8 +305,8 @@ class Agent(Player):
                 must_recharge,
                 preparing,
                 *gimmicks,
-                active_a,
-                active_b,
+                float(active_a),
+                float(active_b),
                 *pos_onehot,
                 float(from_opponent),
             ]
