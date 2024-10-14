@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Callback(BaseCallback):
-    def __init__(self, save_interval: int, battle_format: str, num_teams: int, self_play: bool):
+    def __init__(self, save_interval: int, battle_format: str, num_teams: int, port: int, self_play: bool):
         super().__init__()
         self.save_interval = save_interval
         self.num_teams = num_teams
@@ -37,7 +37,7 @@ class Callback(BaseCallback):
             None,
             account_configuration=AccountConfiguration(f"EvalAgent{num_teams}", None),
             server_configuration=ServerConfiguration(
-                f"ws://localhost:{8000 + num_teams}/showdown/websocket",
+                f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
             ),
             battle_format=battle_format,
@@ -49,7 +49,7 @@ class Callback(BaseCallback):
         self.eval_opponent = opp_class(
             account_configuration=AccountConfiguration(f"EvalOpponent{num_teams}", None),
             server_configuration=ServerConfiguration(
-                f"ws://localhost:{8000 + num_teams}/showdown/websocket",
+                f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
             ),
             battle_format=battle_format,

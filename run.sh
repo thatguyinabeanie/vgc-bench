@@ -2,7 +2,8 @@
 if [[ ":$PATH:" != "/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:"* ]]; then
     export PATH="/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:$PATH"
 fi
-for i in {0..3}; do
-    python src/train.py --num_teams $((i + 1)) --device cuda:$i &
-done
+python src/train.py --num_teams 1 --port 8000 --device cuda:0 &
+python src/train.py --num_teams 2 --port 8001 --device cuda:1 &
+python src/train.py --num_teams 4 --port 8002 --device cuda:2 &
+python src/train.py --num_teams 8 --port 8003 --device cuda:3 &
 wait

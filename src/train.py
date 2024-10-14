@@ -14,9 +14,9 @@ from env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from policy import MaskedActorCriticPolicy
 
 
-def train(num_teams: int, device: str):
+def train(num_teams: int, port: int, device: str):
     server = Popen(
-        ["node", "pokemon-showdown", "start", str(8000 + num_teams), "--no-security"],
+        ["node", "pokemon-showdown", "start", str(port), "--no-security"],
         stdout=DEVNULL,
         stderr=DEVNULL,
         cwd="pokemon-showdown",
@@ -31,7 +31,7 @@ def train(num_teams: int, device: str):
         [
             lambda i=i: Monitor(
                 env_class.create_env(
-                    i, battle_format, 8000 + num_teams, num_teams, self_play, device
+                    i, battle_format, port, num_teams, self_play, device
                 )
             )
             for i in range(num_envs)
@@ -64,7 +64,7 @@ def train(num_teams: int, device: str):
         with open(f"logs/{run_name}-win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
-    callback = Callback(steps, battle_format, num_teams, self_play)
+    callback = Callback(steps, battle_format, num_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()
     server.wait()
@@ -73,7 +73,8 @@ def train(num_teams: int, device: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_teams", type=int)
+    parser.add_argument("--port", type=int)
     parser.add_argument("--device", type=str)
     args = parser.parse_args()
     while True:
-        train(args.num_teams, args.device)
+        train(args.num_teams, args.port, args.device)
