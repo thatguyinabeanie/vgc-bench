@@ -1,5 +1,5 @@
 #!/bin/bash
-ports=(8000 8001 8002 8003)
+ports=(8001 8002 8003 8004)
 for port in "${ports[@]}"
 do
     pid=$(lsof -t -i:$port)
