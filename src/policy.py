@@ -123,30 +123,26 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.move_embedding = nn.Embedding(len(moves), self.embed_len)
         self.feature_proj = nn.Linear(self.chunk_len + 6 * (self.embed_len - 1), self.feature_len)
         self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.feature_len,
-            nhead=1,
-            dim_feedforward=self.feature_len,
-            dropout=0,
-            batch_first=True,
+        self.encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(
+                d_model=self.feature_len,
+                nhead=1,
+                dim_feedforward=self.feature_len,
+                dropout=0,
+                batch_first=True,
+            ),
+            num_layers=3,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, 3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         seq = x[:, self.mask_len :].view(-1, 12, self.chunk_len)
         seq = self.embed(seq)
-        seq = self.feature_proj.forward(seq)
-        seq = torch.cat([self.cls_token.repeat(seq.size(0), 1, 1), seq], dim=1)
-        output = self.encoder.forward(seq)
-        return output[:, 0, :]
+        seq = self.feature_proj(seq)
+        seq = torch.cat([self.cls_token.expand(seq.size(0), -1, -1), seq], dim=1)
+        return self.encoder(seq)[:, 0, :]
 
     def embed(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.cat(
-            [
-                self.ability_embedding(x[:, :, 0].int()),
-                self.item_embedding(x[:, :, 1].int()),
-                self.move_embedding(x[:, :, 2:6].int()).view(-1, 12, 4 * self.embed_len),
-                x[:, :, 6:],
-            ],
-            dim=2,
-        )
+        ability = self.ability_embedding(x[:, :, 0].long())
+        item = self.item_embedding(x[:, :, 1].long())
+        move = self.move_embedding(x[:, :, 2:6].long()).view(-1, 12, 4 * self.embed_len)
+        return torch.cat([ability, item, move, x[:, :, 6:]], dim=2)
