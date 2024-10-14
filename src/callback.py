@@ -17,7 +17,9 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Callback(BaseCallback):
-    def __init__(self, save_interval: int, battle_format: str, num_teams: int, port: int, self_play: bool):
+    def __init__(
+        self, save_interval: int, battle_format: str, num_teams: int, port: int, self_play: bool
+    ):
         super().__init__()
         self.save_interval = save_interval
         self.num_teams = num_teams
