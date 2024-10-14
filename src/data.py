@@ -24,7 +24,7 @@ def update_desc_embeddings(url: str, file: str, extras: dict[str, dict[str, str]
     warnings.simplefilter(action="ignore", category=FutureWarning)
     transformer = SentenceTransformer("paraphrase-mpnet-base-v2")
     embeddings = transformer.encode([a["desc"] for a in dex.values()])
-    pca = PCA(12)
+    pca = PCA(100)
     reduced_embeddings = pca.fit_transform(embeddings).tolist()  # type: ignore
     with open(f"json/{file}", "w") as f:
         json.dump(dict(zip(dex.keys(), reduced_embeddings)), f)

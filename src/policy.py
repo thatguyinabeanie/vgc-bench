@@ -109,7 +109,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    sentence_embed_len: int = 12
+    sentence_embed_len: int = 100
     chunk_len: int = 549 + 6 * sentence_embed_len
     feature_len: int = 128
 

@@ -31,7 +31,7 @@ class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
     doubles_act_len: int = 47
-    sentence_embed_len: int = 12
+    sentence_embed_len: int = 100
     base_obs_len: int = 6588 + 12 * 6 * sentence_embed_len
     singles_obs_len: int = singles_act_len + base_obs_len
     doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
