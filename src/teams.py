@@ -1,4 +1,4 @@
-# teams from https://docs.google.com/spreadsheets/d/1axlwmzPA49rYkqXh7zHvAtSP-TKbM0ijGYBPRflLSWw/edit?gid=511126880#gid=511126880
+# teams from https://docs.google.com/spreadsheets/d/1axlwmzPA49rYkqXh7zHvAtSP-TKbM0ijGYBPRflLSWw/edit?gid=1168048410#gid=1168048410
 
 import random
 from subprocess import run
@@ -32,563 +32,1136 @@ class RandomTeamBuilder(Teambuilder):
 TEAMS = {
     "gen9vgc2024regh": [
         """
-Maradona (Iron Hands) @ Assault Vest
-Ability: Quark Drive
+Incineroar @ Safety Goggles
+Ability: Intimidate
 Level: 50
-Shiny: Yes
-Tera Type: Grass
-EVs: 140 HP / 76 Atk / 4 Def / 252 SpD / 36 Spe
+Tera Type: Ghost
+EVs: 188 HP / 164 Atk / 4 Def / 108 SpD / 44 Spe
 Adamant Nature
 - Fake Out
-- Close Combat
-- Wild Charge
-- Volt Switch
+- Flare Blitz
+- Knock Off
+- Parting Shot
 
-Shrom41Mor (Amoonguss) (F) @ Sitrus Berry
-Ability: Regenerator
+Pelipper @ Focus Sash
+Ability: Drizzle
 Level: 50
-Tera Type: Steel
-EVs: 244 HP / 108 Def / 156 SpD
-Calm Nature
+Tera Type: Ghost
+EVs: 252 SpA / 4 SpD / 252 Spe
+Modest Nature
+IVs: 0 Atk
+- Hurricane
+- Weather Ball
+- Tailwind
+- Protect
+
+Basculegion (M) @ Mystic Water
+Ability: Swift Swim
+Level: 50
+Tera Type: Water
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Protect
+- Wave Crash
+- Aqua Jet
+- Last Respects
+
+Amoonguss @ Sitrus Berry
+Ability: Regenerator
+Tera Type: Water
+EVs: 248 HP / 68 Def / 192 SpD
+Sassy Nature
 IVs: 0 Atk / 0 Spe
 - Spore
 - Rage Powder
 - Pollen Puff
+- Clear Smog
+
+Maushold-Four @ Wide Lens
+Ability: Technician
+Level: 50
+Tera Type: Grass
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Population Bomb
+- Follow Me
+- Taunt
 - Protect
 
-Beaker (Pelipper) (F) @ Focus Sash
+Archaludon @ Assault Vest
+Ability: Stamina
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 4 Def / 36 SpA / 196 SpD / 20 Spe
+Modest Nature
+IVs: 0 Atk
+- Electro Shot
+- Dragon Pulse
+- Flash Cannon
+- Body Press
+""",
+        """
+Porygon2 @ Eviolite
+Ability: Trace
+Level: 50
+Shiny: Yes
+Tera Type: Ghost
+EVs: 252 HP / 140 Def / 36 SpA / 76 SpD / 4 Spe
+Modest Nature
+IVs: 0 Atk
+- Tri Attack
+- Shadow Ball
+- Recover
+- Trick Room
+
+Ursaluna @ Flame Orb
+Ability: Guts
+Level: 50
+Tera Type: Fairy
+EVs: 252 HP / 236 Atk / 20 SpD
+Brave Nature
+IVs: 2 Spe
+- Facade
+- Earthquake
+- Headlong Rush
+- Protect
+
+Volcarona @ Covert Cloak
+Ability: Flame Body
+Level: 50
+Tera Type: Dragon
+EVs: 188 HP / 52 Def / 12 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Overheat
+- Struggle Bug
+- Rage Powder
+- Will-O-Wisp
+
+Grimmsnarl @ Light Clay
+Ability: Prankster
+Level: 50
+Tera Type: Steel
+EVs: 252 HP / 180 Def / 76 SpD
+Careful Nature
+- Spirit Break
+- Reflect
+- Light Screen
+- Taunt
+
+Annihilape @ Safety Goggles
+Ability: Defiant
+Level: 50
+Tera Type: Fire
+EVs: 140 HP / 68 Atk / 12 Def / 60 SpD / 228 Spe
+Jolly Nature
+- Rage Fist
+- Drain Punch
+- Protect
+- Bulk Up
+
+Gholdengo @ Choice Specs
+Ability: Good as Gold
+Level: 50
+Tera Type: Dragon
+EVs: 164 HP / 4 Def / 132 SpA / 4 SpD / 204 Spe
+Modest Nature
+IVs: 0 Atk
+- Shadow Ball
+- Make It Rain
+- Power Gem
+- Trick""",
+        """
+Incineroar @ Safety Goggles
+Ability: Intimidate
+Level: 50
+Shiny: Yes
+Tera Type: Grass
+EVs: 172 HP / 116 Atk / 28 Def / 60 SpD / 132 Spe
+Adamant Nature
+IVs: 18 SpA
+- Knock Off
+- Flare Blitz
+- Parting Shot
+- Fake Out
+
+Porygon2 @ Eviolite
+Ability: Download
+Level: 50
+Shiny: Yes
+Tera Type: Fighting
+EVs: 252 HP / 220 Def / 4 SpA / 28 SpD / 4 Spe
+Modest Nature
+- Tera Blast
+- Ice Beam
+- Recover
+- Trick Room
+
+Amoonguss @ Mental Herb
+Ability: Regenerator
+Shiny: Yes
+Tera Type: Water
+EVs: 236 HP / 164 Def / 108 SpD
+Bold Nature
+IVs: 21 Atk
+- Spore
+- Rage Powder
+- Pollen Puff
+- Sludge Bomb
+
+Ursaluna @ Flame Orb
+Ability: Guts
+Level: 50
+Shiny: Yes
+Tera Type: Normal
+EVs: 140 HP / 180 Atk / 100 Def / 84 SpD / 4 Spe
+Brave Nature
+IVs: 6 Spe
+- Facade
+- Headlong Rush
+- Earthquake
+- Protect
+
+Gholdengo @ Life Orb
+Ability: Good as Gold
+Shiny: Yes
+Tera Type: Dragon
+EVs: 44 HP / 4 Def / 196 SpA / 12 SpD / 252 Spe
+Timid Nature
+IVs: 5 Atk
+- Make It Rain
+- Shadow Ball
+- Nasty Plot
+- Protect
+
+Flamigo @ Focus Sash
+Ability: Scrappy
+Level: 70
+Shiny: Yes
+Tera Type: Ghost
+EVs: 252 Atk / 4 Def / 252 Spe
+Jolly Nature
+IVs: 0 SpA
+- Close Combat
+- Brave Bird
+- Wide Guard
+- Protect""",
+        """
+Hydrapple @ Leftovers
+Ability: Supersweet Syrup
+Level: 50
+Tera Type: Steel
+EVs: 212 HP / 156 SpA / 140 SpD
+Quiet Nature
+IVs: 0 Atk / 0 Spe
+- Syrup Bomb
+- Fickle Beam
+- Yawn
+- Protect
+
+Maushold-Four @ King's Rock
+Ability: Technician
+Level: 50
+Shiny: Yes
+Tera Type: Ghost
+EVs: 172 HP / 196 Atk / 4 Def / 4 SpD / 132 Spe
+Jolly Nature
+- Population Bomb
+- Taunt
+- Follow Me
+- Protect
+
+Volcarona @ Safety Goggles
+Ability: Flame Body
+Level: 50
+Shiny: Yes
+Tera Type: Dragon
+EVs: 252 HP / 68 Def / 36 SpA / 4 SpD / 148 Spe
+Modest Nature
+IVs: 0 Atk
+- Heat Wave
+- Giga Drain
+- Quiver Dance
+- Protect
+
+Tauros-Paldea-Aqua @ Mirror Herb
+Ability: Intimidate
+Level: 50
+Tera Type: Grass
+EVs: 204 HP / 156 Atk / 4 Def / 4 SpD / 140 Spe
+Adamant Nature
+- Wave Crash
+- Aqua Jet
+- Close Combat
+- Protect
+
+Ursaluna-Bloodmoon @ Assault Vest
+Ability: Mind's Eye
+Level: 50
+Tera Type: Normal
+EVs: 148 HP / 4 Def / 196 SpA / 4 SpD / 156 Spe
+Modest Nature
+IVs: 0 Atk
+- Hyper Voice
+- Blood Moon
+- Earth Power
+- Vacuum Wave
+
+Gothitelle @ Sitrus Berry
+Ability: Shadow Tag
+Level: 50
+Tera Type: Steel
+EVs: 244 HP / 36 Def / 4 SpA / 4 SpD / 220 Spe
+Timid Nature
+- Psychic
+- Helping Hand
+- Fake Out
+- Trick Room""",
+        """
+Vivillon @ Focus Sash
+Ability: Compound Eyes
+Level: 50
+Tera Type: Ghost
+EVs: 4 Def / 252 SpA / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Protect
+- Sleep Powder
+- Rage Powder
+- Hurricane
+
+Garchomp @ Life Orb
+Ability: Rough Skin
+Level: 50
+Tera Type: Fire
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Protect
+- Earthquake
+- Stomping Tantrum
+- Dragon Claw
+
+Primarina @ Sitrus Berry
+Ability: Liquid Voice
+Level: 50
+Tera Type: Poison
+EVs: 252 HP / 132 Def / 108 SpA / 4 SpD / 12 Spe
+Modest Nature
+IVs: 0 Atk
+- Protect
+- Haze
+- Hyper Voice
+- Moonblast
+
+Incineroar @ Safety Goggles
+Ability: Intimidate
+Level: 50
+Tera Type: Ghost
+EVs: 164 HP / 4 Atk / 36 Def / 68 SpD / 236 Spe
+Jolly Nature
+- Fake Out
+- Flare Blitz
+- Knock Off
+- Parting Shot
+
+Porygon2 @ Eviolite
+Ability: Download
+Level: 50
+Tera Type: Fighting
+EVs: 252 HP / 196 SpA / 60 SpD
+Quiet Nature
+IVs: 0 Spe
+- Trick Room
+- Recover
+- Tera Blast
+- Ice Beam
+
+Gholdengo @ Metal Coat
+Ability: Good as Gold
+Level: 50
+Tera Type: Dragon
+EVs: 252 HP / 108 Def / 132 SpA / 4 SpD / 12 Spe
+Modest Nature
+IVs: 0 Atk
+- Protect
+- Nasty Plot
+- Make It Rain
+- Shadow Ball""",
+        """
+Incineroar @ Safety Goggles
+Ability: Intimidate
+Level: 50
+Tera Type: Ghost
+EVs: 244 HP / 4 Atk / 4 Def / 4 SpD / 252 Spe
+Jolly Nature
+- Knock Off
+- Snarl
+- Fake Out
+- Parting Shot
+
+Amoonguss @ Sitrus Berry
+Ability: Regenerator
+Level: 50
+Tera Type: Water
+EVs: 236 HP / 196 Def / 76 SpD
+Calm Nature
+IVs: 0 Atk / 26 Spe
+- Pollen Puff
+- Rage Powder
+- Spore
+- Protect
+
+Ursaluna @ Flame Orb
+Ability: Guts
+Level: 50
+Tera Type: Ghost
+EVs: 252 HP / 252 Atk / 4 SpD
+Brave Nature
+IVs: 0 Spe
+- Facade
+- Headlong Rush
+- Substitute
+- Protect
+
+Porygon2 @ Eviolite
+Ability: Download
+Level: 50
+Tera Type: Ghost
+EVs: 244 HP / 4 Atk / 36 Def / 92 SpA / 132 SpD
+Quiet Nature
+IVs: 24 Spe
+- Tera Blast
+- Ice Beam
+- Recover
+- Trick Room
+
+Gholdengo @ Metal Coat
+Ability: Good as Gold
+Level: 50
+Tera Type: Steel
+EVs: 108 HP / 12 Def / 212 SpA / 4 SpD / 172 Spe
+Modest Nature
+IVs: 0 Atk
+- Protect
+- Nasty Plot
+- Make It Rain
+- Shadow Ball
+
+Primarina @ Mystic Water
+Ability: Liquid Voice
+Level: 50
+Tera Type: Poison
+EVs: 244 HP / 4 Def / 188 SpA / 4 SpD / 68 Spe
+Modest Nature
+IVs: 0 Atk
+- Hyper Voice
+- Moonblast
+- Haze
+- Protect""",
+        """
+Ursaluna-Bloodmoon @ Assault Vest
+Ability: Mind's Eye
+Level: 50
+Tera Type: Normal
+EVs: 140 HP / 252 SpA / 116 SpD
+Modest Nature
+IVs: 0 Atk
+- Blood Moon
+- Hyper Voice
+- Earth Power
+- Vacuum Wave
+
+Porygon2 @ Eviolite
+Ability: Trace
+Level: 50
+Tera Type: Ghost
+EVs: 252 HP / 156 Def / 4 SpA / 92 SpD / 4 Spe
+Bold Nature
+IVs: 0 Atk
+- Ice Beam
+- Thunderbolt
+- Recover
+- Trick Room
+
+Amoonguss @ Covert Cloak
+Ability: Regenerator
+Level: 50
+Tera Type: Water
+EVs: 252 HP / 156 Def / 100 SpD
+Bold Nature
+IVs: 0 Atk
+- Spore
+- Rage Powder
+- Pollen Puff
+- Sludge Bomb
+
+Incineroar @ Safety Goggles
+Ability: Intimidate
+Level: 50
+Tera Type: Ghost
+EVs: 252 HP / 116 Atk / 60 Def / 76 SpD
+Adamant Nature
+IVs: 11 Spe
+- Knock Off
+- Fake Out
+- Parting Shot
+- Flare Blitz
+
+Dragapult @ Choice Band
+Ability: Clear Body
+Level: 50
+Tera Type: Dragon
+EVs: 4 HP / 252 Atk / 252 Spe
+Adamant Nature
+- Dragon Darts
+- Outrage
+- Phantom Force
+- U-turn
+
+Sneasler @ Focus Sash
+Ability: Poison Touch
+Level: 50
+Tera Type: Dark
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Close Combat
+- Dire Claw
+- Throat Chop
+- Fake Out""",
+        """
+Pelipper (F) @ Choice Scarf
 Ability: Drizzle
 Level: 50
-Tera Type: Flying
+Tera Type: Ghost
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+- Hurricane
+- Weather Ball
+- Tailwind
+- U-turn
+
+Archaludon (F) @ Choice Specs
+Ability: Sturdy
+Level: 50
+Shiny: Yes
+Tera Type: Electric
 EVs: 4 HP / 252 SpA / 252 Spe
 Modest Nature
 IVs: 0 Atk
-- Hurricane
-- Hydro Pump
-- Tailwind
-- Protect
+- Electro Shot
+- Flash Cannon
+- Draco Meteor
+- Dragon Pulse
 
-Torqoise (Palafin) (F) @ Mystic Water
-Ability: Zero to Hero
+Quaquaval (F) @ Focus Sash
+Ability: Moxie
 Level: 50
+Shiny: Yes
 Tera Type: Water
-EVs: 252 HP / 252 Atk / 4 Def
+EVs: 4 HP / 252 Atk / 252 Spe
 Adamant Nature
-- Jet Punch
-- Wave Crash
-- Haze
+- Aqua Step
+- Upper Hand
+- Close Combat
 - Protect
 
-BlockBuster (Baxcalibur) (F) @ Dragon Fang
-Ability: Thermal Exchange
+Kingambit (F) @ Black Glasses
+Ability: Defiant
 Level: 50
-Tera Type: Poison
-EVs: 84 HP / 252 Atk / 4 Def / 108 SpD / 60 Spe
+Tera Type: Dark
+EVs: 252 HP / 252 Atk / 4 SpD
 Adamant Nature
-- Glaive Rush
-- Ice Shard
-- Icicle Crash
+- Kowtow Cleave
+- Sucker Punch
+- Iron Head
 - Protect
 
-ShiningArmor (Dragonite) (F) @ Lum Berry
-Ability: Multiscale
+Rillaboom (F) @ Assault Vest
+Ability: Grassy Surge
+Level: 50
+Shiny: Yes
+Tera Type: Fire
+EVs: 252 HP / 196 Atk / 4 Def / 44 SpD / 12 Spe
+Adamant Nature
+- Fake Out
+- Wood Hammer
+- Grassy Glide
+- U-turn
+
+Dragapult (F) @ Choice Band
+Ability: Clear Body
+Level: 50
+Shiny: Yes
+Tera Type: Dragon
+EVs: 252 Atk / 4 Def / 252 Spe
+Adamant Nature
+- Dragon Darts
+- Outrage
+- Phantom Force
+- U-turn""",
+        """
+Decidueye-Hisui @ Scope Lens
+Ability: Scrappy
 Level: 50
 Tera Type: Flying
-EVs: 252 HP / 204 Atk / 20 Def / 4 SpD / 28 Spe
-Adamant Nature
-- Extreme Speed
-- Tera Blast
-- Ice Spinner
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Leaf Blade
 - Protect
-""",
-        """
-Tatsugiri @ Choice Scarf
-Ability: Commander
-Level: 50
-Tera Type: Steel
-EVs: 180 Def / 124 SpA / 204 Spe
-Timid Nature
-IVs: 0 Atk
-- Draco Meteor
-- Muddy Water
-- Dragon Pulse
-- Icy Wind
+- Brave Bird
+- Triple Arrows
 
-Dondozo @ Leftovers
-Ability: Unaware
+Basculegion (M) @ Mystic Water
+Ability: Swift Swim
 Level: 50
-Tera Type: Steel
-EVs: 76 HP / 84 Atk / 12 Def / 124 SpD / 212 Spe
+Tera Type: Water
+EVs: 4 HP / 252 Atk / 252 Spe
 Adamant Nature
+IVs: 10 SpA
 - Wave Crash
-- Earthquake
-- Heavy Slam
-- Yawn
+- Aqua Jet
+- Protect
+- Last Respects
 
-Flutter Mane @ Life Orb
-Ability: Protosynthesis
+Archaludon @ Assault Vest
+Ability: Stamina
 Level: 50
-Tera Type: Grass
-EVs: 132 HP / 156 Def / 68 SpA / 4 SpD / 148 Spe
+Tera Type: Fairy
+EVs: 200 HP / 232 SpA / 76 Spe
+Modest Nature
+IVs: 24 Atk
+- Draco Meteor
+- Flash Cannon
+- Body Press
+- Electro Shot
+
+Pelipper @ Focus Sash
+Ability: Drizzle
+Level: 50
+Tera Type: Ghost
+EVs: 4 HP / 252 SpA / 252 Spe
 Timid Nature
 IVs: 0 Atk
+- Tailwind
+- Weather Ball
+- Hurricane
+- Protect
+
+Clefairy @ Eviolite
+Ability: Friend Guard
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 252 Def / 4 SpD
+Calm Nature
+IVs: 0 Atk / 0 Spe
+- Follow Me
+- Helping Hand
+- After You
+- Protect
+
+Ursaluna-Bloodmoon @ Life Orb
+Ability: Mind's Eye
+Level: 50
+Tera Type: Normal
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Blood Moon
+- Hyper Voice
+- Earth Power
+- Protect""",
+        """
+Ribombee (F) @ Focus Sash
+Ability: Shield Dust
+Level: 50
+Shiny: Yes
+Tera Type: Dark
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+IVs: 5 Atk
 - Moonblast
-- Shadow Ball
-- Dazzling Gleam
-- Protect
+- Pollen Puff
+- Tailwind
+- Fake Tears
 
-Iron Moth @ Booster Energy
-Ability: Quark Drive
+Primarina (F) @ Throat Spray
+Ability: Liquid Voice
 Level: 50
+Shiny: Yes
+Tera Type: Dragon
+EVs: 212 HP / 68 Def / 188 SpA / 4 SpD / 36 Spe
+Modest Nature
+IVs: 16 Atk
+- Protect
+- Hyper Voice
+- Moonblast
+- Perish Song
+
+Gothitelle (F) @ Mental Herb
+Ability: Shadow Tag
+Level: 50
+Shiny: Yes
+Tera Type: Water
+EVs: 244 HP / 92 Def / 4 SpA / 156 SpD / 12 Spe
+Calm Nature
+IVs: 14 Atk
+- Protect
+- Fake Out
+- Psychic
+- Trick Room
+
+Ursaluna-Bloodmoon @ Life Orb
+Ability: Mind's Eye
+Level: 50
+Tera Type: Normal
+EVs: 4 HP / 4 Def / 252 SpA / 108 SpD / 140 Spe
+Modest Nature
+IVs: 0 Atk
+- Protect
+- Hyper Voice
+- Earth Power
+- Blood Moon
+
+Incineroar (M) @ Sitrus Berry
+Ability: Intimidate
+Level: 50
+Shiny: Yes
 Tera Type: Grass
-EVs: 156 HP / 4 Def / 108 SpA / 4 SpD / 236 Spe
+EVs: 204 HP / 252 Atk / 4 Def / 4 SpD / 44 Spe
+Adamant Nature
+- Protect
+- Fake Out
+- Knock Off
+- Flare Blitz
+
+Gholdengo @ Choice Specs
+Ability: Good as Gold
+Level: 50
+Shiny: Yes
+Tera Type: Steel
+EVs: 4 HP / 252 SpA / 252 Spe
+Modest Nature
+- Make It Rain
+- Shadow Ball
+- Thunderbolt
+- Power Gem""",
+        """
+Gholdengo @ Choice Specs
+Ability: Good as Gold
+Level: 50
+Tera Type: Steel
+EVs: 4 HP / 4 Def / 244 SpA / 4 SpD / 252 Spe
 Timid Nature
 IVs: 0 Atk
-- Flamethrower
-- Acid Spray
-- Energy Ball
-- Protect
+- Make It Rain
+- Shadow Ball
+- Power Gem
+- Thunderbolt
+
+Glimmora @ Power Herb
+Ability: Toxic Debris
+Level: 50
+Tera Type: Grass
+EVs: 4 HP / 4 Def / 244 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Meteor Beam
+- Sludge Bomb
+- Earth Power
+- Spiky Shield
+
+Talonflame @ Life Orb
+Ability: Gale Wings
+Level: 50
+Tera Type: Ghost
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Brave Bird
+- Flare Blitz
+- Tailwind
+- Will-O-Wisp
 
 Dragonite @ Choice Band
 Ability: Multiscale
 Level: 50
 Tera Type: Normal
-EVs: 196 HP / 252 Atk / 4 Def / 4 SpD / 52 Spe
+EVs: 244 HP / 252 Atk / 4 Def / 4 SpD / 4 Spe
 Adamant Nature
 - Extreme Speed
+- Outrage
 - Aerial Ace
-- Ice Spinner
-- Stomping Tantrum
+- Earthquake
 
-Arcanine @ Safety Goggles
-Ability: Intimidate
-Tera Type: Normal
-EVs: 252 HP / 84 Atk / 84 Def / 12 SpD / 76 Spe
-Adamant Nature
-- Flare Blitz
-- Extreme Speed
-- Will-O-Wisp
-- Protect""",
-        """
-Roaring Moon @ Booster Energy
-Ability: Protosynthesis
+Dondozo @ Leftovers
+Ability: Unaware
 Level: 50
-Tera Type: Flying
-EVs: 252 HP / 4 Atk / 12 Def / 52 SpD / 188 Spe
+Tera Type: Grass
+EVs: 4 HP / 236 Atk / 4 Def / 12 SpD / 252 Spe
 Adamant Nature
-- Acrobatics
-- Dragon Dance
-- Jaw Lock
-- Roost
-
-Gholdengo @ Covert Cloak
-Ability: Good as Gold
-Level: 50
-Tera Type: Water
-EVs: 252 HP / 4 Def / 76 SpA / 100 SpD / 76 Spe
-Modest Nature
-IVs: 0 Atk
-- Make It Rain
-- Nasty Plot
-- Shadow Ball
+- Wave Crash
+- Earthquake
+- Order Up
 - Protect
 
-Iron Bundle @ Focus Sash
-Ability: Quark Drive
+Tatsugiri @ Focus Sash
+Ability: Commander
 Level: 50
-Tera Type: Ghost
+Tera Type: Stellar
 EVs: 252 SpA / 4 SpD / 252 Spe
 Timid Nature
 IVs: 0 Atk
-- Hydro Pump
-- Freeze-Dry
-- Icy Wind
-- Protect
-
-Iron Hands @ Assault Vest
-Ability: Quark Drive
-Level: 50
-Tera Type: Grass
-EVs: 180 HP / 4 Atk / 4 Def / 252 SpD / 68 Spe
-Adamant Nature
-- Fake Out
-- Close Combat
-- Wild Charge
-- Volt Switch
-
-Maushold-Four @ Safety Goggles
-Ability: Friend Guard
-Level: 50
-Tera Type: Ghost
-EVs: 252 HP / 28 Def / 228 Spe
-Timid Nature
-IVs: 0 Atk
-- Super Fang
-- Follow Me
-- Baby-Doll Eyes
-- Protect
-
-Arcanine (F) @ Sitrus Berry
-Ability: Intimidate
-Level: 50
-Tera Type: Grass
-EVs: 244 HP / 4 Atk / 4 Def / 164 SpD / 92 Spe
-Careful Nature
-- Flare Blitz
-- Will-O-Wisp
-- Snarl
-- Extreme Speed""",
+- Draco Meteor
+- Muddy Water
+- Dragon Pulse
+- Protect""",
         """
-Feelin U? (Flutter Mane) @ Choice Specs
-Ability: Protosynthesis
+Whimsicott @ Covert Cloak
+Ability: Prankster
 Level: 50
-Tera Type: Fairy
-EVs: 4 HP / 252 SpA / 252 Spe
-Timid Nature
+Tera Type: Fire
+EVs: 252 HP / 36 Def / 4 SpA / 212 SpD / 4 Spe
+Bold Nature
 IVs: 0 Atk
+- Tailwind
 - Moonblast
-- Shadow Ball
-- Dazzling Gleam
-- Mystical Fire
+- Sunny Day
+- Encore
 
-Munch (Armarouge) (M) @ Life Orb
-Ability: Flash Fire
+Ursaluna-Bloodmoon @ Life Orb
+Ability: Mind's Eye
+Level: 50
+Tera Type: Normal
+EVs: 4 HP / 4 Def / 212 SpA / 60 SpD / 228 Spe
+Modest Nature
+IVs: 0 Atk
+- Earth Power
+- Blood Moon
+- Hyper Voice
+- Protect
+
+Archaludon @ Assault Vest
+Ability: Stamina
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 76 Def / 68 SpA / 4 SpD / 108 Spe
+Modest Nature
+IVs: 0 Atk
+- Electro Shot
+- Flash Cannon
+- Body Press
+- Draco Meteor
+
+Politoed @ Sitrus Berry
+Ability: Drizzle
 Level: 50
 Shiny: Yes
 Tera Type: Grass
-EVs: 228 HP / 252 SpA / 28 SpD
-Modest Nature
+EVs: 252 HP / 164 Def / 12 SpA / 76 SpD / 4 Spe
+Bold Nature
 IVs: 0 Atk
-- Expanding Force
-- Armor Cannon
-- Trick Room
+- Perish Song
+- Haze
+- Weather Ball
 - Protect
 
-Ice Spice (Indeedee-F) @ Psychic Seed
+Typhlosion-Hisui @ Choice Specs
+Ability: Blaze
+Level: 50
+Shiny: Yes
+Tera Type: Fire
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Eruption
+- Heat Wave
+- Infernal Parade
+- Solar Beam
+
+Indeedee-F @ Psychic Seed
+Ability: Psychic Surge
+Level: 50
+Tera Type: Fairy
+EVs: 252 HP / 244 Def / 4 SpA / 4 SpD / 4 Spe
+Bold Nature
+IVs: 0 Atk
+- Trick Room
+- Follow Me
+- Imprison
+- Psychic""",
+        """
+Hydreigon @ Choice Specs
+Ability: Levitate
+Level: 50
+Tera Type: Fire
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Draco Meteor
+- Dark Pulse
+- Heat Wave
+- Snarl
+
+Indeedee-F @ Safety Goggles
+Ability: Psychic Surge
+Level: 50
+Tera Type: Ghost
+EVs: 252 HP / 132 Def / 4 SpA / 100 SpD / 20 Spe
+Bold Nature
+IVs: 0 Atk
+- Hyper Voice
+- Imprison
+- Trick Room
+- Follow Me
+
+Gholdengo @ Life Orb
+Ability: Good as Gold
+Level: 86
+Tera Type: Dragon
+EVs: 52 HP / 4 Def / 212 SpA / 60 SpD / 180 Spe
+Modest Nature
+IVs: 0 Atk
+- Make It Rain
+- Shadow Ball
+- Protect
+- Nasty Plot
+
+Murkrow @ Eviolite
+Ability: Prankster
+Level: 52
+Tera Type: Ghost
+EVs: 252 HP / 220 SpD / 36 Spe
+Calm Nature
+IVs: 0 Atk
+- Foul Play
+- Protect
+- Haze
+- Tailwind
+
+Sneasler @ Psychic Seed
+Ability: Unburden
+Level: 50
+Tera Type: Dark
+EVs: 236 HP / 252 Atk / 4 Def / 4 SpD / 12 Spe
+Adamant Nature
+- Close Combat
+- Dire Claw
+- Throat Chop
+- Swords Dance
+
+Basculegion @ Choice Scarf
+Ability: Adaptability
+Level: 50
+Tera Type: Grass
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Wave Crash
+- Last Respects
+- Tera Blast
+- Aqua Jet""",
+        """
+Lycanroc @ Focus Sash
+Ability: Sand Rush
+Level: 50
+Tera Type: Ghost
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Rock Slide
+- Endeavor
+- Close Combat
+- Protect
+
+Tyranitar @ Choice Band
+Ability: Sand Stream
+Level: 50
+Tera Type: Flying
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Rock Slide
+- Low Kick
+- Tera Blast
+- Assurance
+
+Indeedee-F @ Safety Goggles
 Ability: Psychic Surge
 Level: 50
 Tera Type: Fairy
 EVs: 252 HP / 252 Def / 4 SpD
-Relaxed Nature
-IVs: 2 Atk / 3 Spe
-- Follow Me
+Bold Nature
+IVs: 0 Atk
 - Dazzling Gleam
+- Follow Me
 - Helping Hand
 - Trick Room
 
-Quach (Great Tusk) @ Focus Sash
-Ability: Protosynthesis
+Armarouge @ Life Orb
+Ability: Flash Fire
 Level: 50
-Shiny: Yes
+Tera Type: Grass
+EVs: 244 HP / 4 Def / 252 SpA / 4 SpD / 4 Spe
+Modest Nature
+IVs: 0 Atk
+- Expanding Force
+- Energy Ball
+- Heat Wave
+- Trick Room
+
+Dondozo @ Lum Berry
+Ability: Unaware
+Level: 50
+Tera Type: Grass
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Wave Crash
+- Rock Slide
+- Tera Blast
+- Rest
+
+Tatsugiri-Droopy @ Choice Specs
+Ability: Commander
+Level: 50
+Tera Type: Water
+EVs: 4 HP / 252 SpA / 252 Spe
+Modest Nature
+IVs: 0 Atk
+- Muddy Water
+- Draco Meteor
+- Sleep Talk
+- Hydro Pump""",
+        """
+Garchomp @ Clear Amulet
+Ability: Sand Veil
+Level: 50
 Tera Type: Ground
 EVs: 4 HP / 252 Atk / 252 Spe
 Adamant Nature
-- Headlong Rush
-- Close Combat
-- Taunt
 - Protect
+- Earthquake
+- Dragon Claw
+- Swords Dance
 
-God Willing (Iron Bundle) @ Booster Energy
-Ability: Quark Drive
-Level: 50
-Tera Type: Ghost
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Icy Wind
-- Hydro Pump
-- Freeze-Dry
-- Protect
-
-Gucci Hamish (Hydreigon) @ Safety Goggles
-Ability: Levitate
-Level: 50
-Tera Type: Psychic
-EVs: 108 HP / 36 Def / 164 SpA / 4 SpD / 196 Spe
-Timid Nature
-IVs: 0 Atk
-- Snarl
-- Draco Meteor
-- Dark Pulse
-- Tailwind""",
-        """
-Maroon (Talonflame) (F) @ Covert Cloak
+Talonflame (F) @ Covert Cloak
 Ability: Gale Wings
 Level: 50
 Tera Type: Ghost
-EVs: 132 HP / 76 Atk / 44 Def / 4 SpD / 252 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
 Jolly Nature
-IVs: 22 SpA
 - Brave Bird
+- Tailwind
 - Will-O-Wisp
 - Taunt
-- Tailwind
 
-Anti-Hero (Dondozo) (M) @ Leftovers
-Ability: Unaware
+Tyranitar (M) @ Assault Vest
+Ability: Sand Stream
 Level: 50
-Tera Type: Steel
-EVs: 60 Atk / 244 SpD / 204 Spe
+Tera Type: Flying
+EVs: 252 HP / 244 Atk / 12 SpD
 Adamant Nature
-IVs: 9 SpA
-- Earthquake
-- Order Up
-- Substitute
-- Protect
+- Rock Slide
+- Assurance
+- Stone Edge
+- Low Kick
 
-Bejeweled (Gholdengo) @ Choice Specs
+Gholdengo @ Choice Specs
 Ability: Good as Gold
 Level: 50
 Tera Type: Steel
-EVs: 244 HP / 76 Def / 140 SpA / 28 SpD / 20 Spe
+EVs: 252 HP / 228 SpA / 28 Spe
 Modest Nature
 IVs: 0 Atk
 - Make It Rain
 - Shadow Ball
 - Thunderbolt
-- Power Gem
+- Trick
 
-Mastermind (Pawmot) (M) @ Focus Sash
-Ability: Natural Cure
-Level: 50
-Tera Type: Electric
-EVs: 4 HP / 252 Atk / 252 Spe
-Jolly Nature
-- Double Shock
-- Close Combat
-- Revival Blessing
-- Fake Out
-
-On Your Own (Tatsugiri) (M) @ Choice Scarf
-Ability: Commander
-Level: 50
-Tera Type: Water
-EVs: 20 HP / 60 Def / 172 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Muddy Water
-- Draco Meteor
-- Icy Wind
-- Sleep Talk
-
-Question...? (Arcanine) (F) @ Safety Goggles
-Ability: Intimidate
-Level: 50
-Tera Type: Dark
-EVs: 244 HP / 36 Atk / 4 Def / 4 SpD / 220 Spe
-Jolly Nature
-- Flare Blitz
-- Will-O-Wisp
-- Snarl
-- Protect""",
-        """
-Iron Bundle @ Covert Cloak
-Ability: Quark Drive
-Level: 50
-Tera Type: Ice
-EVs: 36 HP / 4 Def / 180 SpA / 36 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Icy Wind
-- Hydro Pump
-- Freeze-Dry
-- Protect
-
-Flutter Mane @ Booster Energy
-Ability: Protosynthesis
-Level: 50
-Tera Type: Steel
-EVs: 252 HP / 164 Def / 36 SpA / 4 SpD / 52 Spe
-Modest Nature
-IVs: 1 Atk
-- Shadow Ball
-- Protect
-- Trick Room
-- Dazzling Gleam
-
-Great Tusk @ Focus Sash
-Ability: Protosynthesis
-Level: 50
-Tera Type: Ground
-EVs: 252 Atk / 4 SpD / 252 Spe
-Jolly Nature
-- Headlong Rush
-- Earthquake
-- Close Combat
-- Protect
-
-Talonflame (M) @ Safety Goggles
-Ability: Gale Wings
+Brambleghast (F) @ Focus Sash
+Ability: Wind Rider
 Level: 50
 Tera Type: Ghost
-EVs: 204 HP / 44 Atk / 4 Def / 4 SpD / 252 Spe
-Jolly Nature
-- Brave Bird
-- Taunt
-- Will-O-Wisp
-- Tailwind
-
-Kingambit (M) @ Assault Vest
-Ability: Defiant
-Level: 50
-Tera Type: Flying
-EVs: 244 HP / 36 Atk / 4 Def / 4 SpD / 220 Spe
+EVs: 252 Atk / 4 SpD / 252 Spe
 Adamant Nature
-- Sucker Punch
-- Tera Blast
-- Assurance
-- Iron Head
+- Poltergeist
+- Power Whip
+- Strength Sap
+- Shadow Sneak
 
-Glimmora (M) @ Life Orb
+Glimmora (F) @ Power Herb
 Ability: Toxic Debris
 Level: 50
-Shiny: Yes
 Tera Type: Grass
-EVs: 20 HP / 236 SpA / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Sludge Wave
-- Power Gem
+EVs: 4 HP / 252 SpA / 252 Spe
+Modest Nature
+- Meteor Beam
 - Spiky Shield
-- Earth Power""",
+- Earth Power
+- Sludge Bomb""",
         """
-谜拟丘 (Mimikyu) @ Life Orb
-Ability: Disguise
+Kingambit @ Black Glasses
+Ability: Defiant
 Level: 50
-Tera Type: Grass
-EVs: 68 HP / 252 Atk / 188 Spe
-Jolly Nature
-- Play Rough
-- Shadow Sneak
-- Curse
-- Protect
-
-盐石巨灵 (Garganacl) @ Leftovers
-Ability: Purifying Salt
-Level: 50
-Tera Type: Ghost
-EVs: 252 HP / 4 Def / 252 SpD
-Impish Nature
-- Salt Cure
-- Protect
-- Recover
-- Wide Guard
-
-铁臂膀 (Iron Hands) @ Assault Vest
-Ability: Quark Drive
-Level: 50
-Shiny: Yes
-Tera Type: Grass
-EVs: 76 HP / 156 Atk / 4 Def / 252 SpD / 20 Spe
-Adamant Nature
-- Fake Out
-- Volt Switch
-- Wild Charge
-- Drain Punch
-
-轰鸣月 (Roaring Moon) @ Booster Energy
-Ability: Protosynthesis
-Level: 50
-Tera Type: Flying
-EVs: 212 HP / 4 Atk / 36 Def / 4 SpD / 252 Spe
-Adamant Nature
-- Acrobatics
-- Throat Chop
-- Dragon Dance
-- Protect
-
-败露球菇 (Amoonguss) @ Covert Cloak
-Ability: Regenerator
-Level: 50
-Shiny: Yes
 Tera Type: Dark
-EVs: 236 HP / 156 Def / 116 SpD
-Bold Nature
-IVs: 24 Spe
-- Protect
-- Rage Powder
-- Pollen Puff
-- Spore
-
-铁包袱 (Iron Bundle) @ Focus Sash
-Ability: Quark Drive
-Level: 50
-Shiny: Yes
-Tera Type: Ghost
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-- Protect
-- Freeze-Dry
-- Encore
-- Hydro Pump""",
-        """
-Grimmsnarl @ Light Clay
-Ability: Prankster
-Level: 50
-Tera Type: Ghost
-EVs: 252 HP / 4 Atk / 132 Def / 116 SpD / 4 Spe
-Careful Nature
-- Spirit Break
-- Light Screen
-- Reflect
-- Misty Terrain
-
-Arcanine @ Assault Vest
-Ability: Intimidate
-Level: 50
-Tera Type: Fire
-EVs: 220 HP / 156 Atk / 12 Def / 28 SpD / 92 Spe
+EVs: 252 HP / 252 Atk / 4 SpD
 Adamant Nature
-- Flare Blitz
-- Snarl
-- Extreme Speed
-- Psychic Fangs
-
-Iron Hands @ Sitrus Berry
-Ability: Quark Drive
-Level: 50
-Tera Type: Grass
-EVs: 84 HP / 140 Atk / 20 Def / 220 SpD / 44 Spe
-Adamant Nature
-- Drain Punch
-- Wild Charge
+- Kowtow Cleave
+- Sucker Punch
 - Swords Dance
 - Protect
 
-Gastrodon-East @ Covert Cloak
-Ability: Storm Drain
+Rillaboom @ Assault Vest
+Ability: Grassy Surge
 Level: 50
 Tera Type: Fire
-EVs: 180 HP / 116 Def / 140 SpA / 68 SpD / 4 Spe
-Quiet Nature
-IVs: 0 Atk / 0 Spe
-- Earth Power
-- Muddy Water
-- Recover
+EVs: 252 HP / 116 Atk / 4 Def / 124 SpD / 12 Spe
+Adamant Nature
+- Wood Hammer
+- Grassy Glide
+- U-turn
+- Fake Out
+
+Clefable @ Safety Goggles
+Ability: Unaware
+Level: 50
+Tera Type: Steel
+EVs: 252 HP / 212 Def / 4 SpA / 36 SpD / 4 Spe
+Bold Nature
+IVs: 0 Atk
+- Follow Me
+- Helping Hand
+- Moonblast
 - Protect
 
-Flutter Mane @ Booster Energy
-Ability: Protosynthesis
+Volcarona @ Leftovers
+Ability: Flame Body
 Level: 50
-Tera Type: Rock
-EVs: 236 HP / 116 Def / 60 SpA / 44 SpD / 52 Spe
+Tera Type: Dragon
+EVs: 252 HP / 132 Def / 36 SpA / 4 SpD / 84 Spe
 Modest Nature
 IVs: 0 Atk
+- Heat Wave
+- Giga Drain
+- Quiver Dance
 - Protect
-- Moonblast
-- Shadow Ball
-- Power Gem
 
-Talonflame @ Sharp Beak
-Ability: Gale Wings
+Sneasler (F) @ Grassy Seed
+Ability: Unburden
 Level: 50
-Tera Type: Ghost
-EVs: 4 HP / 196 Atk / 4 Def / 252 Spe
-Jolly Nature
-- Will-O-Wisp
-- Brave Bird
-- Tailwind
-- Taunt""",
+Tera Type: Stellar
+EVs: 164 HP / 76 Atk / 12 Def / 4 SpD / 252 Spe
+Adamant Nature
+- Protect
+- Fake Out
+- Close Combat
+- Dire Claw
+
+Dondozo @ Covert Cloak
+Ability: Unaware
+Level: 50
+Tera Type: Steel
+EVs: 244 HP / 12 Atk / 4 Def / 244 SpD / 4 Spe
+Careful Nature
+- Liquidation
+- Fissure
+- Yawn
+- Curse""",
     ],
     "gen9ou": [
         """
