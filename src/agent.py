@@ -23,7 +23,7 @@ from poke_env.environment import (
 from poke_env.player import BattleOrder, DoubleBattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import ActorCriticPolicy
 
-from data import ability_descs, item_descs, move_descs
+from data import abilities, items, moves
 from policy import MaskedActorCriticPolicy
 
 
@@ -31,8 +31,7 @@ class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
     doubles_act_len: int = 47
-    sentence_embed_len: int = 100
-    base_obs_len: int = 6588 + 12 * 6 * sentence_embed_len
+    base_obs_len: int = 6660
     singles_obs_len: int = singles_act_len + base_obs_len
     doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
 
@@ -192,9 +191,7 @@ class Agent(Player):
             opp=True,
         )
         opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
-        opp_side = np.concatenate(
-            [*opp_side, np.zeros((549 + 6 * Agent.sentence_embed_len) * (6 - len(opp_side)))]
-        )
+        opp_side = np.concatenate([*opp_side, np.zeros(555 * (6 - len(opp_side)))])
         return np.concatenate([mask, side, opp_side], dtype=np.float32)
 
     @staticmethod
@@ -262,12 +259,15 @@ class Agent(Player):
         pokemon: Pokemon, pos: int, from_opponent: bool, active_a: bool, active_b: bool
     ) -> npt.NDArray[np.float32]:
         # (mostly) stable fields
-        ability_desc = ability_descs["null" if pokemon.ability is None else pokemon.ability]
-        item_desc = item_descs["null" if pokemon.item is None else pokemon.item]
-        moves = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        moves = np.concatenate(
-            [*moves, np.zeros((49 + Agent.sentence_embed_len) * (4 - len(moves)))]
-        )
+        ability_id = abilities.index("null" if pokemon.ability is None else pokemon.ability)
+        item_id = items.index("null" if pokemon.item is None else pokemon.item)
+        move_ids = [
+            moves.index(m.id if m.id[:11] != "hiddenpower" else "hiddenpower")
+            for m in pokemon.moves.values()
+        ]
+        move_ids = move_ids + [0] * (4 - len(move_ids))
+        move_details = [Agent.embed_move(m) for m in pokemon.moves.values()]
+        move_details = np.concatenate([*move_details, np.zeros(49 * (4 - len(move_details)))])
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         stats = [(s or 0) / 1000 for s in pokemon.stats.values()]
@@ -287,9 +287,10 @@ class Agent(Player):
         pos_onehot = [float(pos == i) for i in range(6)]
         return np.array(
             [
-                *ability_desc,
-                *item_desc,
-                *moves,
+                ability_id,
+                item_id,
+                *move_ids,
+                *move_details,
                 *types,
                 *tera_type,
                 *stats,
@@ -314,7 +315,6 @@ class Agent(Player):
 
     @staticmethod
     def embed_move(move: Move) -> npt.NDArray[np.float32]:
-        desc = move_descs[move.id if move.id[:11] != "hiddenpower" else "hiddenpower"]
         power = move.base_power / 250
         acc = move.accuracy / 100
         category = [float(c == move.category) for c in MoveCategory]
@@ -331,7 +331,6 @@ class Agent(Player):
         move_type = [float(t == move.type) for t in PokemonType]
         return np.array(
             [
-                *desc,
                 power,
                 acc,
                 *category,

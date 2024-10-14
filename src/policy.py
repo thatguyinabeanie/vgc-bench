@@ -12,6 +12,8 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 from torch import nn
 
+from data import abilities, items, moves
+
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, mask_len: int, **kwargs: Any):
@@ -109,14 +111,17 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    sentence_embed_len: int = 100
-    chunk_len: int = 549 + 6 * sentence_embed_len
+    chunk_len: int = 555
+    embed_len: int = 50
     feature_len: int = 128
 
     def __init__(self, observation_space: Space[Any], mask_len: int):
         super().__init__(observation_space, features_dim=self.feature_len)
         self.mask_len = mask_len
-        self.feature_proj = nn.Linear(self.chunk_len, self.feature_len)
+        self.ability_embedding = nn.Embedding(len(abilities), self.embed_len)
+        self.item_embedding = nn.Embedding(len(items), self.embed_len)
+        self.move_embedding = nn.Embedding(len(moves), self.embed_len)
+        self.feature_proj = nn.Linear(self.chunk_len + 6 * (self.embed_len - 1), self.feature_len)
         self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
@@ -129,7 +134,19 @@ class AttentionExtractor(BaseFeaturesExtractor):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         seq = x[:, self.mask_len :].view(-1, 12, self.chunk_len)
+        seq = self.embed(seq)
         seq = self.feature_proj.forward(seq)
         seq = torch.cat([self.cls_token.repeat(seq.size(0), 1, 1), seq], dim=1)
         output = self.encoder.forward(seq)
         return output[:, 0, :]
+
+    def embed(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.cat(
+            [
+                self.ability_embedding(x[:, :, 0].int()),
+                self.item_embedding(x[:, :, 1].int()),
+                self.move_embedding(x[:, :, 2:6].int()).view(-1, 12, 4 * self.embed_len),
+                x[:, :, 6:],
+            ],
+            dim=2,
+        )
