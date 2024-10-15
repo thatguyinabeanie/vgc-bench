@@ -31,7 +31,14 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
 
     @classmethod
     def create_env(
-        cls, i: int, battle_format: str, port: int, num_teams: int, self_play: bool, device: str
+        cls,
+        i: int,
+        battle_format: str,
+        port: int,
+        teams: list[int],
+        opp_teams: list[int],
+        self_play: bool,
+        device: str,
     ) -> ShowdownEnv:
         if self_play:
             num_gpus = torch.cuda.device_count()
@@ -41,7 +48,9 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 device=torch.device(
                     other_gpu_ids[i % len(other_gpu_ids)] if num_gpus > 0 else "cpu"
                 ),
-                account_configuration=AccountConfiguration(f"Opponent{num_teams}-{i + 1}", None),
+                account_configuration=AccountConfiguration(
+                    f"Opponent{','.join([str(t) for t in opp_teams])}-{i + 1}", None
+                ),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
                     "https://play.pokemonshowdown.com/action.php?",
@@ -49,7 +58,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 battle_format=battle_format,
                 log_level=40,
                 accept_open_team_sheet=True,
-                team=RandomTeamBuilder(num_teams, battle_format),
+                team=RandomTeamBuilder(opp_teams, battle_format),
             )
         else:
             opp_classes = (
@@ -58,7 +67,9 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 else [SimpleHeuristicsPlayer, MaxBasePowerPlayer, RandomPlayer]
             )
             opponent = opp_classes[i % len(opp_classes)](
-                account_configuration=AccountConfiguration(f"Opponent{num_teams}-{i + 1}", None),
+                account_configuration=AccountConfiguration(
+                    f"Opponent{','.join([str(t) for t in opp_teams])}-{i + 1}", None
+                ),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
                     "https://play.pokemonshowdown.com/action.php?",
@@ -66,12 +77,14 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 battle_format=battle_format,
                 log_level=40,
                 accept_open_team_sheet=True,
-                team=RandomTeamBuilder(num_teams, battle_format),
+                team=RandomTeamBuilder(opp_teams, battle_format),
             )
             opponent.teampreview = Agent.teampreview_
         return cls(
             opponent,
-            account_configuration=AccountConfiguration(f"Agent{num_teams}-{i + 1}", None),
+            account_configuration=AccountConfiguration(
+                f"Agent{','.join([str(t) for t in teams])}-{i + 1}", None
+            ),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -79,7 +92,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             battle_format=battle_format,
             log_level=40,
             accept_open_team_sheet=True,
-            team=RandomTeamBuilder(num_teams, battle_format),
+            team=RandomTeamBuilder(teams, battle_format),
         )
 
     def reset(

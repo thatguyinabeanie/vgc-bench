@@ -14,7 +14,7 @@ from env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from policy import MaskedActorCriticPolicy
 
 
-def train(num_teams: int, port: int, device: str):
+def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     server = Popen(
         ["node", "pokemon-showdown", "start", str(port), "--no-security"],
         stdout=DEVNULL,
@@ -30,7 +30,7 @@ def train(num_teams: int, port: int, device: str):
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
-                env_class.create_env(i, battle_format, port, num_teams, self_play, device)
+                env_class.create_env(i, battle_format, port, teams, opp_teams, self_play, device)
             )
             for i in range(num_envs)
         ]
@@ -50,7 +50,7 @@ def train(num_teams: int, port: int, device: str):
         },
         device=device,
     )
-    run_name = f"{num_teams}-teams"
+    run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
     num_saved_timesteps = 0
     if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
         files = os.listdir(f"saves/{run_name}")
@@ -62,7 +62,7 @@ def train(num_teams: int, port: int, device: str):
         with open(f"logs/{run_name}-win_rates.json", "w") as f:
             json.dump([], f)
     ppo.num_timesteps = num_saved_timesteps
-    callback = Callback(steps, battle_format, num_teams, port, self_play)
+    callback = Callback(steps, battle_format, teams, opp_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()
     server.wait()
@@ -70,9 +70,10 @@ def train(num_teams: int, port: int, device: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_teams", type=int)
+    parser.add_argument("--teams", nargs="+", type=int)
+    parser.add_argument("--opp_teams", nargs="+", type=int)
     parser.add_argument("--port", type=int)
     parser.add_argument("--device", type=str)
     args = parser.parse_args()
     while True:
-        train(args.num_teams, args.port, args.device)
+        train(args.teams, args.opp_teams, args.port, args.device)

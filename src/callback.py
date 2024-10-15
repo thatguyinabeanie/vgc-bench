@@ -18,26 +18,36 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class Callback(BaseCallback):
     def __init__(
-        self, save_interval: int, battle_format: str, num_teams: int, port: int, self_play: bool
+        self,
+        save_interval: int,
+        battle_format: str,
+        teams: list[int],
+        opp_teams: list[int],
+        port: int,
+        self_play: bool,
     ):
         super().__init__()
         self.save_interval = save_interval
-        self.num_teams = num_teams
         self.self_play = self_play
+        self.run_name = (
+            f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
+        )
         if self_play:
             self.policy_pool = (
                 []
-                if not os.path.exists(f"saves/{num_teams}-teams")
+                if not os.path.exists(f"saves/{self.run_name}")
                 else [
-                    PPO.load(f"saves/{num_teams}-teams/{filename}").policy
-                    for filename in os.listdir(f"saves/{num_teams}-teams")
+                    PPO.load(f"saves/{self.run_name}/{filename}").policy
+                    for filename in os.listdir(f"saves/{self.run_name}")
                 ]
             )
-            with open(f"logs/{num_teams}-teams-win_rates.json") as f:
+            with open(f"logs/{self.run_name}-win_rates.json") as f:
                 self.win_rates = json.load(f)
         self.eval_agent = Agent(
             None,
-            account_configuration=AccountConfiguration(f"EvalAgent{num_teams}", None),
+            account_configuration=AccountConfiguration(
+                f"EvalAgent{','.join([str(t) for t in teams])}", None
+            ),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -45,11 +55,13 @@ class Callback(BaseCallback):
             battle_format=battle_format,
             log_level=40,
             accept_open_team_sheet=True,
-            team=RandomTeamBuilder(num_teams, battle_format),
+            team=RandomTeamBuilder(teams, battle_format),
         )
         opp_class = MaxBasePowerPlayer if "vgc" in battle_format else SimpleHeuristicsPlayer
         self.eval_opponent = opp_class(
-            account_configuration=AccountConfiguration(f"EvalOpponent{num_teams}", None),
+            account_configuration=AccountConfiguration(
+                f"EvalOpponent{','.join([str(t) for t in opp_teams])}", None
+            ),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -57,7 +69,7 @@ class Callback(BaseCallback):
             battle_format=battle_format,
             log_level=40,
             accept_open_team_sheet=True,
-            team=RandomTeamBuilder(num_teams, battle_format),
+            team=RandomTeamBuilder(opp_teams, battle_format),
         )
         self.eval_opponent.teampreview = Agent.teampreview_
 
@@ -83,10 +95,10 @@ class Callback(BaseCallback):
             win_rate = self.eval_agent.win_rate
             self.eval_agent.reset_battles()
             self.eval_opponent.reset_battles()
-            self.model.save(f"saves/{self.num_teams}-teams/{self.model.num_timesteps}")
+            self.model.save(f"saves/{self.run_name}/{self.model.num_timesteps}")
             self.model.logger.record("train/eval", win_rate)
             if self.self_play:
                 self.policy_pool.append(new_policy)
                 self.win_rates.append(win_rate)
-                with open(f"logs/{self.num_teams}-teams-win_rates.json", "w") as f:
+                with open(f"logs/{self.run_name}-win_rates.json", "w") as f:
                     json.dump(self.win_rates, f)
