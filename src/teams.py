@@ -959,75 +959,6 @@ Adamant Nature
 - Tera Blast
 - Aqua Jet""",
         """
-Lycanroc @ Focus Sash
-Ability: Sand Rush
-Level: 50
-Tera Type: Ghost
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Rock Slide
-- Endeavor
-- Close Combat
-- Protect
-
-Tyranitar @ Choice Band
-Ability: Sand Stream
-Level: 50
-Tera Type: Flying
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Rock Slide
-- Low Kick
-- Tera Blast
-- Assurance
-
-Indeedee-F @ Safety Goggles
-Ability: Psychic Surge
-Level: 50
-Tera Type: Fairy
-EVs: 252 HP / 252 Def / 4 SpD
-Bold Nature
-IVs: 0 Atk
-- Dazzling Gleam
-- Follow Me
-- Helping Hand
-- Trick Room
-
-Armarouge @ Life Orb
-Ability: Flash Fire
-Level: 50
-Tera Type: Grass
-EVs: 244 HP / 4 Def / 252 SpA / 4 SpD / 4 Spe
-Modest Nature
-IVs: 0 Atk
-- Expanding Force
-- Energy Ball
-- Heat Wave
-- Trick Room
-
-Dondozo @ Lum Berry
-Ability: Unaware
-Level: 50
-Tera Type: Grass
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Wave Crash
-- Rock Slide
-- Tera Blast
-- Rest
-
-Tatsugiri-Droopy @ Choice Specs
-Ability: Commander
-Level: 50
-Tera Type: Water
-EVs: 4 HP / 252 SpA / 252 Spe
-Modest Nature
-IVs: 0 Atk
-- Muddy Water
-- Draco Meteor
-- Sleep Talk
-- Hydro Pump""",
-        """
 Garchomp @ Clear Amulet
 Ability: Sand Veil
 Level: 50
@@ -1162,6 +1093,76 @@ Careful Nature
 - Fissure
 - Yawn
 - Curse""",
+        """
+Indeedee-F @ Psychic Seed
+Ability: Psychic Surge
+Level: 50
+Tera Type: Fairy
+EVs: 252 HP / 252 Def / 4 SpD
+Relaxed Nature
+IVs: 0 Atk / 0 Spe
+- Follow Me
+- Helping Hand
+- Psychic
+- Trick Room
+
+Hatterene @ Life Orb
+Ability: Magic Bounce
+Level: 50
+Tera Type: Fire
+EVs: 212 HP / 212 SpA / 84 SpD
+Quiet Nature
+IVs: 0 Atk / 0 Spe
+- Expanding Force
+- Dazzling Gleam
+- Trick Room
+- Mystical Fire
+
+Torkoal @ Choice Specs
+Ability: Drought
+Level: 50
+Tera Type: Fire
+EVs: 252 HP / 252 SpA / 4 SpD
+Quiet Nature
+IVs: 0 Atk / 0 Spe
+- Eruption
+- Heat Wave
+- Earth Power
+- Weather Ball
+
+Araquanid @ Clear Amulet
+Ability: Water Bubble
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 252 Atk / 4 SpD
+Brave Nature
+IVs: 0 Spe
+- Liquidation
+- Leech Life
+- Wide Guard
+- Protect
+
+Gallade @ Scope Lens
+Ability: Sharpness
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 252 Atk / 4 SpD
+Adamant Nature
+- Wide Guard
+- Sacred Sword
+- Psycho Cut
+- Trick Room
+
+Lilligant-Hisui @ Focus Sash
+Ability: Chlorophyll
+Level: 50
+Tera Type: Ghost
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- After You
+- Triple Axel
+- Close Combat
+- Sleep Powder""",
     ],
     "gen9ou": [
         """
