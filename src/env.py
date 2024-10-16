@@ -49,7 +49,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                     other_gpu_ids[i % len(other_gpu_ids)] if num_gpus > 0 else "cpu"
                 ),
                 account_configuration=AccountConfiguration(
-                    f"Opponent{','.join([str(t) for t in opp_teams])}-{i + 1}", None
+                    f"Opponent{port}-{i + 1}", None
                 ),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
@@ -68,7 +68,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             )
             opponent = opp_classes[i % len(opp_classes)](
                 account_configuration=AccountConfiguration(
-                    f"Opponent{','.join([str(t) for t in opp_teams])}-{i + 1}", None
+                    f"Opponent{port}-{i + 1}", None
                 ),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
@@ -83,7 +83,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
         return cls(
             opponent,
             account_configuration=AccountConfiguration(
-                f"Agent{','.join([str(t) for t in teams])}-{i + 1}", None
+                f"Agent{port}-{i + 1}", None
             ),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",

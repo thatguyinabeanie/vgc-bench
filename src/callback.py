@@ -46,7 +46,7 @@ class Callback(BaseCallback):
         self.eval_agent = Agent(
             None,
             account_configuration=AccountConfiguration(
-                f"EvalAgent{','.join([str(t) for t in teams])}", None
+                f"EvalAgent{port}", None
             ),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
@@ -60,7 +60,7 @@ class Callback(BaseCallback):
         opp_class = MaxBasePowerPlayer if "vgc" in battle_format else SimpleHeuristicsPlayer
         self.eval_opponent = opp_class(
             account_configuration=AccountConfiguration(
-                f"EvalOpponent{','.join([str(t) for t in opp_teams])}", None
+                f"EvalOpponent{port}", None
             ),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
