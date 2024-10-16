@@ -48,9 +48,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 device=torch.device(
                     other_gpu_ids[i % len(other_gpu_ids)] if num_gpus > 0 else "cpu"
                 ),
-                account_configuration=AccountConfiguration(
-                    f"Opponent{port}-{i + 1}", None
-                ),
+                account_configuration=AccountConfiguration(f"Opponent{port}-{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
                     "https://play.pokemonshowdown.com/action.php?",
@@ -67,9 +65,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 else [SimpleHeuristicsPlayer, MaxBasePowerPlayer, RandomPlayer]
             )
             opponent = opp_classes[i % len(opp_classes)](
-                account_configuration=AccountConfiguration(
-                    f"Opponent{port}-{i + 1}", None
-                ),
+                account_configuration=AccountConfiguration(f"Opponent{port}-{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
                     "https://play.pokemonshowdown.com/action.php?",
@@ -82,9 +78,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             opponent.teampreview = Agent.teampreview_
         return cls(
             opponent,
-            account_configuration=AccountConfiguration(
-                f"Agent{port}-{i + 1}", None
-            ),
+            account_configuration=AccountConfiguration(f"Agent{port}-{i + 1}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",

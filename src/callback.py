@@ -45,9 +45,7 @@ class Callback(BaseCallback):
                 self.win_rates = json.load(f)
         self.eval_agent = Agent(
             None,
-            account_configuration=AccountConfiguration(
-                f"EvalAgent{port}", None
-            ),
+            account_configuration=AccountConfiguration(f"EvalAgent{port}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -59,9 +57,7 @@ class Callback(BaseCallback):
         )
         opp_class = MaxBasePowerPlayer if "vgc" in battle_format else SimpleHeuristicsPlayer
         self.eval_opponent = opp_class(
-            account_configuration=AccountConfiguration(
-                f"EvalOpponent{port}", None
-            ),
+            account_configuration=AccountConfiguration(f"EvalOpponent{port}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
