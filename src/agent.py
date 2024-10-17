@@ -80,11 +80,20 @@ class Agent(Player):
             raise TypeError()
 
     def teampreview(self, battle: AbstractBattle) -> str:
-        return Agent.teampreview_(battle)
-
-    @staticmethod
-    def teampreview_(battle: AbstractBattle) -> str:
-        return "/team 123456"
+        embedded_battle = torch.tensor(self.embed_battle(battle), device=self.__policy.device).view(
+            1, -1
+        )
+        with torch.no_grad():
+            action, _, _ = self.__policy.forward(embedded_battle)
+        if isinstance(battle, Battle):
+            order = Agent.singles_action_to_move_covering_teampreview(int(action.item()), battle)
+        elif isinstance(battle, DoubleBattle):
+            [action1, action2, *_] = action.cpu().numpy()[0]
+            order = Agent.doubles_action_to_move_covering_teampreview(action1, action2, battle)
+        else:
+            raise TypeError()
+        assert isinstance(order, str)
+        return order
 
     @staticmethod
     def singles_action_to_move_covering_teampreview(
