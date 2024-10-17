@@ -38,11 +38,10 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=1e-4,
+        learning_rate=1e-5,
         n_steps=2048 // num_envs,
         batch_size=64,
         gamma=1,
-        ent_coef=0.01,
         tensorboard_log="logs",
         policy_kwargs={
             "mask_len": (
