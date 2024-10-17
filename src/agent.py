@@ -87,7 +87,9 @@ class Agent(Player):
         return "/team 123456"
 
     @staticmethod
-    def singles_action_to_move_covering_teampreview(action: int, battle: Battle) -> BattleOrder | str:
+    def singles_action_to_move_covering_teampreview(
+        action: int, battle: Battle
+    ) -> BattleOrder | str:
         if battle.teampreview:
             return "/team 123456"
         else:
@@ -115,7 +117,9 @@ class Agent(Player):
         return order
 
     @staticmethod
-    def doubles_action_to_move_covering_teampreview(action1: int, action2: int, battle: DoubleBattle) -> BattleOrder | str:
+    def doubles_action_to_move_covering_teampreview(
+        action1: int, action2: int, battle: DoubleBattle
+    ) -> BattleOrder | str:
         if battle.teampreview:
             assert action1 < 48 and action2 < 15
             all_ids = [str(i) for i in range(1, 7)]
@@ -237,7 +241,7 @@ class Agent(Player):
             force_switch = [float(f) for f in battle.force_switch]
         else:
             raise TypeError()
-        return np.array([*weather, *fields, *force_switch, preview])
+        return np.array([preview, *weather, *fields, *force_switch])
 
     @staticmethod
     def embed_side(
