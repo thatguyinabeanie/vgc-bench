@@ -27,7 +27,6 @@ from teams import RandomTeamBuilder
 class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.agent.teampreview = Agent.teampreview_
 
     @classmethod
     def create_env(
@@ -123,9 +122,9 @@ class ShowdownSinglesEnv(ShowdownEnv[np.int64]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-    def action_to_move(self, action: np.int64, battle: AbstractBattle) -> BattleOrder:
+    def action_to_move(self, action: np.int64, battle: AbstractBattle) -> BattleOrder | str:
         assert isinstance(battle, Battle)
-        return Agent.singles_action_to_move(int(action), battle)
+        return Agent.singles_action_to_move_covering_teampreview(int(action), battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
         return Box(-1, 1, shape=(Agent.singles_obs_len,), dtype=np.float32)
@@ -140,9 +139,9 @@ class ShowdownDoublesEnv(ShowdownEnv[npt.NDArray[np.integer]]):
 
     def action_to_move(
         self, action: npt.NDArray[np.integer], battle: AbstractBattle
-    ) -> BattleOrder:
+    ) -> BattleOrder | str:
         assert isinstance(battle, DoubleBattle)
-        return Agent.doubles_action_to_move(action[0], action[1], battle)
+        return Agent.doubles_action_to_move_covering_teampreview(action[0], action[1], battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
         return Box(-1, 1, shape=(Agent.doubles_obs_len,), dtype=np.float32)

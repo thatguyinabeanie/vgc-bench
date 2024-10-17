@@ -87,6 +87,13 @@ class Agent(Player):
         return "/team 123456"
 
     @staticmethod
+    def singles_action_to_move_covering_teampreview(action: int, battle: Battle) -> BattleOrder | str:
+        if battle.teampreview:
+            return "/team 123456"
+        else:
+            return Agent.singles_action_to_move(action, battle)
+
+    @staticmethod
     def singles_action_to_move(action: int, battle: Battle) -> BattleOrder:
         action_space = Agent.get_action_space(battle)
         if action == -1:
@@ -106,6 +113,26 @@ class Agent(Player):
                 terastallize=22 <= action < 26,
             )
         return order
+
+    @staticmethod
+    def doubles_action_to_move_covering_teampreview(action1: int, action2: int, battle: DoubleBattle) -> BattleOrder | str:
+        if battle.teampreview:
+            assert action1 < 48 and action2 < 15
+            all_ids = [str(i) for i in range(1, 7)]
+            choices = ""
+            choices += all_ids.pop(action1 // 8)
+            action1 %= 8
+            choices += all_ids.pop(action2 // 3)
+            action2 %= 3
+            choices += all_ids.pop(action1 // 2)
+            action1 %= 2
+            choices += all_ids.pop(action2)
+            choices += all_ids.pop(action1)
+            choices += all_ids.pop(0)
+            order_message = f"/team {choices}"
+            return order_message
+        else:
+            return Agent.doubles_action_to_move(action1, action2, battle)
 
     @staticmethod
     def doubles_action_to_move(action1: int, action2: int, battle: DoubleBattle) -> BattleOrder:
@@ -386,6 +413,8 @@ class Agent(Player):
             assert pos is not None
             if battle.finished:
                 return np.array([])
+            if battle.teampreview:
+                return np.array(range(48) if pos == 0 else range(15))
             switch_space = [
                 i + 1
                 for i, pokemon in enumerate(battle.team.values())
