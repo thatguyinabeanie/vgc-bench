@@ -31,7 +31,7 @@ class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
     doubles_act_len: int = 48
-    base_obs_len: int = 6660
+    base_obs_len: int = 6672
     singles_obs_len: int = singles_act_len + base_obs_len
     doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
 
@@ -231,7 +231,7 @@ class Agent(Player):
             opp=True,
         )
         opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
-        opp_side = np.concatenate([*opp_side, np.zeros(555 * (6 - len(opp_side)))])
+        opp_side = np.concatenate([*opp_side, np.zeros(556 * (6 - len(opp_side)))])
         return np.concatenate([mask, side, opp_side], dtype=np.float32)
 
     @staticmethod
