@@ -67,7 +67,6 @@ class Callback(BaseCallback):
             accept_open_team_sheet=True,
             team=RandomTeamBuilder(opp_teams, battle_format),
         )
-        self.eval_opponent.teampreview = Agent.teampreview_
 
     def _on_step(self) -> bool:
         return True
