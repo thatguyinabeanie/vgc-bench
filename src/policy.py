@@ -102,7 +102,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             else:
                 mask = obs[:, act_len : 2 * act_len]
                 # condition: not in teampreview and action is either switch or terastallization
-                condition = (obs[:, 2 * act_len] == 0) & (
+                condition = (obs[:, 2 * act_len].view(-1, 1) == 0) & (
                     ((1 <= action) & (action < 7)) | (action >= 27)
                 )
                 indices = torch.arange(act_len, device=mask.device).unsqueeze(0).expand_as(mask)

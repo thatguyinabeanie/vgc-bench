@@ -30,7 +30,7 @@ from policy import MaskedActorCriticPolicy
 class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
-    doubles_act_len: int = 47
+    doubles_act_len: int = 48
     base_obs_len: int = 6660
     singles_obs_len: int = singles_act_len + base_obs_len
     doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
