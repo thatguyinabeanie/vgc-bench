@@ -746,75 +746,6 @@ Modest Nature
 - Thunderbolt
 - Power Gem""",
         """
-Gholdengo @ Choice Specs
-Ability: Good as Gold
-Level: 50
-Tera Type: Steel
-EVs: 4 HP / 4 Def / 244 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Make It Rain
-- Shadow Ball
-- Power Gem
-- Thunderbolt
-
-Glimmora @ Power Herb
-Ability: Toxic Debris
-Level: 50
-Tera Type: Grass
-EVs: 4 HP / 4 Def / 244 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Meteor Beam
-- Sludge Bomb
-- Earth Power
-- Spiky Shield
-
-Talonflame @ Life Orb
-Ability: Gale Wings
-Level: 50
-Tera Type: Ghost
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Brave Bird
-- Flare Blitz
-- Tailwind
-- Will-O-Wisp
-
-Dragonite @ Choice Band
-Ability: Multiscale
-Level: 50
-Tera Type: Normal
-EVs: 244 HP / 252 Atk / 4 Def / 4 SpD / 4 Spe
-Adamant Nature
-- Extreme Speed
-- Outrage
-- Aerial Ace
-- Earthquake
-
-Dondozo @ Leftovers
-Ability: Unaware
-Level: 50
-Tera Type: Grass
-EVs: 4 HP / 236 Atk / 4 Def / 12 SpD / 252 Spe
-Adamant Nature
-- Wave Crash
-- Earthquake
-- Order Up
-- Protect
-
-Tatsugiri @ Focus Sash
-Ability: Commander
-Level: 50
-Tera Type: Stellar
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Draco Meteor
-- Muddy Water
-- Dragon Pulse
-- Protect""",
-        """
 Whimsicott @ Covert Cloak
 Ability: Prankster
 Level: 50
@@ -1163,6 +1094,75 @@ Jolly Nature
 - Triple Axel
 - Close Combat
 - Sleep Powder""",
+        """
+Lokix @ Safety Goggles
+Ability: Tinted Lens
+Level: 50
+Tera Type: Stellar
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- X-Scissor
+- Swords Dance
+- Throat Chop
+- Protect
+
+Venonat @ Eviolite
+Ability: Compound Eyes
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 164 Def / 92 SpD
+Bold Nature
+IVs: 0 Atk / 0 Spe
+- Sleep Powder
+- Rage Powder
+- Toxic
+- Morning Sun
+
+Araquanid @ Mystic Water
+Ability: Water Bubble
+Level: 50
+Tera Type: Water
+EVs: 252 HP / 236 Atk / 20 Def
+Adamant Nature
+- Liquidation
+- Leech Life
+- Wide Guard
+- Protect
+
+Ribombee @ Focus Sash
+Ability: Shield Dust
+Level: 50
+Tera Type: Ghost
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Sunny Day
+- Tailwind
+- Moonblast
+- Fake Tears
+
+Volcarona @ Choice Specs
+Ability: Flame Body
+Level: 50
+Tera Type: Fire
+EVs: 20 HP / 252 SpA / 236 Spe
+Modest Nature
+IVs: 0 Atk
+- Fiery Dance
+- Heat Wave
+- Overheat
+- Bug Buzz
+
+Kleavor @ Assault Vest
+Ability: Sharpness
+Level: 50
+Tera Type: Water
+EVs: 68 HP / 252 Atk / 188 Spe
+Adamant Nature
+- Stone Axe
+- X-Scissor
+- Rock Blast
+- Aerial Ace""",
     ],
     "gen9ou": [
         """
