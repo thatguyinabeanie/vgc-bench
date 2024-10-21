@@ -67,6 +67,7 @@ class Callback(BaseCallback):
             accept_open_team_sheet=True,
             team=RandomTeamBuilder(opp_teams, battle_format),
         )
+        self.eval_opponent.teampreview = lambda _: "/team 123456"  # type: ignore
 
     def _on_step(self) -> bool:
         return True
