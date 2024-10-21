@@ -100,6 +100,8 @@ class Agent(Player):
         action: int, battle: Battle
     ) -> BattleOrder | str:
         if battle.teampreview:
+            if action == -1:
+                return ForfeitBattleOrder().message
             return "/team 123456"
         else:
             return Agent.singles_action_to_move(action, battle)
@@ -130,6 +132,8 @@ class Agent(Player):
         action1: int, action2: int, battle: DoubleBattle
     ) -> BattleOrder | str:
         if battle.teampreview:
+            if action1 == -1 or action2 == -1:
+                return ForfeitBattleOrder().message
             assert action1 < 48 and action2 < 15
             all_ids = [str(i) for i in range(1, 7)]
             choices = ""

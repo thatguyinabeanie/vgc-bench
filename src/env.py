@@ -141,6 +141,9 @@ class ShowdownDoublesEnv(ShowdownEnv[npt.NDArray[np.integer]]):
         self, action: npt.NDArray[np.integer], battle: AbstractBattle
     ) -> BattleOrder | str:
         assert isinstance(battle, DoubleBattle)
+        if isinstance(action, int):
+            assert action == -1
+            action = np.array([-1, -1])
         return Agent.doubles_action_to_move_covering_teampreview(action[0], action[1], battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:

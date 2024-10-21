@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 import time
-from subprocess import DEVNULL, Popen
+from subprocess import PIPE, STDOUT, Popen
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
@@ -17,11 +17,19 @@ from policy import MaskedActorCriticPolicy
 def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     server = Popen(
         ["node", "pokemon-showdown", "start", str(port), "--no-security"],
-        stdout=DEVNULL,
-        stderr=DEVNULL,
+        stdout=PIPE,
+        stderr=STDOUT,
         cwd="pokemon-showdown",
     )
-    time.sleep(10)
+    while True:
+        if server.stdout is None:
+            time.sleep(0.1)
+        else:
+            line = server.stdout.readline().decode("utf-8").strip()
+            if "now listening" in line:
+                break
+            else:
+                time.sleep(0.1)
     steps = 98_304
     num_envs = 32
     battle_format = "gen9vgc2024regh"
@@ -40,15 +48,14 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
         files = os.listdir(f"saves/{run_name}")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
-    f = lambda start, end, width: max(end, start - (start - end) / width * num_saved_timesteps)
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=f(1e-4, 1e-5, 1e6),
+        learning_rate=1e-5,
         n_steps=2048 // num_envs,
         batch_size=64,
         gamma=1,
-        ent_coef=f(0.1, 0, 1e6),
+        ent_coef=0.1 * 0.75 ** (num_saved_timesteps // steps),
         tensorboard_log="logs",
         policy_kwargs={
             "mask_len": (
@@ -67,6 +74,8 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
             json.dump([], f)
     callback = Callback(steps, battle_format, teams, opp_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
+    if ppo.env is not None:
+        ppo.env.close()
     server.terminate()
     server.wait()
 
