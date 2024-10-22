@@ -21,15 +21,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         stderr=STDOUT,
         cwd="pokemon-showdown",
     )
-    while True:
-        if server.stdout is None:
-            time.sleep(0.1)
-        else:
-            line = server.stdout.readline().decode("utf-8").strip()
-            if "now listening" in line:
-                break
-            else:
-                time.sleep(0.1)
+    time.sleep(10)
     steps = 98_304
     num_envs = 32
     battle_format = "gen9vgc2024regh"
@@ -74,8 +66,6 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
             json.dump([], f)
     callback = Callback(steps, battle_format, teams, opp_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
-    if ppo.env is not None:
-        ppo.env.close()
     server.terminate()
     server.wait()
 
