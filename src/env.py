@@ -74,7 +74,6 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 accept_open_team_sheet=True,
                 team=RandomTeamBuilder(opp_teams, battle_format),
             )
-            opponent.teampreview = lambda _: "/team 123456"  # type: ignore
         return cls(
             opponent,
             account_configuration=AccountConfiguration(f"Agent{port}-{i + 1}", None),
