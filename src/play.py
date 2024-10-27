@@ -11,14 +11,15 @@ from agent import Agent
 from teams import RandomTeamBuilder
 
 
-async def play(n_games: int, play_on_ladder: bool, n_teams: int = 1):
+async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_ladder: bool):
     print("Setting up...")
-    if os.path.exists(f"saves/{n_teams}_teams") and len(os.listdir(f"saves/{n_teams}_teams")) > 0:
-        files = os.listdir(f"saves/{n_teams}_teams")
-        with open(f"logs/{n_teams}_teams_win_rates.json") as f:
+    run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
+    if os.path.exists(f"saves-teampreview-random-again/{run_name}") and len(os.listdir(f"saves-teampreview-random-again/{run_name}")) > 0:
+        files = os.listdir(f"saves-teampreview-random-again/{run_name}")
+        with open(f"logs/{run_name}-win_rates.json") as f:
             win_rates = json.load(f)
         i = np.argmax(win_rates)
-        policy = PPO.load(f"saves/{n_teams}_teams/{files[i][:-4]}").policy
+        policy = PPO.load(f"saves/{run_name}/{files[i][:-4]}").policy
         print(f"Loaded {files[i]}.")
     else:
         raise FileNotFoundError()
@@ -31,7 +32,7 @@ async def play(n_games: int, play_on_ladder: bool, n_teams: int = 1):
         server_configuration=ShowdownServerConfiguration,
         accept_open_team_sheet=True,
         start_timer_on_battle_start=play_on_ladder,
-        team=RandomTeamBuilder([0], "gen9vgc2024regh"),
+        team=RandomTeamBuilder(teams, "gen9vgc2024regh"),
     )
     if play_on_ladder:
         print("Entering ladder")
@@ -44,7 +45,9 @@ async def play(n_games: int, play_on_ladder: bool, n_teams: int = 1):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--teams", nargs="+", type=int)
+    parser.add_argument("--opp_teams", nargs="+", type=int)
     parser.add_argument("-n", type=int, default=1, help="Number of games to play. Default is 1.")
     parser.add_argument("-l", action="store_true", help="Play ladder. Default accepts challenges.")
     args = parser.parse_args()
-    asyncio.run(play(args.n, args.l))
+    asyncio.run(play(args.teams, args.opp_teams, args.n, args.l))
