@@ -30,7 +30,7 @@ async def play(n_games: int, play_on_ladder: bool, n_teams: int = 1):
         max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
         start_timer_on_battle_start=play_on_ladder,
-        team=RandomTeamBuilder(1, "gen9vgc2024regh"),
+        team=RandomTeamBuilder([0], "gen9vgc2024regh"),
     )
     if play_on_ladder:
         print("Entering ladder")
