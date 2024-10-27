@@ -29,6 +29,7 @@ async def play(n_games: int, play_on_ladder: bool, n_teams: int = 1):
         log_level=40,
         max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
+        accept_open_team_sheet=True,
         start_timer_on_battle_start=play_on_ladder,
         team=RandomTeamBuilder([0], "gen9vgc2024regh"),
     )
