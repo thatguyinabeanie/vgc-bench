@@ -14,9 +14,9 @@ from teams import RandomTeamBuilder
 async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_ladder: bool):
     print("Setting up...")
     run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
-    if os.path.exists(f"saves-teampreview-random-again/{run_name}") and len(os.listdir(f"saves-teampreview-random-again/{run_name}")) > 0:
-        files = os.listdir(f"saves-teampreview-random-again/{run_name}")
-        with open(f"logs/{run_name}-win_rates.json") as f:
+    if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
+        files = os.listdir(f"saves/{run_name}")
+        with open(f"logs/{run_name}-win-rates.json") as f:
             win_rates = json.load(f)
         i = np.argmax(win_rates)
         policy = PPO.load(f"saves/{run_name}/{files[i][:-4]}").policy

@@ -41,7 +41,7 @@ class Callback(BaseCallback):
                     for filename in os.listdir(f"saves/{self.run_name}")
                 ]
             )
-            with open(f"logs/{self.run_name}-win_rates.json") as f:
+            with open(f"logs/{self.run_name}-win-rates.json") as f:
                 self.win_rates = json.load(f)
         self.eval_agent = Agent(
             None,
@@ -95,5 +95,5 @@ class Callback(BaseCallback):
             if self.self_play:
                 self.policy_pool.append(new_policy)
                 self.win_rates.append(win_rate)
-                with open(f"logs/{self.run_name}-win_rates.json", "w") as f:
+                with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
                     json.dump(self.win_rates, f)

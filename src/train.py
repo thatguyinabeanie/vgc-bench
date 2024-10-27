@@ -47,7 +47,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         n_steps=2048 // num_envs,
         batch_size=64,
         gamma=1,
-        ent_coef=0.1 * 0.75 ** (num_saved_timesteps // steps),
+        ent_coef=max(0.01, 0.1 * 0.75 ** (num_saved_timesteps // steps)),
         tensorboard_log="logs",
         policy_kwargs={
             "mask_len": (
@@ -62,7 +62,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     else:
         if not os.path.exists("logs"):
             os.mkdir("logs")
-        with open(f"logs/{run_name}-win_rates.json", "w") as f:
+        with open(f"logs/{run_name}-win-rates.json", "w") as f:
             json.dump([], f)
     callback = Callback(steps, battle_format, teams, opp_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
