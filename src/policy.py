@@ -102,12 +102,16 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             else:
                 mask = obs[:, act_len : 2 * act_len]
                 # condition: not in teampreview and action is either switch or terastallization
-                condition = (obs[:, 2 * act_len].view(-1, 1) == 0) & (
-                    ((1 <= action) & (action < 7)) | (action >= 27)
-                )
+                team_preview = obs[:, 2 * act_len].view(-1, 1) == 1
+                ally_switched = (1 <= action) & (action <= 6)
+                ally_terastallized = action >= 27
+                # creating a (batch_size, act_len) size array of 0..act_len - 1 ranges
                 indices = torch.arange(act_len, device=mask.device).unsqueeze(0).expand_as(mask)
-                action_mask = indices == action
-                mask = torch.where(condition & action_mask, 1.0, mask)
+                # marking values in indices as being invalid actions due to ally action
+                ally_mask = ((indices >= 27) & ally_terastallized) | (
+                    (indices == action) & ally_switched
+                )
+                mask = torch.where(~team_preview & ally_mask, 1.0, mask)
                 mask = torch.cat([obs[:, :act_len], mask], dim=1)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask

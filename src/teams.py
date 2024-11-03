@@ -459,147 +459,6 @@ IVs: 0 Atk
 - Haze
 - Protect""",
         """
-Ursaluna-Bloodmoon @ Assault Vest
-Ability: Mind's Eye
-Level: 50
-Tera Type: Normal
-EVs: 140 HP / 252 SpA / 116 SpD
-Modest Nature
-IVs: 0 Atk
-- Blood Moon
-- Hyper Voice
-- Earth Power
-- Vacuum Wave
-
-Porygon2 @ Eviolite
-Ability: Trace
-Level: 50
-Tera Type: Ghost
-EVs: 252 HP / 156 Def / 4 SpA / 92 SpD / 4 Spe
-Bold Nature
-IVs: 0 Atk
-- Ice Beam
-- Thunderbolt
-- Recover
-- Trick Room
-
-Amoonguss @ Covert Cloak
-Ability: Regenerator
-Level: 50
-Tera Type: Water
-EVs: 252 HP / 156 Def / 100 SpD
-Bold Nature
-IVs: 0 Atk
-- Spore
-- Rage Powder
-- Pollen Puff
-- Sludge Bomb
-
-Incineroar @ Safety Goggles
-Ability: Intimidate
-Level: 50
-Tera Type: Ghost
-EVs: 252 HP / 116 Atk / 60 Def / 76 SpD
-Adamant Nature
-IVs: 11 Spe
-- Knock Off
-- Fake Out
-- Parting Shot
-- Flare Blitz
-
-Dragapult @ Choice Band
-Ability: Clear Body
-Level: 50
-Tera Type: Dragon
-EVs: 4 HP / 252 Atk / 252 Spe
-Adamant Nature
-- Dragon Darts
-- Outrage
-- Phantom Force
-- U-turn
-
-Sneasler @ Focus Sash
-Ability: Poison Touch
-Level: 50
-Tera Type: Dark
-EVs: 4 HP / 252 Atk / 252 Spe
-Jolly Nature
-- Close Combat
-- Dire Claw
-- Throat Chop
-- Fake Out""",
-        """
-Pelipper (F) @ Choice Scarf
-Ability: Drizzle
-Level: 50
-Tera Type: Ghost
-EVs: 4 HP / 252 SpA / 252 Spe
-Timid Nature
-- Hurricane
-- Weather Ball
-- Tailwind
-- U-turn
-
-Archaludon (F) @ Choice Specs
-Ability: Sturdy
-Level: 50
-Shiny: Yes
-Tera Type: Electric
-EVs: 4 HP / 252 SpA / 252 Spe
-Modest Nature
-IVs: 0 Atk
-- Electro Shot
-- Flash Cannon
-- Draco Meteor
-- Dragon Pulse
-
-Quaquaval (F) @ Focus Sash
-Ability: Moxie
-Level: 50
-Shiny: Yes
-Tera Type: Water
-EVs: 4 HP / 252 Atk / 252 Spe
-Adamant Nature
-- Aqua Step
-- Upper Hand
-- Close Combat
-- Protect
-
-Kingambit (F) @ Black Glasses
-Ability: Defiant
-Level: 50
-Tera Type: Dark
-EVs: 252 HP / 252 Atk / 4 SpD
-Adamant Nature
-- Kowtow Cleave
-- Sucker Punch
-- Iron Head
-- Protect
-
-Rillaboom (F) @ Assault Vest
-Ability: Grassy Surge
-Level: 50
-Shiny: Yes
-Tera Type: Fire
-EVs: 252 HP / 196 Atk / 4 Def / 44 SpD / 12 Spe
-Adamant Nature
-- Fake Out
-- Wood Hammer
-- Grassy Glide
-- U-turn
-
-Dragapult (F) @ Choice Band
-Ability: Clear Body
-Level: 50
-Shiny: Yes
-Tera Type: Dragon
-EVs: 252 Atk / 4 Def / 252 Spe
-Adamant Nature
-- Dragon Darts
-- Outrage
-- Phantom Force
-- U-turn""",
-        """
 Decidueye-Hisui @ Scope Lens
 Ability: Scrappy
 Level: 50
@@ -1163,6 +1022,146 @@ Adamant Nature
 - X-Scissor
 - Rock Blast
 - Aerial Ace""",
+        """
+Sneasler @ Psychic Seed
+Ability: Unburden
+Level: 50
+Tera Type: Dark
+EVs: 4 HP / 236 Atk / 28 Def / 4 SpD / 236 Spe
+Adamant Nature
+- Protect
+- Close Combat
+- Dire Claw
+- Throat Chop
+
+Kleavor @ Focus Sash
+Ability: Sharpness
+Level: 50
+Tera Type: Stellar
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Protect
+- Stone Axe
+- Night Slash
+- Close Combat
+
+Typhlosion-Hisui @ Charcoal
+Ability: Frisk
+Level: 50
+Tera Type: Fire
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Protect
+- Eruption
+- Shadow Ball
+- Heat Wave
+
+Hydreigon @ Razor Claw
+Ability: Levitate
+Level: 50
+Tera Type: Fire
+EVs: 4 HP / 4 Def / 244 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Protect
+- Draco Meteor
+- Heat Wave
+- Focus Energy
+
+Indeedee-F @ Rocky Helmet
+Ability: Psychic Surge
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 220 Def / 36 SpD
+Calm Nature
+IVs: 0 Atk / 27 Spe
+- Helping Hand
+- Follow Me
+- Trick Room
+- Imprison
+
+Whimsicott @ Covert Cloak
+Ability: Prankster
+Level: 50
+Tera Type: Dark
+EVs: 252 HP / 4 Def / 4 SpA / 116 SpD / 132 Spe
+Timid Nature
+IVs: 0 Atk
+- Moonblast
+- Encore
+- Tailwind
+- Sunny Day""",
+        """
+Archaludon @ Assault Vest
+Ability: Stamina
+Level: 50
+Tera Type: Grass
+EVs: 212 HP / 4 Def / 36 SpA / 4 SpD / 252 Spe
+Modest Nature
+IVs: 0 Atk
+- Draco Meteor
+- Electro Shot
+- Flash Cannon
+- Body Press
+
+Pelipper @ Focus Sash
+Ability: Drizzle
+Level: 50
+Tera Type: Ghost
+EVs: 252 SpA / 4 SpD / 252 Spe
+Modest Nature
+IVs: 0 Atk
+- Hurricane
+- Weather Ball
+- Helping Hand
+- Tailwind
+
+Basculegion @ Life Orb
+Ability: Swift Swim
+Level: 50
+Tera Type: Grass
+EVs: 220 Atk / 36 Def / 252 Spe
+Adamant Nature
+- Protect
+- Wave Crash
+- Aqua Jet
+- Last Respects
+
+Amoonguss @ Rocky Helmet
+Ability: Regenerator
+Level: 50
+Tera Type: Dark
+EVs: 252 HP / 100 Def / 156 SpD
+Calm Nature
+IVs: 0 Atk / 27 Spe
+- Spore
+- Pollen Puff
+- Rage Powder
+- Clear Smog
+
+Kingambit @ Black Glasses
+Ability: Defiant
+Level: 50
+Tera Type: Dark
+EVs: 252 HP / 116 Atk / 4 Def / 20 SpD / 116 Spe
+Adamant Nature
+- Protect
+- Kowtow Cleave
+- Sucker Punch
+- Swords Dance
+
+Ludicolo @ Mystic Water
+Ability: Swift Swim
+Level: 50
+Tera Type: Water
+EVs: 12 HP / 36 Def / 236 SpA / 4 SpD / 220 Spe
+Modest Nature
+IVs: 0 Atk
+- Protect
+- Muddy Water
+- Giga Drain
+- Ice Beam""",
     ],
     "gen9ou": [
         """

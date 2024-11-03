@@ -32,6 +32,8 @@ class Callback(BaseCallback):
         self.run_name = (
             f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
         )
+        with open(f"logs/{self.run_name}-win-rates.json") as f:
+            self.win_rates = json.load(f)
         if self_play:
             self.policy_pool = (
                 []
@@ -41,8 +43,6 @@ class Callback(BaseCallback):
                     for filename in os.listdir(f"saves/{self.run_name}")
                 ]
             )
-            with open(f"logs/{self.run_name}-win-rates.json") as f:
-                self.win_rates = json.load(f)
         self.eval_agent = Agent(
             None,
             account_configuration=AccountConfiguration(f"EvalAgent{port}", None),
@@ -88,12 +88,12 @@ class Callback(BaseCallback):
             self.eval_agent.set_policy(new_policy)
             asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
             win_rate = self.eval_agent.win_rate
+            self.win_rates.append(win_rate)
+            with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
+                json.dump(self.win_rates, f)
             self.eval_agent.reset_battles()
             self.eval_opponent.reset_battles()
             self.model.save(f"saves/{self.run_name}/{self.model.num_timesteps}")
             self.model.logger.record("train/eval", win_rate)
             if self.self_play:
                 self.policy_pool.append(new_policy)
-                self.win_rates.append(win_rate)
-                with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
-                    json.dump(self.win_rates, f)
