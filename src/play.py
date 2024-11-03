@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import os
+import warnings
 
 import numpy as np
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
@@ -9,6 +10,8 @@ from stable_baselines3 import PPO
 
 from agent import Agent
 from teams import RandomTeamBuilder
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_ladder: bool):
@@ -25,7 +28,7 @@ async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_lad
         raise FileNotFoundError()
     agent = Agent(
         policy,
-        account_configuration=AccountConfiguration("", ""),  # fill in
+        account_configuration=AccountConfiguration("DexterAI", "7291120315182"),  # fill in
         battle_format="gen9vgc2024regh",
         log_level=40,
         max_concurrent_battles=10,
