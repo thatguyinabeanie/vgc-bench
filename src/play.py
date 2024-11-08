@@ -48,9 +48,13 @@ async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_lad
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--teams", nargs="+", type=int)
-    parser.add_argument("--opp_teams", nargs="+", type=int)
+    parser.add_argument("--teams", nargs="+", type=int, required=False)
+    parser.add_argument("--opp_teams", nargs="+", type=int, required=False)
+    parser.add_argument("--num_teams", type=int, required=False)
     parser.add_argument("-n", type=int, default=1, help="Number of games to play. Default is 1.")
     parser.add_argument("-l", action="store_true", help="Play ladder. Default accepts challenges.")
     args = parser.parse_args()
-    asyncio.run(play(args.teams, args.opp_teams, args.n, args.l))
+    assert args.num_teams or (args.teams and args.opp_teams)
+    teams: list[int] = args.teams or list(range(args.num_teams))
+    opp_teams: list[int] = args.opp_teams or list(range(args.num_teams))
+    asyncio.run(play(teams, opp_teams, args.n, args.l))
