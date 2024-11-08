@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any
 
 import numpy as np
@@ -30,8 +31,8 @@ from policy import MaskedActorCriticPolicy
 class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
-    doubles_act_len: int = 48
-    base_obs_len: int = 6672
+    doubles_act_len: int = 47
+    base_obs_len: int = 6660
     singles_obs_len: int = singles_act_len + base_obs_len
     doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
 
@@ -80,31 +81,39 @@ class Agent(Player):
             raise TypeError()
 
     def teampreview(self, battle: AbstractBattle) -> str:
-        embedded_battle = torch.tensor(self.embed_battle(battle), device=self.__policy.device).view(
-            1, -1
-        )
-        with torch.no_grad():
-            action, _, _ = self.__policy.forward(embedded_battle)
         if isinstance(battle, Battle):
-            order = Agent.singles_action_to_move_covering_teampreview(int(action.item()), battle)
+            return self.random_teampreview(battle)
         elif isinstance(battle, DoubleBattle):
-            [action1, action2, *_] = action.cpu().numpy()[0]
-            order = Agent.doubles_action_to_move_covering_teampreview(action1, action2, battle)
+            order1 = self.choose_move(battle)
+            assert isinstance(order1, DoubleBattleOrder)
+            pokemon1 = None if order1.first_order is None else order1.first_order.order
+            pokemon2 = None if order1.second_order is None else order1.second_order.order
+            assert isinstance(pokemon1, Pokemon)
+            assert isinstance(pokemon2, Pokemon)
+            action1 = [p.name for p in battle.team.values()].index(pokemon1.name) + 1
+            action2 = [p.name for p in battle.team.values()].index(pokemon2.name) + 1
+            battle2 = deepcopy(battle)
+            battle2.switch(
+                f"{battle2.player_role}a: {pokemon1.base_species.capitalize()}",
+                "",
+                f"{pokemon1.current_hp}/{pokemon1.max_hp}",
+            )
+            battle2.switch(
+                f"{battle2.player_role}b: {pokemon2.base_species.capitalize()}",
+                "",
+                f"{pokemon2.current_hp}/{pokemon2.max_hp}",
+            )
+            order2 = self.choose_move(battle2)
+            assert isinstance(order2, DoubleBattleOrder)
+            pokemon3 = None if order2.first_order is None else order2.first_order.order
+            pokemon4 = None if order2.second_order is None else order2.second_order.order
+            assert isinstance(pokemon3, Pokemon)
+            assert isinstance(pokemon4, Pokemon)
+            action3 = [p.name for p in battle2.team.values()].index(pokemon3.name) + 1
+            action4 = [p.name for p in battle2.team.values()].index(pokemon4.name) + 1
+            return f"/team {action1}{action2}{action3}{action4}"
         else:
             raise TypeError()
-        assert isinstance(order, str)
-        return order
-
-    @staticmethod
-    def singles_action_to_move_covering_teampreview(
-        action: int, battle: Battle
-    ) -> BattleOrder | str:
-        if battle.teampreview:
-            if action == -1:
-                return ForfeitBattleOrder().message
-            return "/team 123456"
-        else:
-            return Agent.singles_action_to_move(action, battle)
 
     @staticmethod
     def singles_action_to_move(action: int, battle: Battle) -> BattleOrder:
@@ -126,30 +135,6 @@ class Agent(Player):
                 terastallize=22 <= action < 26,
             )
         return order
-
-    @staticmethod
-    def doubles_action_to_move_covering_teampreview(
-        action1: int, action2: int, battle: DoubleBattle
-    ) -> BattleOrder | str:
-        if battle.teampreview:
-            if action1 == -1 or action2 == -1:
-                return ForfeitBattleOrder().message
-            assert action1 < 48 and action2 < 15
-            all_ids = [str(i) for i in range(1, 7)]
-            choices = ""
-            choices += all_ids.pop(action1 // 8)
-            action1 %= 8
-            choices += all_ids.pop(action2 // 3)
-            action2 %= 3
-            choices += all_ids.pop(action1 // 2)
-            action1 %= 2
-            choices += all_ids.pop(action2)
-            choices += all_ids.pop(action1)
-            choices += all_ids.pop(0)
-            order_message = f"/team {choices}"
-            return order_message
-        else:
-            return Agent.doubles_action_to_move(action1, action2, battle)
 
     @staticmethod
     def doubles_action_to_move(action1: int, action2: int, battle: DoubleBattle) -> BattleOrder:
@@ -235,7 +220,7 @@ class Agent(Player):
             opp=True,
         )
         opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
-        opp_side = np.concatenate([*opp_side, np.zeros(556 * (6 - len(opp_side)))])
+        opp_side = np.concatenate([*opp_side, np.zeros(555 * (6 - len(opp_side)))])
         return np.concatenate([mask, side, opp_side], dtype=np.float32)
 
     @staticmethod
@@ -247,14 +232,13 @@ class Agent(Player):
         fields = [
             min(battle.turn - battle.fields[f], 8) / 8 if f in battle.fields else 0 for f in Field
         ]
-        preview = float(battle.in_team_preview)
         if isinstance(battle, Battle):
             force_switch = [float(battle.force_switch), 0]
         elif isinstance(battle, DoubleBattle):
             force_switch = [float(f) for f in battle.force_switch]
         else:
             raise TypeError()
-        return np.array([preview, *weather, *fields, *force_switch])
+        return np.concatenate([weather, fields, force_switch])
 
     @staticmethod
     def embed_side(
@@ -430,8 +414,6 @@ class Agent(Player):
             assert pos is not None
             if battle.finished:
                 return np.array([])
-            if battle.teampreview:
-                return np.array(range(48) if pos == 0 else range(15))
             switch_space = [
                 i + 1
                 for i, pokemon in enumerate(battle.team.values())
@@ -442,10 +424,13 @@ class Agent(Player):
                     and battle.force_switch == [True, True]
                     and pos == 1
                 )
+                and not pokemon.active
                 and pokemon.species in [p.species for p in battle.available_switches[pos]]
             ]
             active_mon = battle.active_pokemon[pos]
-            if active_mon is None:
+            if battle.teampreview:
+                return np.array(switch_space)
+            elif active_mon is None:
                 return np.array(switch_space or [0])
             else:
                 move_spaces = [

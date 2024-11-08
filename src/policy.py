@@ -89,7 +89,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         distribution = self.action_dist.proba_distribution(action_logits + mask)
         return distribution
 
-    def get_mask(self, obs: torch.Tensor, action: torch.Tensor | None = None) -> torch.Tensor:
+    def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:
         if isinstance(self.action_space, Discrete):
             mask = obs[:, : self.action_space.n]  # type: ignore
             mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
@@ -97,28 +97,26 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             return mask
         else:
             act_len = self.action_space.nvec[0]  # type: ignore
-            if action is None:
+            if ally_actions is None:
                 mask = obs[:, : 2 * act_len]
             else:
                 mask = obs[:, act_len : 2 * act_len]
-                # condition: not in teampreview and action is either switch or terastallization
-                team_preview = obs[:, 2 * act_len].view(-1, 1) == 1
-                ally_switched = (1 <= action) & (action <= 6)
-                ally_terastallized = action >= 27
+                ally_switched = (1 <= ally_actions) & (ally_actions <= 6)
+                ally_terastallized = ally_actions >= 27
                 # creating a (batch_size, act_len) size array of 0..act_len - 1 ranges
                 indices = torch.arange(act_len, device=mask.device).unsqueeze(0).expand_as(mask)
                 # marking values in indices as being invalid actions due to ally action
                 ally_mask = ((indices >= 27) & ally_terastallized) | (
-                    (indices == action) & ally_switched
+                    (indices == ally_actions) & ally_switched
                 )
-                mask = torch.where(~team_preview & ally_mask, 1.0, mask)
+                mask = torch.where(ally_mask, 1.0, mask)
                 mask = torch.cat([obs[:, :act_len], mask], dim=1)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    chunk_len: int = 556
+    chunk_len: int = 555
     embed_len: int = 50
     feature_len: int = 128
 
