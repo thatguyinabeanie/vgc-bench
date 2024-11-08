@@ -25,7 +25,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     steps = 98_304
     num_envs = 32
     battle_format = "gen9vgc2024regh"
-    self_play = False
+    self_play = True
     env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
         [
@@ -72,10 +72,14 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--teams", nargs="+", type=int)
-    parser.add_argument("--opp_teams", nargs="+", type=int)
+    parser.add_argument("--teams", nargs="+", type=int, required=False)
+    parser.add_argument("--opp_teams", nargs="+", type=int, required=False)
+    parser.add_argument("--num_teams", type=int, required=False)
     parser.add_argument("--port", type=int)
     parser.add_argument("--device", type=str)
     args = parser.parse_args()
+    assert args.num_teams or (args.teams and args.opp_teams)
+    teams: list[int] = args.teams or list(range(args.num_teams))
+    opp_teams: list[int] = args.opp_teams or list(range(args.num_teams))
     while True:
-        train(args.teams, args.opp_teams, args.port, args.device)
+        train(teams, opp_teams, args.port, args.device)
