@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import json
 import os
-import warnings
 
 import numpy as np
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
@@ -10,8 +9,6 @@ from stable_baselines3 import PPO
 
 from agent import Agent
 from teams import RandomTeamBuilder
-
-warnings.filterwarnings("ignore", category=UserWarning)
 
 
 async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_ladder: bool):

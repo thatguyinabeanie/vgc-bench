@@ -131,7 +131,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
                 d_model=self.feature_len,
-                nhead=1,
+                nhead=4,
                 dim_feedforward=self.feature_len,
                 dropout=0,
                 batch_first=True,

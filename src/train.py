@@ -47,7 +47,6 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         n_steps=2048 // num_envs,
         batch_size=64,
         gamma=1,
-        ent_coef=max(0.01, 0.1 * 0.75 ** (num_saved_timesteps // steps)),
         tensorboard_log="logs",
         policy_kwargs={
             "mask_len": (
