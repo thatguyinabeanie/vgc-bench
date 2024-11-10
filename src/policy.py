@@ -116,8 +116,8 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    chunk_len: int = 555
-    embed_len: int = 50
+    chunk_len: int = 359
+    embed_len: int = 100
     feature_len: int = 128
 
     def __init__(self, observation_space: Space[Any], mask_len: int):

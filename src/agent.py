@@ -11,14 +11,11 @@ from poke_env.environment import (
     DoubleBattle,
     Effect,
     Field,
-    Move,
-    MoveCategory,
     Pokemon,
     PokemonGender,
     PokemonType,
     SideCondition,
     Status,
-    Target,
     Weather,
 )
 from poke_env.player import BattleOrder, DoubleBattleOrder, ForfeitBattleOrder, Player
@@ -32,7 +29,7 @@ class Agent(Player):
     __policy: ActorCriticPolicy
     singles_act_len: int = 26
     doubles_act_len: int = 47
-    base_obs_len: int = 6660
+    base_obs_len: int = 4308
     singles_obs_len: int = singles_act_len + base_obs_len
     doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
 
@@ -220,7 +217,7 @@ class Agent(Player):
             opp=True,
         )
         opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
-        opp_side = np.concatenate([*opp_side, np.zeros(555 * (6 - len(opp_side)))])
+        opp_side = np.concatenate([*opp_side, np.zeros(359 * (6 - len(opp_side)))])
         return np.concatenate([mask, side, opp_side], dtype=np.float32)
 
     @staticmethod
@@ -293,9 +290,9 @@ class Agent(Player):
             moves.index(m.id if m.id[:11] != "hiddenpower" else "hiddenpower")
             for m in pokemon.moves.values()
         ]
-        move_ids = move_ids + [0] * (4 - len(move_ids))
-        move_details = [Agent.embed_move(m) for m in pokemon.moves.values()]
-        move_details = np.concatenate([*move_details, np.zeros(49 * (4 - len(move_details)))])
+        move_ids += [0] * (4 - len(move_ids))
+        pp_fracs = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
+        pp_fracs += [0] * (4 - len(pp_fracs))
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         stats = [(s or 0) / 1000 for s in pokemon.stats.values()]
@@ -318,7 +315,6 @@ class Agent(Player):
                 ability_id,
                 item_id,
                 *move_ids,
-                *move_details,
                 *types,
                 *tera_type,
                 *stats,
@@ -338,41 +334,6 @@ class Agent(Player):
                 float(active_b),
                 *pos_onehot,
                 float(from_opponent),
-            ]
-        )
-
-    @staticmethod
-    def embed_move(move: Move) -> npt.NDArray[np.float32]:
-        power = move.base_power / 250
-        acc = move.accuracy / 100
-        category = [float(c == move.category) for c in MoveCategory]
-        target = [float(t == move.target) for t in Target]
-        priority = (move.priority + 7) / 12
-        crit_ratio = move.crit_ratio
-        drain = move.drain
-        force_switch = float(move.force_switch)
-        recoil = move.recoil
-        self_destruct = float(move.self_destruct is not None)
-        self_switch = float(move.self_switch is not False)
-        pp = move.max_pp / 64
-        pp_frac = move.current_pp / move.max_pp
-        move_type = [float(t == move.type) for t in PokemonType]
-        return np.array(
-            [
-                power,
-                acc,
-                *category,
-                *target,
-                priority,
-                crit_ratio,
-                drain,
-                force_switch,
-                recoil,
-                self_destruct,
-                self_switch,
-                pp,
-                pp_frac,
-                *move_type,
             ]
         )
 
