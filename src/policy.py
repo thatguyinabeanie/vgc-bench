@@ -12,31 +12,24 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 from torch import nn
 
-from data import abilities, items, moves
+from constants import doubles_chunk_len
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, mask_len: int, **kwargs: Any):
-        self.mask_len = mask_len
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             *args,
             **kwargs,
             net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
-            features_extractor_kwargs={"mask_len": mask_len},
             share_features_extractor=False,
             # optimizer_kwargs={"weight_decay": 1e-5},
         )
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
-        new_policy = cls(
-            model.observation_space,
-            model.action_space,
-            model.lr_schedule,
-            mask_len=model.policy.mask_len,
-        )
+        new_policy = cls(model.observation_space, model.action_space, model.lr_schedule)
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
 
@@ -116,17 +109,11 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
-    chunk_len: int = 359
-    embed_len: int = 100
     feature_len: int = 128
 
-    def __init__(self, observation_space: Space[Any], mask_len: int):
+    def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
-        self.mask_len = mask_len
-        self.ability_embedding = nn.Embedding(len(abilities), self.embed_len)
-        self.item_embedding = nn.Embedding(len(items), self.embed_len)
-        self.move_embedding = nn.Embedding(len(moves), self.embed_len)
-        self.feature_proj = nn.Linear(self.chunk_len + 6 * (self.embed_len - 1), self.feature_len)
+        self.feature_proj = nn.Linear(doubles_chunk_len, self.feature_len)
         self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
         self.encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
@@ -140,14 +127,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        seq = x[:, self.mask_len :].view(-1, 12, self.chunk_len)
-        seq = self.embed(seq)
+        seq = x.view(-1, 12, doubles_chunk_len)
         seq = self.feature_proj(seq)
         seq = torch.cat([self.cls_token.expand(seq.size(0), -1, -1), seq], dim=1)
         return self.encoder(seq)[:, 0, :]
-
-    def embed(self, x: torch.Tensor) -> torch.Tensor:
-        ability = self.ability_embedding(x[:, :, 0].long())
-        item = self.item_embedding(x[:, :, 1].long())
-        move = self.move_embedding(x[:, :, 2:6].long()).view(-1, 12, 4 * self.embed_len)
-        return torch.cat([ability, item, move, x[:, :, 6:]], dim=2)

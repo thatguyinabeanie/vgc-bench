@@ -20,6 +20,7 @@ from poke_env.player import (
 )
 
 from agent import Agent
+from constants import doubles_act_len, doubles_obs_len, singles_act_len, singles_obs_len
 from policy import MaskedActorCriticPolicy
 from teams import RandomTeamBuilder
 
@@ -126,10 +127,10 @@ class ShowdownSinglesEnv(ShowdownEnv[np.int64]):
         return Agent.singles_action_to_move(int(action), battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
-        return Box(-1, 1, shape=(Agent.singles_obs_len,), dtype=np.float32)
+        return Box(-1, 1, shape=(singles_obs_len,), dtype=np.float32)
 
     def describe_action(self) -> Space[np.int64]:
-        return Discrete(Agent.singles_act_len)
+        return Discrete(singles_act_len)
 
 
 class ShowdownDoublesEnv(ShowdownEnv[npt.NDArray[np.integer]]):
@@ -146,7 +147,7 @@ class ShowdownDoublesEnv(ShowdownEnv[npt.NDArray[np.integer]]):
         return Agent.doubles_action_to_move(action[0], action[1], battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
-        return Box(-1, 1, shape=(Agent.doubles_obs_len,), dtype=np.float32)
+        return Box(-1, 1, shape=(doubles_obs_len,), dtype=np.float32)
 
     def describe_action(self) -> Space[npt.NDArray[np.integer]]:
-        return MultiDiscrete([Agent.doubles_act_len, Agent.doubles_act_len])
+        return MultiDiscrete([doubles_act_len, doubles_act_len])

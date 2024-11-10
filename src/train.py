@@ -8,7 +8,6 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
-from agent import Agent
 from callback import Callback
 from env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from policy import MaskedActorCriticPolicy
@@ -48,11 +47,6 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         batch_size=64,
         gamma=1,
         tensorboard_log="logs",
-        policy_kwargs={
-            "mask_len": (
-                2 * Agent.doubles_act_len if "vgc" in battle_format else Agent.singles_act_len
-            )
-        },
         device=device,
     )
     if num_saved_timesteps > 0:

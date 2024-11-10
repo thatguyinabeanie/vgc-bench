@@ -21,17 +21,19 @@ from poke_env.environment import (
 from poke_env.player import BattleOrder, DoubleBattleOrder, ForfeitBattleOrder, Player
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from constants import (
+    doubles_act_len,
+    doubles_obs_len,
+    pokemon_obs_len,
+    singles_act_len,
+    singles_obs_len,
+)
 from data import abilities, items, moves
 from policy import MaskedActorCriticPolicy
 
 
 class Agent(Player):
     __policy: ActorCriticPolicy
-    singles_act_len: int = 26
-    doubles_act_len: int = 47
-    base_obs_len: int = 4308
-    singles_obs_len: int = singles_act_len + base_obs_len
-    doubles_obs_len: int = 2 * doubles_act_len + base_obs_len
 
     def __init__(
         self,
@@ -47,17 +49,15 @@ class Agent(Player):
             self.__policy = policy.to(device)
         elif self.format_is_doubles:
             self.__policy = MaskedActorCriticPolicy(
-                observation_space=Box(0.0, 1.0, shape=(Agent.doubles_obs_len,), dtype=np.float32),
-                action_space=MultiDiscrete([Agent.doubles_act_len, Agent.doubles_act_len]),
+                observation_space=Box(0.0, 1.0, shape=(doubles_obs_len,), dtype=np.float32),
+                action_space=MultiDiscrete([doubles_act_len, doubles_act_len]),
                 lr_schedule=lambda _: 1e-4,
-                mask_len=2 * Agent.doubles_act_len,
             ).to(device)
         else:
             self.__policy = MaskedActorCriticPolicy(
-                observation_space=Box(0.0, 1.0, shape=(Agent.singles_obs_len,), dtype=np.float32),
-                action_space=Discrete(Agent.singles_act_len),
+                observation_space=Box(0.0, 1.0, shape=(singles_obs_len,), dtype=np.float32),
+                action_space=Discrete(singles_act_len),
                 lr_schedule=lambda _: 1e-4,
-                mask_len=Agent.singles_act_len,
             ).to(device)
 
     def set_policy(self, policy: MaskedActorCriticPolicy):
@@ -153,8 +153,14 @@ class Agent(Player):
         else:
             active_mon = battle.active_pokemon[pos]
             assert active_mon is not None
+            mvs = (
+                battle.available_moves[pos]
+                if len(battle.available_moves[pos]) == 1
+                and battle.available_moves[pos][0].id in ["struggle", "recharge"]
+                else list(active_mon.moves.values())
+            )
             order = Player.create_order(
-                list(active_mon.moves.values())[(action - 7) % 20 // 5],
+                mvs[(action - 7) % 20 // 5],
                 terastallize=bool((action - 7) // 20),
                 move_target=(int(action) - 7) % 5 - 2,
             )
@@ -164,61 +170,21 @@ class Agent(Player):
     def embed_battle(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             action_space = Agent.get_action_space(battle)
-            mask = [float(i not in action_space) for i in range(Agent.singles_act_len)]
-            actives = [] if battle.active_pokemon is None else [battle.active_pokemon.name]
-            opp_actives = (
-                []
-                if battle.opponent_active_pokemon is None
-                else [battle.opponent_active_pokemon.name]
-            )
-            gimmicks = [
-                battle.can_mega_evolve,
-                battle.can_z_move,
-                battle.can_dynamax,
-                battle.can_tera is not False,
-            ]
-            opp_gimmicks = [
-                battle.opponent_can_mega_evolve,
-                battle.opponent_can_z_move,
-                battle.opponent_can_dynamax,
-                battle._opponent_can_terrastallize,
-            ]
+            mask = [float(i not in action_space) for i in range(singles_act_len)]
         elif isinstance(battle, DoubleBattle):
             action_space1 = Agent.get_action_space(battle, 0)
-            mask1 = [float(i not in action_space1) for i in range(Agent.doubles_act_len)]
+            mask1 = [float(i not in action_space1) for i in range(doubles_act_len)]
             action_space2 = Agent.get_action_space(battle, 1)
-            mask2 = [float(i not in action_space2) for i in range(Agent.doubles_act_len)]
+            mask2 = [float(i not in action_space2) for i in range(doubles_act_len)]
             mask = mask1 + mask2
-            actives = [p.name for p in battle.active_pokemon if p is not None]
-            opp_actives = [p.name for p in battle.opponent_active_pokemon if p is not None]
-            gimmicks = [
-                battle.can_mega_evolve[0],
-                battle.can_z_move[0],
-                battle.can_dynamax[0],
-                battle.can_tera[0] is not False,
-            ]
-            opp_gimmicks = [
-                battle.opponent_can_mega_evolve[0],
-                battle.opponent_can_z_move[0],
-                battle.opponent_can_dynamax[0],
-                battle._opponent_can_terrastallize,
-            ]
         else:
             raise TypeError()
         glob_features = Agent.embed_global(battle)
-        side = Agent.embed_side(actives, battle.side_conditions, gimmicks, battle.team, battle.turn)
-        side = np.concatenate([np.concatenate([glob_features, s]) for s in side])
-        opp_side = Agent.embed_side(
-            opp_actives,
-            battle.opponent_side_conditions,
-            opp_gimmicks,
-            battle.opponent_team,
-            battle.turn,
-            opp=True,
-        )
-        opp_side = [np.concatenate([glob_features, s]) for s in opp_side]
-        opp_side = np.concatenate([*opp_side, np.zeros(359 * (6 - len(opp_side)))])
-        return np.concatenate([mask, side, opp_side], dtype=np.float32)
+        side = Agent.embed_side(battle)
+        side = [np.concatenate([mask, glob_features, s]) for s in side]
+        opp_side = Agent.embed_side(battle, opp=True)
+        opp_side = [np.concatenate([mask, glob_features, s]) for s in opp_side]
+        return np.concatenate([*side, *opp_side], dtype=np.float32)
 
     @staticmethod
     def embed_global(battle: AbstractBattle) -> npt.NDArray[np.float32]:
@@ -238,14 +204,52 @@ class Agent(Player):
         return np.concatenate([weather, fields, force_switch])
 
     @staticmethod
-    def embed_side(
-        actives: list[str],
-        side_conds: dict[SideCondition, int],
-        gimmicks: list[bool],
-        team: dict[str, Pokemon],
-        turn: int,
-        opp: bool = False,
-    ) -> list[npt.NDArray[np.float32]]:
+    def embed_side(battle: AbstractBattle, opp: bool = False) -> list[npt.NDArray[np.float32]]:
+        if isinstance(battle, Battle):
+            actives = [] if battle.active_pokemon is None else [battle.active_pokemon]
+            opp_actives = (
+                [] if battle.opponent_active_pokemon is None else [battle.opponent_active_pokemon]
+            )
+            gims = [
+                battle.can_mega_evolve,
+                battle.can_z_move,
+                battle.can_dynamax,
+                battle.can_tera is not False,
+            ]
+            opp_gims = [
+                battle.opponent_can_mega_evolve,
+                battle.opponent_can_z_move,
+                battle.opponent_can_dynamax,
+                battle._opponent_can_terrastallize,
+            ]
+        elif isinstance(battle, DoubleBattle):
+            actives = [p for p in battle.active_pokemon if p is not None]
+            opp_actives = [p for p in battle.opponent_active_pokemon if p is not None]
+            gims = [
+                battle.can_mega_evolve[0],
+                battle.can_z_move[0],
+                battle.can_dynamax[0],
+                battle.can_tera[0] is not False,
+            ]
+            opp_gims = [
+                battle.opponent_can_mega_evolve[0],
+                battle.opponent_can_z_move[0],
+                battle.opponent_can_dynamax[0],
+                battle._opponent_can_terrastallize,
+            ]
+        else:
+            raise TypeError()
+        side_conds = battle.opponent_side_conditions if opp else battle.side_conditions
+        gims = opp_gims if opp else gims
+        actives = opp_actives if opp else actives
+        team = battle.opponent_team if opp else battle.team
+        active_moves = [
+            float(m == ("hiddenpower" if m_.id.startswith("hiddenpower") else m_.id))
+            for a in actives
+            for m_ in a.moves.values()
+            for m in moves
+        ]
+        active_moves += [0] * (4 * len(moves) * (2 - len(actives)))
         side_conditions = [
             (
                 0
@@ -259,38 +263,44 @@ class Agent(Player):
                         else (
                             side_conds[s] / 3
                             if s == SideCondition.SPIKES
-                            else min(turn - side_conds[s], 8) / 8
+                            else min(battle.turn - side_conds[s], 8) / 8
                         )
                     )
                 )
             )
             for s in SideCondition
         ]
-        gims = [float(g) for g in gimmicks]
+        gimmicks = [float(g) for g in gims]
         pokemons = [
             Agent.embed_pokemon(
                 p,
                 i,
                 opp,
-                len(actives) > 0 and p.name == actives[0],
-                len(actives) > 1 and p.name == actives[1],
+                len(actives) > 0 and p.name == actives[0].name,
+                len(actives) > 1 and p.name == actives[1].name,
             )
             for i, p in enumerate(team.values())
         ]
-        return [np.concatenate([side_conditions, gims, p]) for p in pokemons]
+        pokemons += [np.zeros(pokemon_obs_len)] * (6 - len(pokemons))
+        return [np.concatenate([active_moves, side_conditions, gimmicks, p]) for p in pokemons]
 
     @staticmethod
     def embed_pokemon(
         pokemon: Pokemon, pos: int, from_opponent: bool, active_a: bool, active_b: bool
     ) -> npt.NDArray[np.float32]:
         # (mostly) stable fields
-        ability_id = abilities.index("null" if pokemon.ability is None else pokemon.ability)
-        item_id = items.index("null" if pokemon.item is None else pokemon.item)
-        move_ids = [
-            moves.index(m.id if m.id[:11] != "hiddenpower" else "hiddenpower")
-            for m in pokemon.moves.values()
+        ability = [float(pokemon.ability == a) for a in abilities]
+        item = [float(pokemon.item == i) for i in items]
+        mvs = [
+            float(
+                m
+                in [
+                    "hiddenpower" if m_.id.startswith("hiddenpower") else m_.id
+                    for m_ in pokemon.moves.values()
+                ]
+            )
+            for m in moves
         ]
-        move_ids += [0] * (4 - len(move_ids))
         pp_fracs = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
         pp_fracs += [0] * (4 - len(pp_fracs))
         types = [float(t in pokemon.types) for t in PokemonType]
@@ -312,9 +322,10 @@ class Agent(Player):
         pos_onehot = [float(pos == i) for i in range(6)]
         return np.array(
             [
-                ability_id,
-                item_id,
-                *move_ids,
+                *ability,
+                *item,
+                *mvs,
+                *pp_fracs,
                 *types,
                 *tera_type,
                 *stats,
