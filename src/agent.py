@@ -293,13 +293,13 @@ class Agent(Player):
         item = [float(pokemon.item == i) for i in items]
         mvs = [
             float(
-                m
+                name
                 in [
-                    "hiddenpower" if m_.id.startswith("hiddenpower") else m_.id
-                    for m_ in pokemon.moves.values()
+                    "hiddenpower" if move.id.startswith("hiddenpower") else move.id
+                    for move in pokemon.moves.values()
                 ]
             )
-            for m in moves
+            for name in moves
         ]
         pp_fracs = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
         pp_fracs += [0] * (4 - len(pp_fracs))
@@ -310,6 +310,8 @@ class Agent(Player):
         weight = pokemon.weight / 1000
         # volatile fields
         hp_frac = pokemon.current_hp_fraction
+        pp_fracs = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
+        pp_fracs += [0] * (4 - len(pp_fracs))
         status = [float(s == pokemon.status) for s in Status]
         status_counter = pokemon.status_counter / 16
         boosts = [b / 6 for b in pokemon.boosts.values()]
@@ -325,13 +327,13 @@ class Agent(Player):
                 *ability,
                 *item,
                 *mvs,
-                *pp_fracs,
                 *types,
                 *tera_type,
                 *stats,
                 *gender,
                 weight,
                 hp_frac,
+                *pp_fracs,
                 *status,
                 status_counter,
                 *boosts,
