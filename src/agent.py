@@ -181,10 +181,10 @@ class Agent(Player):
             raise TypeError()
         glob_features = Agent.embed_global(battle)
         side = Agent.embed_side(battle)
-        side = [np.concatenate([mask, glob_features, s]) for s in side]
+        side = [np.concatenate([s, glob_features]) for s in side]
         opp_side = Agent.embed_side(battle, opp=True)
-        opp_side = [np.concatenate([mask, glob_features, s]) for s in opp_side]
-        return np.concatenate([*side, *opp_side], dtype=np.float32)
+        opp_side = [np.concatenate([s, glob_features]) for s in opp_side]
+        return np.concatenate([mask, *side, *opp_side], dtype=np.float32)
 
     @staticmethod
     def embed_global(battle: AbstractBattle) -> npt.NDArray[np.float32]:
@@ -239,17 +239,20 @@ class Agent(Player):
             ]
         else:
             raise TypeError()
-        side_conds = battle.opponent_side_conditions if opp else battle.side_conditions
-        gims = opp_gims if opp else gims
-        actives = opp_actives if opp else actives
         team = battle.opponent_team if opp else battle.team
-        active_moves = [
-            float(m == ("hiddenpower" if m_.id.startswith("hiddenpower") else m_.id))
-            for a in actives
-            for m_ in a.moves.values()
-            for m in moves
+        actives = opp_actives if opp else actives
+        pokemons = [
+            Agent.embed_pokemon(
+                p,
+                i,
+                opp,
+                len(actives) > 0 and p.name == actives[0].name,
+                len(actives) > 1 and p.name == actives[1].name,
+            )
+            for i, p in enumerate(team.values())
         ]
-        active_moves += [0] * (4 * len(moves) * (2 - len(actives)))
+        pokemons += [np.zeros(pokemon_obs_len)] * (6 - len(pokemons))
+        side_conds = battle.opponent_side_conditions if opp else battle.side_conditions
         side_conditions = [
             (
                 0
@@ -270,39 +273,22 @@ class Agent(Player):
             )
             for s in SideCondition
         ]
+        gims = opp_gims if opp else gims
         gimmicks = [float(g) for g in gims]
-        pokemons = [
-            Agent.embed_pokemon(
-                p,
-                i,
-                opp,
-                len(actives) > 0 and p.name == actives[0].name,
-                len(actives) > 1 and p.name == actives[1].name,
-            )
-            for i, p in enumerate(team.values())
-        ]
-        pokemons += [np.zeros(pokemon_obs_len)] * (6 - len(pokemons))
-        return [np.concatenate([active_moves, side_conditions, gimmicks, p]) for p in pokemons]
+        return [np.concatenate([p, side_conditions, gimmicks]) for p in pokemons]
 
     @staticmethod
     def embed_pokemon(
         pokemon: Pokemon, pos: int, from_opponent: bool, active_a: bool, active_b: bool
     ) -> npt.NDArray[np.float32]:
         # (mostly) stable fields
-        ability = [float(pokemon.ability == a) for a in abilities]
-        item = [float(pokemon.item == i) for i in items]
-        mvs = [
-            float(
-                name
-                in [
-                    "hiddenpower" if move.id.startswith("hiddenpower") else move.id
-                    for move in pokemon.moves.values()
-                ]
-            )
-            for name in moves
+        ability_id = abilities.index("null" if pokemon.ability is None else pokemon.ability)
+        item_id = items.index("null" if pokemon.item is None else pokemon.item)
+        move_ids = [
+            moves.index("hiddenpower" if m.id.startswith("hiddenpower") else m.id)
+            for m in pokemon.moves.values()
         ]
-        pp_fracs = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
-        pp_fracs += [0] * (4 - len(pp_fracs))
+        move_ids += [0] * (4 - len(move_ids))
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         stats = [(s or 0) / 1000 for s in pokemon.stats.values()]
@@ -324,9 +310,9 @@ class Agent(Player):
         pos_onehot = [float(pos == i) for i in range(6)]
         return np.array(
             [
-                *ability,
-                *item,
-                *mvs,
+                ability_id,
+                item_id,
+                *move_ids,
                 *types,
                 *tera_type,
                 *stats,

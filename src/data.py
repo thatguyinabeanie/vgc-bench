@@ -33,13 +33,24 @@ def update_desc_embeddings(url: str, file: str, extras: dict[str, dict[str, str]
 if __name__ == "__main__":
     if not os.path.exists("json"):
         os.mkdir("json")
-    update_desc_embeddings("https://play.pokemonshowdown.com/data", "abilities.js")
+    update_desc_embeddings(
+        "https://play.pokemonshowdown.com/data",
+        "abilities.js",
+        extras={"?": {"desc": "?"}, "null": {"desc": "null"}},
+    )
     update_desc_embeddings(
         "https://play.pokemonshowdown.com/data",
         "items.js",
-        extras={"": {"desc": "empty"}, "unknown_item": {"desc": "unknown item"}},
+        extras={
+            "?": {"desc": "?"},
+            "null": {"desc": "null"},
+            "": {"desc": "empty"},
+            "unknown_item": {"desc": "unknown item"},
+        },
     )
-    update_desc_embeddings("https://play.pokemonshowdown.com/data", "moves.js")
+    update_desc_embeddings(
+        "https://play.pokemonshowdown.com/data", "moves.js", extras={"?": {"desc": "?"}}
+    )
 with open("json/abilities.json") as f:
     ability_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
     abilities = list(ability_descs.keys())
