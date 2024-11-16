@@ -24,7 +24,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     steps = 98_304
     num_envs = 32
     battle_format = "gen9vgc2024regh"
-    num_frames = 3
+    num_frames = 5
     self_play = True
     env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
