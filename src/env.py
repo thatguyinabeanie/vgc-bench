@@ -15,6 +15,7 @@ from poke_env.player import (
     BattleOrder,
     EnvPlayer,
     MaxBasePowerPlayer,
+    Player,
     RandomPlayer,
     SimpleHeuristicsPlayer,
 )
@@ -94,8 +95,9 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[npt.NDArray[np.float32], dict[str, Any]]:
-        assert isinstance(self._opponent, Agent)
-        self._opponent.frames.clear()
+        assert isinstance(self._opponent, Player)
+        if isinstance(self._opponent, Agent):
+            self._opponent.frames.clear()
         result = super().reset(seed=seed, options=options)
         tags = [k for k in self.battles.keys()]
         for tag in tags:
