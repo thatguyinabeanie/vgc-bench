@@ -282,14 +282,13 @@ class Agent(Player):
         pokemon: Pokemon, pos: int, from_opponent: bool, active_a: bool, active_b: bool
     ) -> npt.NDArray[np.float32]:
         # (mostly) stable fields
-        ability = [float((pokemon.ability or "null") == a) for a in abilities]
-        item = [float((pokemon.item or "null") == i) for i in items]
-        mvs = [
-            float(name == ("hiddenpower" if move.id.startswith("hiddenpower") else move.id))
+        ability_id = abilities.index("null" if pokemon.ability is None else pokemon.ability)
+        item_id = items.index("null" if pokemon.item is None else pokemon.item)
+        move_ids = [
+            moves.index("hiddenpower" if move.id.startswith("hiddenpower") else move.id)
             for move in pokemon.moves.values()
-            for name in moves
         ]
-        mvs += [0] * (4 * len(moves) - len(mvs))
+        move_ids += [0] * (4 - len(move_ids))
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         stats = [(s or 0) / 1000 for s in pokemon.stats.values()]
@@ -311,9 +310,9 @@ class Agent(Player):
         pos_onehot = [float(pos == i) for i in range(6)]
         return np.array(
             [
-                *ability,
-                *item,
-                *mvs,
+                ability_id,
+                item_id,
+                *move_ids,
                 *types,
                 *tera_type,
                 *stats,

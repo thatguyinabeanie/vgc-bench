@@ -45,7 +45,7 @@ if __name__ == "__main__":
             "unknown_item": {"desc": "unknown item"},
         },
     )
-    update_desc_embeddings("https://play.pokemonshowdown.com/data", "moves.js")
+    update_desc_embeddings("https://play.pokemonshowdown.com/data", "moves.js", extras={"no move": {"desc": "no move"}})
 with open("json/abilities.json") as f:
     ability_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
     abilities = list(ability_descs.keys())
