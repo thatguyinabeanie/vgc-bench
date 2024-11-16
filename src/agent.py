@@ -54,14 +54,12 @@ class Agent(Player):
                 observation_space=Box(0.0, 1.0, shape=(doubles_obs_len,), dtype=np.float32),
                 action_space=MultiDiscrete([doubles_act_len, doubles_act_len]),
                 lr_schedule=lambda _: 1e-4,
-                num_frames=num_frames,
             ).to(device)
         else:
             self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(0.0, 1.0, shape=(singles_obs_len,), dtype=np.float32),
                 action_space=Discrete(singles_act_len),
                 lr_schedule=lambda _: 1e-4,
-                num_frames=num_frames,
             ).to(device)
         self.frames = Deque(maxlen=num_frames)
 

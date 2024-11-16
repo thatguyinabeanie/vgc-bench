@@ -50,7 +50,6 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         batch_size=64,
         gamma=1,
         tensorboard_log="logs",
-        policy_kwargs={"num_frames": num_frames},
         device=device,
     )
     if num_saved_timesteps > 0:

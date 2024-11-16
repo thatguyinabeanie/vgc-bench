@@ -17,27 +17,20 @@ from data import abilities, items, moves
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
-        self.num_frames = num_frames
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             *args,
             **kwargs,
             net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
-            features_extractor_kwargs={"num_frames": num_frames},
             share_features_extractor=False,
             # optimizer_kwargs={"weight_decay": 1e-5},
         )
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
-        new_policy = cls(
-            model.observation_space,
-            model.action_space,
-            model.lr_schedule,
-            num_frames=model.policy.num_frames,
-        )
+        new_policy = cls(model.observation_space, model.action_space, model.lr_schedule)
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
 
@@ -120,13 +113,13 @@ class AttentionExtractor(BaseFeaturesExtractor):
     embed_len: int = 32
     feature_len: int = 128
 
-    def __init__(self, observation_space: Space[Any], num_frames: int):
+    def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.feature_len)
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)
         self.feature_proj = nn.Linear(chunk_len + 6 * (self.embed_len - 1), self.feature_len)
-        self.cls_token = nn.Parameter(torch.randn(1, num_frames, 1, self.feature_len))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, 1, self.feature_len))
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.feature_len,
             nhead=4,
@@ -162,11 +155,11 @@ class AttentionExtractor(BaseFeaturesExtractor):
         # projection
         seq = self.feature_proj(seq)
         # attaching classification token
-        token = self.cls_token[:, -seq.size(1) :, :, :].expand(seq.size(0), -1, -1, -1)
+        token = self.cls_token.expand(seq.size(0), seq.size(1), -1, -1)
         seq = torch.cat([token, seq], dim=2)
         # running frame encoder on each frame
         seq = torch.stack(
             [self.frame_encoder(seq[:, i, :, :])[:, 0, :] for i in range(seq.size(1))], dim=1
         )
         # running meta encoder on sequence of outputs
-        return self.meta_encoder(seq)[:, 0, :]
+        return self.meta_encoder(seq, is_causal=True)[:, 0, :]
