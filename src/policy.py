@@ -163,4 +163,5 @@ class AttentionExtractor(BaseFeaturesExtractor):
         )
         # running meta encoder on sequence of outputs
         src_mask = torch.nn.Transformer.generate_square_subsequent_mask(seq.size(1)).to(seq.device)
-        return self.meta_encoder(seq, mask=src_mask, is_causal=True)[:, 0, :]
+        output = self.meta_encoder(seq, mask=src_mask, is_causal=True)
+        return output.mean(1)
