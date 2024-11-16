@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any
+from typing import Any, Deque
 
 import numpy as np
 import numpy.typing as npt
@@ -34,10 +34,12 @@ from policy import MaskedActorCriticPolicy
 
 class Agent(Player):
     __policy: ActorCriticPolicy
+    frames: Deque[AbstractBattle]
 
     def __init__(
         self,
         policy: ActorCriticPolicy | None,
+        num_frames: int,
         device: torch.device | None = None,
         *args: Any,
         **kwargs: Any,
@@ -52,23 +54,26 @@ class Agent(Player):
                 observation_space=Box(0.0, 1.0, shape=(doubles_obs_len,), dtype=np.float32),
                 action_space=MultiDiscrete([doubles_act_len, doubles_act_len]),
                 lr_schedule=lambda _: 1e-4,
+                num_frames=num_frames,
             ).to(device)
         else:
             self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(0.0, 1.0, shape=(singles_obs_len,), dtype=np.float32),
                 action_space=Discrete(singles_act_len),
                 lr_schedule=lambda _: 1e-4,
+                num_frames=num_frames,
             ).to(device)
+        self.frames = Deque(maxlen=num_frames)
 
     def set_policy(self, policy: MaskedActorCriticPolicy):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
-        embedded_battle = torch.tensor(self.embed_battle(battle), device=self.__policy.device).view(
-            1, -1
-        )
+        self.frames.append(battle)
+        obs = np.stack([self.embed_battle(frame) for frame in self.frames])
         with torch.no_grad():
-            action, _, _ = self.__policy.forward(embedded_battle)
+            obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
+            action, _, _ = self.__policy.forward(obs_tensor)
         if isinstance(battle, Battle):
             return Agent.singles_action_to_move(int(action.item()), battle)
         elif isinstance(battle, DoubleBattle):

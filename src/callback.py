@@ -21,6 +21,7 @@ class Callback(BaseCallback):
         self,
         save_interval: int,
         battle_format: str,
+        num_frames: int,
         teams: list[int],
         opp_teams: list[int],
         port: int,
@@ -45,6 +46,7 @@ class Callback(BaseCallback):
             )
         self.eval_agent = Agent(
             None,
+            num_frames=num_frames,
             account_configuration=AccountConfiguration(f"EvalAgent{port}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",

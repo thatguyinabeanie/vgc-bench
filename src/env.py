@@ -8,6 +8,7 @@ import torch
 from gymnasium import Space
 from gymnasium.core import ActType
 from gymnasium.spaces import Box, Discrete, MultiDiscrete
+from gymnasium.wrappers.frame_stack import FrameStack
 from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.environment import AbstractBattle, Battle, DoubleBattle
 from poke_env.player import (
@@ -34,17 +35,19 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
         cls,
         i: int,
         battle_format: str,
+        num_frames: int,
         port: int,
         teams: list[int],
         opp_teams: list[int],
         self_play: bool,
         device: str,
-    ) -> ShowdownEnv:
+    ) -> FrameStack:
         if self_play:
             num_gpus = torch.cuda.device_count()
             other_gpu_ids = [f"cuda:{i}" for i in range(num_gpus) if f"cuda:{i}" != device]
             opponent = Agent(
                 None,
+                num_frames=num_frames,
                 device=torch.device(
                     other_gpu_ids[i % len(other_gpu_ids)] if num_gpus > 0 else "cpu"
                 ),
@@ -75,7 +78,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 accept_open_team_sheet=True,
                 team=RandomTeamBuilder(opp_teams, battle_format),
             )
-        return cls(
+        env = cls(
             opponent,
             account_configuration=AccountConfiguration(f"Agent{port}-{i + 1}", None),
             server_configuration=ServerConfiguration(
@@ -87,6 +90,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             accept_open_team_sheet=True,
             team=RandomTeamBuilder(teams, battle_format),
         )
+        return FrameStack(env, num_frames)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None

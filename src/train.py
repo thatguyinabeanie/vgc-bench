@@ -24,12 +24,15 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     steps = 98_304
     num_envs = 32
     battle_format = "gen9vgc2024regh"
+    num_frames = 3
     self_play = True
     env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
-                env_class.create_env(i, battle_format, port, teams, opp_teams, self_play, device)
+                env_class.create_env(
+                    i, battle_format, num_frames, port, teams, opp_teams, self_play, device
+                )
             )
             for i in range(num_envs)
         ]
@@ -47,6 +50,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         batch_size=64,
         gamma=1,
         tensorboard_log="logs",
+        policy_kwargs={"num_frames": num_frames},
         device=device,
     )
     if num_saved_timesteps > 0:
@@ -57,7 +61,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
             os.mkdir("logs")
         with open(f"logs/{run_name}-win-rates.json", "w") as f:
             json.dump([], f)
-    callback = Callback(steps, battle_format, teams, opp_teams, port, self_play)
+    callback = Callback(steps, battle_format, num_frames, teams, opp_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()
     server.wait()

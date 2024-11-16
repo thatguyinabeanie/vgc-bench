@@ -17,20 +17,27 @@ from data import abilities, items, moves
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
+        self.num_frames = num_frames
         super().__init__(
             *args,
             **kwargs,
             net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
+            features_extractor_kwargs={"num_frames": num_frames},
             share_features_extractor=False,
             # optimizer_kwargs={"weight_decay": 1e-5},
         )
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
-        new_policy = cls(model.observation_space, model.action_space, model.lr_schedule)
+        new_policy = cls(
+            model.observation_space,
+            model.action_space,
+            model.lr_schedule,
+            num_frames=model.policy.num_frames,
+        )
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
 
@@ -85,16 +92,16 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
     def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:
         if isinstance(self.action_space, Discrete):
-            mask = obs[:, : self.action_space.n]  # type: ignore
+            mask = obs[:, -1, : self.action_space.n]  # type: ignore
             mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
         else:
             act_len = self.action_space.nvec[0]  # type: ignore
             if ally_actions is None:
-                mask = obs[:, : 2 * act_len]
+                mask = obs[:, -1, : 2 * act_len]
             else:
-                mask = obs[:, act_len : 2 * act_len]
+                mask = obs[:, -1, act_len : 2 * act_len]
                 ally_switched = (1 <= ally_actions) & (ally_actions <= 6)
                 ally_terastallized = ally_actions >= 27
                 # creating a (batch_size, act_len) size array of 0..act_len - 1 ranges
@@ -104,7 +111,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
                     (indices == ally_actions) & ally_switched
                 )
                 mask = torch.where(ally_mask, 1.0, mask)
-                mask = torch.cat([obs[:, :act_len], mask], dim=1)
+                mask = torch.cat([obs[:, -1, :act_len], mask], dim=1)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
 
@@ -113,30 +120,53 @@ class AttentionExtractor(BaseFeaturesExtractor):
     embed_len: int = 32
     feature_len: int = 128
 
-    def __init__(self, observation_space: Space[Any]):
+    def __init__(self, observation_space: Space[Any], num_frames: int):
         super().__init__(observation_space, features_dim=self.feature_len)
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)
         self.feature_proj = nn.Linear(chunk_len + 6 * (self.embed_len - 1), self.feature_len)
-        self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
-        self.encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(
-                d_model=self.feature_len,
-                nhead=4,
-                dim_feedforward=self.feature_len,
-                dropout=0,
-                batch_first=True,
-            ),
-            num_layers=3,
+        self.cls_token = nn.Parameter(torch.randn(1, num_frames, 1, self.feature_len))
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=self.feature_len,
+            nhead=4,
+            dim_feedforward=self.feature_len,
+            dropout=0,
+            batch_first=True,
         )
+        self.frame_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
+        self.meta_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        seq = x[:, 2 * doubles_act_len :].view(-1, 12, chunk_len)
-        embedded_ability = self.ability_embed(seq[:, :, 0].long())
-        embedded_item = self.item_embed(seq[:, :, 1].long())
-        embedded_moves = self.move_embed(seq[:, :, 2:6].long()).view(-1, 12, 4 * self.embed_len)
-        seq = torch.cat([embedded_ability, embedded_item, embedded_moves, seq[:, :, 6:]], dim=2)
+        # chunking sequence
+        seq = x[:, :, 2 * doubles_act_len :].view(-1, x.size(1), 12, chunk_len)
+        # embedding
+        embedded_ability = self.ability_embed(seq[:, :, :, 0].long())
+        embedded_item = self.item_embed(seq[:, :, :, 1].long())
+        embedded_move1 = self.move_embed(seq[:, :, :, 2].long())
+        embedded_move2 = self.move_embed(seq[:, :, :, 3].long())
+        embedded_move3 = self.move_embed(seq[:, :, :, 4].long())
+        embedded_move4 = self.move_embed(seq[:, :, :, 5].long())
+        seq = torch.cat(
+            [
+                embedded_ability,
+                embedded_item,
+                embedded_move1,
+                embedded_move2,
+                embedded_move3,
+                embedded_move4,
+                seq[:, :, :, 6:],
+            ],
+            dim=3,
+        )
+        # projection
         seq = self.feature_proj(seq)
-        seq = torch.cat([self.cls_token.expand(seq.size(0), -1, -1), seq], dim=1)
-        return self.encoder(seq)[:, 0, :]
+        # attaching classification token
+        token = self.cls_token[:, -seq.size(1) :, :, :].expand(seq.size(0), -1, -1, -1)
+        seq = torch.cat([token, seq], dim=2)
+        # running frame encoder on each frame
+        seq = torch.stack(
+            [self.frame_encoder(seq[:, i, :, :])[:, 0, :] for i in range(seq.size(1))], dim=1
+        )
+        # running meta encoder on sequence of outputs
+        return self.meta_encoder(seq)[:, 0, :]
