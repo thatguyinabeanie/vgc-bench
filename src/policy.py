@@ -158,7 +158,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         # projection
         seq = self.feature_proj(seq)
         # attaching classification token
-        token = self.cls_token.expand(batch_size, num_frames, 1, self.feature_len)
+        token = self.cls_token.expand(batch_size, num_frames, -1, -1)
         seq = torch.cat([token, seq], dim=2)
         # running frame encoder on each frame
         seq = torch.stack(
