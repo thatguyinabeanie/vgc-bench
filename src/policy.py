@@ -129,7 +129,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         )
         self.frame_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
         self.meta_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
-        self.register_buffer("mask", torch.tril(torch.ones([10, 10])))
+        self.register_buffer("mask", torch.nn.Transformer.generate_square_subsequent_mask(10))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
