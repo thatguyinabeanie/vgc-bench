@@ -131,8 +131,11 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.meta_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        batch_size = x.size(0)
+        num_frames = x.size(1)
+        num_pokemon = 12
         # chunking sequence
-        seq = x[:, :, 2 * doubles_act_len :].view(-1, x.size(1), 12, chunk_len)
+        seq = x[:, :, 2 * doubles_act_len :].view(batch_size, num_frames, num_pokemon, chunk_len)
         # embedding
         embedded_ability = self.ability_embed(seq[:, :, :, 0].long())
         embedded_item = self.item_embed(seq[:, :, :, 1].long())
@@ -155,13 +158,13 @@ class AttentionExtractor(BaseFeaturesExtractor):
         # projection
         seq = self.feature_proj(seq)
         # attaching classification token
-        token = self.cls_token.expand(seq.size(0), seq.size(1), -1, -1)
+        token = self.cls_token.expand(batch_size, num_frames, 1, self.feature_len)
         seq = torch.cat([token, seq], dim=2)
         # running frame encoder on each frame
         seq = torch.stack(
-            [self.frame_encoder(seq[:, i, :, :])[:, 0, :] for i in range(seq.size(1))], dim=1
+            [self.frame_encoder(seq[:, i, :, :])[:, 0, :] for i in range(num_frames)], dim=1
         )
         # running meta encoder on sequence of outputs
-        src_mask = torch.nn.Transformer.generate_square_subsequent_mask(seq.size(1)).to(seq.device)
+        src_mask = torch.nn.Transformer.generate_square_subsequent_mask(num_frames).to(seq.device)
         output = self.meta_encoder(seq, mask=src_mask, is_causal=True)
         return output.mean(1)
