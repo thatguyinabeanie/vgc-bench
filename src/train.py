@@ -25,7 +25,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     num_envs = 32
     battle_format = "gen9vgc2024regh"
     num_frames = 5
-    self_play = True
+    self_play = False
     env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
         [
@@ -50,6 +50,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         batch_size=64,
         gamma=1,
         tensorboard_log="logs",
+        policy_kwargs={"num_frames": num_frames},
         device=device,
     )
     if num_saved_timesteps > 0:
