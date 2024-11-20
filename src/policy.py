@@ -122,13 +122,17 @@ class AttentionExtractor(BaseFeaturesExtractor):
 
     def __init__(self, observation_space: Space[Any], num_frames: int):
         super().__init__(observation_space, features_dim=self.feature_len)
-        self.num_frames = num_frames
+        self.register_buffer("frame_encoding", torch.eye(num_frames))
+        self.frame_encoding = self.frame_encoding.unsqueeze(0).unsqueeze(2).expand(-1, -1, 12, -1)
+        self.frame_encoding = self.frame_encoding.reshape(1, 12 * num_frames, num_frames)
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)
-        self.feature_proj = nn.Linear(chunk_len + 6 * (self.embed_len - 1), self.feature_len)
-        self.cls_token = nn.Parameter(torch.randn(1, num_frames, 1, self.feature_len))
-        self.frame_encoder = nn.TransformerEncoder(
+        self.feature_proj = nn.Linear(
+            chunk_len + 6 * (self.embed_len - 1) + num_frames, self.feature_len
+        )
+        self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
+        self.encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
                 d_model=self.feature_len,
                 nhead=4,
@@ -138,17 +142,6 @@ class AttentionExtractor(BaseFeaturesExtractor):
             ),
             num_layers=3,
         )
-        self.meta_encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(
-                d_model=self.feature_len,
-                nhead=4,
-                dim_feedforward=self.feature_len,
-                dropout=0,
-                batch_first=True,
-            ),
-            num_layers=3,
-        )
-        self.register_buffer("mask", nn.Transformer.generate_square_subsequent_mask(num_frames))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
@@ -156,28 +149,28 @@ class AttentionExtractor(BaseFeaturesExtractor):
         num_pokemon = 12
         # chunking sequence
         seq = x[:, :, 2 * doubles_act_len :]
-        seq = seq.view(batch_size, num_frames, num_pokemon, -1)
+        seq = seq.reshape(batch_size, num_frames * num_pokemon, -1)
+        # concatenating frame encoding
+        frame_encoding = self.frame_encoding[:, -num_frames * num_pokemon :, :]
+        frame_encoding = frame_encoding.expand(batch_size, -1, -1)
+        seq = torch.cat([seq, frame_encoding], dim=2)
         # embedding
         seq = torch.cat(
             [
-                self.ability_embed(seq[:, :, :, 0].long()),
-                self.item_embed(seq[:, :, :, 1].long()),
-                self.move_embed(seq[:, :, :, 2].long()),
-                self.move_embed(seq[:, :, :, 3].long()),
-                self.move_embed(seq[:, :, :, 4].long()),
-                self.move_embed(seq[:, :, :, 5].long()),
-                seq[:, :, :, 6:],
+                self.ability_embed(seq[:, :, 0].long()),
+                self.item_embed(seq[:, :, 1].long()),
+                self.move_embed(seq[:, :, 2].long()),
+                self.move_embed(seq[:, :, 3].long()),
+                self.move_embed(seq[:, :, 4].long()),
+                self.move_embed(seq[:, :, 5].long()),
+                seq[:, :, 6:],
             ],
-            dim=3,
+            dim=2,
         )
         # projection
         seq = self.feature_proj(seq)
         # attaching classification token
-        token = self.cls_token.expand(batch_size, -1, -1, -1)
-        seq = torch.cat([token[:, -num_frames:, :, :], seq], dim=2)
+        token = self.cls_token.expand(batch_size, -1, -1)
+        seq = torch.cat([token, seq], dim=1)
         # running frame encoder on each frame
-        seq = seq.view(batch_size * num_frames, num_pokemon + 1, -1)
-        seq = self.frame_encoder(seq)[:, 0, :].view(batch_size, num_frames, -1)
-        # running meta encoder on sequence of outputs
-        output = self.meta_encoder(seq, mask=self.mask[:num_frames, :num_frames], is_causal=True)
-        return output.mean(1)
+        return self.encoder(seq)[:, 0, :]
