@@ -122,9 +122,14 @@ class AttentionExtractor(BaseFeaturesExtractor):
 
     def __init__(self, observation_space: Space[Any], num_frames: int):
         super().__init__(observation_space, features_dim=self.feature_len)
-        self.register_buffer("frame_encoding", torch.eye(num_frames))
-        self.frame_encoding = self.frame_encoding.unsqueeze(0).unsqueeze(2).expand(-1, -1, 12, -1)
-        self.frame_encoding = self.frame_encoding.reshape(1, 12 * num_frames, num_frames)
+        self.register_buffer(
+            "frame_encoding",
+            torch.eye(num_frames)
+            .unsqueeze(0)
+            .unsqueeze(2)
+            .repeat(1, 1, 12, 1)
+            .view(1, 12 * num_frames, num_frames),
+        )
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)
@@ -149,7 +154,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         num_pokemon = 12
         # chunking sequence
         seq = x[:, :, 2 * doubles_act_len :]
-        seq = seq.reshape(batch_size, num_frames * num_pokemon, -1)
+        seq = seq.view(batch_size, num_frames * num_pokemon, -1)
         # concatenating frame encoding
         frame_encoding = self.frame_encoding[:, -num_frames * num_pokemon :, :]
         frame_encoding = frame_encoding.expand(batch_size, -1, -1)
