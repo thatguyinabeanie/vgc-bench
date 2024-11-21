@@ -154,7 +154,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         num_pokemon = 12
         # chunking sequence
         seq = x[:, :, 2 * doubles_act_len :]
-        seq = seq.view(batch_size, num_frames * num_pokemon, -1)
+        seq = seq.reshape(batch_size, num_frames * num_pokemon, -1)
         # concatenating frame encoding
         frame_encoding = self.frame_encoding[:, -num_frames * num_pokemon :, :]
         frame_encoding = frame_encoding.expand(batch_size, -1, -1)
