@@ -117,6 +117,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
+    num_pokemon: int = 12
     embed_len: int = 32
     feature_len: int = 128
 
@@ -127,8 +128,8 @@ class AttentionExtractor(BaseFeaturesExtractor):
             torch.eye(num_frames)
             .unsqueeze(0)
             .unsqueeze(2)
-            .repeat(1, 1, 12, 1)
-            .view(1, 12 * num_frames, num_frames),
+            .repeat(1, 1, self.num_pokemon, 1)
+            .view(1, self.num_pokemon * num_frames, num_frames),
         )
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
@@ -147,16 +148,25 @@ class AttentionExtractor(BaseFeaturesExtractor):
             ),
             num_layers=3,
         )
+        self.register_buffer(
+            "mask",
+            nn.Transformer.generate_square_subsequent_mask(num_frames * self.num_pokemon + 1),
+        )
+        for i in range(num_frames):
+            self.mask[
+                self.num_pokemon * i : self.num_pokemon * (i + 1),
+                self.num_pokemon * i : self.num_pokemon * (i + 1),
+            ] = 0
+        self.mask[-1] = 0
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
         num_frames = x.size(1)
-        num_pokemon = 12
         # chunking sequence
         seq = x[:, :, 2 * doubles_act_len :]
-        seq = seq.reshape(batch_size, num_frames * num_pokemon, -1)
+        seq = seq.reshape(batch_size, num_frames * self.num_pokemon, -1)
         # concatenating frame encoding
-        frame_encoding = self.frame_encoding[:, -num_frames * num_pokemon :, :]
+        frame_encoding = self.frame_encoding[:, -num_frames * self.num_pokemon :, :]
         frame_encoding = frame_encoding.expand(batch_size, -1, -1)
         seq = torch.cat([seq, frame_encoding], dim=2)
         # embedding
@@ -176,6 +186,8 @@ class AttentionExtractor(BaseFeaturesExtractor):
         seq = self.feature_proj(seq)
         # attaching classification token
         token = self.cls_token.expand(batch_size, -1, -1)
-        seq = torch.cat([token, seq], dim=1)
+        seq = torch.cat([seq, token], dim=1)
         # running frame encoder on each frame
-        return self.encoder(seq)[:, 0, :]
+        seq_len = num_frames * self.num_pokemon + 1
+        mask = self.mask[-seq_len:, -seq_len:]
+        return self.encoder.forward(seq, mask=mask, is_causal=True)[:, -1, :]
