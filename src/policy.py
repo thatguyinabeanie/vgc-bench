@@ -12,7 +12,7 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 from torch import nn
 
-from constants import chunk_len, doubles_act_len
+from constants import active_pokemon_obs_len, doubles_battle_obs_len, pokemon_obs_len
 from data import abilities, items, moves
 
 
@@ -119,75 +119,78 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class AttentionExtractor(BaseFeaturesExtractor):
     num_pokemon: int = 12
     embed_len: int = 32
-    feature_len: int = 128
+    battle_proj_len: int = 32
+    active_pokemon_proj_len: int = 64
+    pokemon_proj_len: int = 64
+    frame_proj_len: int = 128
 
     def __init__(self, observation_space: Space[Any], num_frames: int):
-        super().__init__(observation_space, features_dim=self.feature_len)
-        self.register_buffer(
-            "frame_encoding",
-            torch.eye(num_frames)
-            .unsqueeze(0)
-            .unsqueeze(2)
-            .repeat(1, 1, self.num_pokemon, 1)
-            .view(1, self.num_pokemon * num_frames, num_frames),
+        super().__init__(observation_space, features_dim=self.frame_proj_len)
+        self.chunk_lens = (
+            [doubles_battle_obs_len]
+            + [active_pokemon_obs_len] * 4
+            + [pokemon_obs_len] * self.num_pokemon
         )
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)
-        self.feature_proj = nn.Linear(
-            chunk_len + 6 * (self.embed_len - 1) + num_frames, self.feature_len
+        self.battle_proj = nn.Linear(doubles_battle_obs_len, self.battle_proj_len)
+        self.active_pokemon_proj = nn.Linear(active_pokemon_obs_len, self.active_pokemon_proj_len)
+        self.pokemon_proj = nn.Linear(
+            pokemon_obs_len + 6 * (self.embed_len - 1), self.pokemon_proj_len
         )
-        self.cls_token = nn.Parameter(torch.randn(1, 1, self.feature_len))
+        self.register_buffer("frame_encoding", torch.eye(num_frames).unsqueeze(0))
+        self.frame_proj = nn.Linear(
+            self.battle_proj_len
+            + 4 * self.active_pokemon_proj_len
+            + self.num_pokemon * self.pokemon_proj_len
+            + num_frames,
+            self.frame_proj_len,
+        )
+        self.register_buffer("mask", nn.Transformer.generate_square_subsequent_mask(num_frames))
         self.encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
-                d_model=self.feature_len,
+                d_model=self.frame_proj_len,
                 nhead=4,
-                dim_feedforward=self.feature_len,
+                dim_feedforward=self.frame_proj_len,
                 dropout=0,
                 batch_first=True,
+                norm_first=True,
             ),
-            num_layers=3,
+            num_layers=5,
         )
-        self.register_buffer(
-            "mask",
-            nn.Transformer.generate_square_subsequent_mask(num_frames * self.num_pokemon + 1),
-        )
-        for i in range(num_frames):
-            self.mask[
-                self.num_pokemon * i : self.num_pokemon * (i + 1),
-                self.num_pokemon * i : self.num_pokemon * (i + 1),
-            ] = 0
-        self.mask[-1] = 0
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
         num_frames = x.size(1)
         # chunking sequence
-        seq = x[:, :, 2 * doubles_act_len :]
-        seq = seq.reshape(batch_size, num_frames * self.num_pokemon, -1)
-        # concatenating frame encoding
-        frame_encoding = self.frame_encoding[:, -num_frames * self.num_pokemon :, :]
-        frame_encoding = frame_encoding.expand(batch_size, -1, -1)
-        seq = torch.cat([seq, frame_encoding], dim=2)
+        chunks = x.split(self.chunk_lens, dim=2)
+        battle = chunks[0]
+        active_pokemons = torch.stack(chunks[1:5], dim=2)
+        pokemons = torch.stack(chunks[5:], dim=2)
         # embedding
-        seq = torch.cat(
+        pokemons = torch.cat(
             [
-                self.ability_embed(seq[:, :, 0].long()),
-                self.item_embed(seq[:, :, 1].long()),
-                self.move_embed(seq[:, :, 2].long()),
-                self.move_embed(seq[:, :, 3].long()),
-                self.move_embed(seq[:, :, 4].long()),
-                self.move_embed(seq[:, :, 5].long()),
-                seq[:, :, 6:],
+                self.ability_embed.forward(pokemons[:, :, :, 0].long()),
+                self.item_embed.forward(pokemons[:, :, :, 1].long()),
+                self.move_embed.forward(pokemons[:, :, :, 2].long()),
+                self.move_embed.forward(pokemons[:, :, :, 3].long()),
+                self.move_embed.forward(pokemons[:, :, :, 4].long()),
+                self.move_embed.forward(pokemons[:, :, :, 5].long()),
+                pokemons[:, :, :, 6:],
             ],
-            dim=2,
+            dim=3,
         )
-        # projection
-        seq = self.feature_proj(seq)
-        # attaching classification token
-        token = self.cls_token.expand(batch_size, -1, -1)
-        seq = torch.cat([seq, token], dim=1)
-        # running frame encoder on each frame
-        seq_len = num_frames * self.num_pokemon + 1
-        mask = self.mask[-seq_len:, -seq_len:]
-        return self.encoder.forward(seq, mask=mask, is_causal=True)[:, -1, :]
+        # projections
+        battle = self.battle_proj.forward(battle)
+        active_pokemons = self.active_pokemon_proj.forward(active_pokemons)
+        pokemons = self.pokemon_proj.forward(pokemons)
+        frame_encoding = self.frame_encoding[:, -num_frames:, :].expand(batch_size, -1, -1)
+        frames = torch.cat(
+            [battle, active_pokemons.flatten(2), pokemons.flatten(2), frame_encoding], dim=2
+        )
+        frames = self.frame_proj.forward(frames)
+        # encode the frame sequence
+        mask = self.mask[-num_frames:, -num_frames:]
+        frames = self.encoder.forward(frames, mask=mask, is_causal=True)
+        return frames[:, -1, :]

@@ -27,8 +27,11 @@ from teams import RandomTeamBuilder
 
 
 class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
+    _teampreview_draft: list[str]
+
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
+        self._teampreview_draft = []
 
     @classmethod
     def create_env(
@@ -121,7 +124,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             return 0
 
     def embed_battle(self, battle: AbstractBattle) -> npt.NDArray[np.float32]:
-        return Agent.embed_battle(battle)
+        return Agent.embed_battle(battle, self._teampreview_draft)
 
 
 class ShowdownSinglesEnv(ShowdownEnv[np.int64]):
@@ -150,6 +153,11 @@ class ShowdownDoublesEnv(ShowdownEnv[npt.NDArray[np.integer]]):
         if isinstance(action, int):
             assert action == -1
             action = np.array([-1, -1])
+        elif battle.teampreview:
+            if len(self._teampreview_draft) == 4:
+                self._teampreview_draft = []
+            team_names = [p.name for p in battle.team.values()]
+            self._teampreview_draft += [team_names[action[0] - 1], team_names[action[1] - 1]]
         return Agent.doubles_action_to_move(action[0], action[1], battle)
 
     def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
