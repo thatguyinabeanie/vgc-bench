@@ -49,6 +49,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         n_steps=2048 // num_envs,
         batch_size=64,
         gamma=1,
+        ent_coef=0.02,
         tensorboard_log="logs",
         policy_kwargs={"num_frames": num_frames},
         device=device,
