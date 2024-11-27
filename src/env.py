@@ -21,12 +21,13 @@ from poke_env.player import (
 )
 
 from agent import Agent
-from constants import doubles_act_len, doubles_obs_len, singles_act_len, singles_obs_len
+from constants import doubles_act_len, doubles_chunk_obs_len, singles_act_len, singles_chunk_obs_len
+from data import moves
 from policy import MaskedActorCriticPolicy
 from teams import RandomTeamBuilder
 
 
-class ShowdownEnv(EnvPlayer[npt.NDArray[np.float64], ActType]):
+class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
     _teampreview_draft: list[str]
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -97,7 +98,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float64], ActType]):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[npt.NDArray[np.float64], dict[str, Any]]:
+    ) -> tuple[npt.NDArray[np.float32], dict[str, Any]]:
         assert isinstance(self._opponent, Player)
         if isinstance(self._opponent, Agent):
             self._opponent.frames.clear()
@@ -123,7 +124,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float64], ActType]):
         else:
             return 0
 
-    def embed_battle(self, battle: AbstractBattle) -> npt.NDArray[np.float64]:
+    def embed_battle(self, battle: AbstractBattle) -> npt.NDArray[np.float32]:
         return Agent.embed_battle(battle, self._teampreview_draft)
 
 
@@ -135,8 +136,8 @@ class ShowdownSinglesEnv(ShowdownEnv[np.int64]):
         assert isinstance(battle, Battle)
         return Agent.singles_action_to_move(int(action), battle)
 
-    def describe_embedding(self) -> Space[npt.NDArray[np.float64]]:
-        return Box(-1, 1, shape=(singles_obs_len,), dtype=np.float64)
+    def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
+        return Box(-1, len(moves), shape=(12, singles_chunk_obs_len), dtype=np.float32)
 
     def describe_action(self) -> Space[np.int64]:
         return Discrete(singles_act_len)
@@ -160,8 +161,8 @@ class ShowdownDoublesEnv(ShowdownEnv[npt.NDArray[np.integer]]):
             self._teampreview_draft += [team_names[action[0] - 1], team_names[action[1] - 1]]
         return Agent.doubles_action_to_move(action[0], action[1], battle)
 
-    def describe_embedding(self) -> Space[npt.NDArray[np.float64]]:
-        return Box(-1, 1, shape=(doubles_obs_len,), dtype=np.float64)
+    def describe_embedding(self) -> Space[npt.NDArray[np.float32]]:
+        return Box(-1, len(moves), shape=(12, doubles_chunk_obs_len), dtype=np.float32)
 
     def describe_action(self) -> Space[npt.NDArray[np.integer]]:
         return MultiDiscrete([doubles_act_len, doubles_act_len])

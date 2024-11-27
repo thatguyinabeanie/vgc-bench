@@ -12,7 +12,7 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 from torch import nn
 
-from constants import active_pokemon_obs_len, doubles_battle_obs_len, pokemon_obs_len
+from constants import doubles_chunk_obs_len, doubles_glob_obs_len, side_obs_len
 from data import abilities, items, moves
 
 
@@ -92,16 +92,16 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
     def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:
         if isinstance(self.action_space, Discrete):
-            mask = obs[:, -1, : self.action_space.n]  # type: ignore
+            mask = obs[:, -1, 0, : self.action_space.n]  # type: ignore
             mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
         else:
             act_len = self.action_space.nvec[0]  # type: ignore
             if ally_actions is None:
-                mask = obs[:, -1, : 2 * act_len]
+                mask = obs[:, -1, 0, : 2 * act_len]
             else:
-                mask = obs[:, -1, act_len : 2 * act_len]
+                mask = obs[:, -1, 0, act_len : 2 * act_len]
                 ally_switched = (1 <= ally_actions) & (ally_actions <= 6)
                 ally_terastallized = ally_actions >= 27
                 # creating a (batch_size, act_len) size array of 0..act_len - 1 ranges
@@ -111,7 +111,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
                     (indices == ally_actions) & ally_switched
                 )
                 mask = torch.where(ally_mask, 1.0, mask)
-                mask = torch.cat([obs[:, -1, :act_len], mask], dim=1)
+                mask = torch.cat([obs[:, -1, 0, :act_len], mask], dim=1)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
 
@@ -119,78 +119,71 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class AttentionExtractor(BaseFeaturesExtractor):
     num_pokemon: int = 12
     embed_len: int = 32
-    battle_proj_len: int = 32
-    active_pokemon_proj_len: int = 64
-    pokemon_proj_len: int = 64
-    frame_proj_len: int = 128
+    proj_len: int = 128
 
     def __init__(self, observation_space: Space[Any], num_frames: int):
-        super().__init__(observation_space, features_dim=self.frame_proj_len)
-        self.chunk_lens = (
-            [doubles_battle_obs_len]
-            + [active_pokemon_obs_len] * 4
-            + [pokemon_obs_len] * self.num_pokemon
-        )
+        super().__init__(observation_space, features_dim=self.proj_len)
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)
-        self.battle_proj = nn.Linear(doubles_battle_obs_len, self.battle_proj_len)
-        self.active_pokemon_proj = nn.Linear(active_pokemon_obs_len, self.active_pokemon_proj_len)
-        self.pokemon_proj = nn.Linear(
-            pokemon_obs_len + 6 * (self.embed_len - 1), self.pokemon_proj_len
+        self.feature_proj = nn.Linear(
+            doubles_chunk_obs_len + 6 * (self.embed_len - 1), self.proj_len
         )
-        self.register_buffer("frame_encoding", torch.eye(num_frames).unsqueeze(0))
-        self.frame_proj = nn.Linear(
-            self.battle_proj_len
-            + 4 * self.active_pokemon_proj_len
-            + self.num_pokemon * self.pokemon_proj_len
-            + num_frames,
-            self.frame_proj_len,
-        )
-        self.register_buffer("mask", nn.Transformer.generate_square_subsequent_mask(num_frames))
-        self.encoder = nn.TransformerEncoder(
+        self.cls_token = nn.Parameter(torch.randn(1, 1, self.proj_len))
+        self.frame_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
-                d_model=self.frame_proj_len,
+                d_model=self.proj_len,
                 nhead=4,
-                dim_feedforward=self.frame_proj_len,
+                dim_feedforward=self.proj_len,
                 dropout=0,
                 batch_first=True,
                 norm_first=True,
             ),
-            num_layers=5,
+            num_layers=3,
+        )
+        self.register_buffer("frame_encoding", torch.eye(num_frames).unsqueeze(0))
+        self.frame_proj = nn.Linear(self.proj_len + num_frames, self.proj_len)
+        self.register_buffer("mask", nn.Transformer.generate_square_subsequent_mask(num_frames))
+        self.meta_encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(
+                d_model=self.proj_len,
+                nhead=4,
+                dim_feedforward=self.proj_len,
+                dropout=0,
+                batch_first=True,
+                norm_first=True,
+            ),
+            num_layers=3,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
         num_frames = x.size(1)
-        # chunking sequence
-        chunks = x.split(self.chunk_lens, dim=2)
-        battle = chunks[0]
-        active_pokemons = torch.stack(chunks[1:5], dim=2)
-        pokemons = torch.stack(chunks[5:], dim=2)
         # embedding
-        pokemons = torch.cat(
+        start = doubles_glob_obs_len + side_obs_len
+        x = torch.cat(
             [
-                self.ability_embed.forward(pokemons[:, :, :, 0].long()),
-                self.item_embed.forward(pokemons[:, :, :, 1].long()),
-                self.move_embed.forward(pokemons[:, :, :, 2].long()),
-                self.move_embed.forward(pokemons[:, :, :, 3].long()),
-                self.move_embed.forward(pokemons[:, :, :, 4].long()),
-                self.move_embed.forward(pokemons[:, :, :, 5].long()),
-                pokemons[:, :, :, 6:],
+                x[:, :, :, :start],
+                self.ability_embed.forward(x[:, :, :, start].long()),
+                self.item_embed.forward(x[:, :, :, start + 1].long()),
+                self.move_embed.forward(x[:, :, :, start + 2].long()),
+                self.move_embed.forward(x[:, :, :, start + 3].long()),
+                self.move_embed.forward(x[:, :, :, start + 4].long()),
+                self.move_embed.forward(x[:, :, :, start + 5].long()),
+                x[:, :, :, start + 6 :],
             ],
             dim=3,
         )
-        # projections
-        battle = self.battle_proj.forward(battle)
-        active_pokemons = self.active_pokemon_proj.forward(active_pokemons)
-        pokemons = self.pokemon_proj.forward(pokemons)
+        # frame encoder
+        x = x.view(batch_size * num_frames, self.num_pokemon, -1)
+        x = self.feature_proj.forward(x)
+        token = self.cls_token.expand(batch_size * num_frames, -1, -1)
+        x = torch.cat([token, x], dim=1)
+        x = self.frame_encoder.forward(x)[:, 0, :]
+        x = x.view(batch_size, num_frames, -1)
+        # meta encoder
         frame_encoding = self.frame_encoding[:, -num_frames:, :].expand(batch_size, -1, -1)
-        frames = torch.cat(
-            [battle, active_pokemons.flatten(2), pokemons.flatten(2), frame_encoding], dim=2
-        )
-        frames = self.frame_proj.forward(frames)
-        # encode the frame sequence
+        x = torch.cat([x, frame_encoding], dim=2)
+        x = self.frame_proj.forward(x)
         mask = self.mask[-num_frames:, -num_frames:]
-        frames = self.encoder.forward(frames, mask=mask, is_causal=True)
-        return frames[:, -1, :]
+        return self.meta_encoder.forward(x, mask=mask, is_causal=True)[:, -1, :]
