@@ -1,22 +1,24 @@
 import json
+import os
 from typing import Any
 
 import requests
 
 
 def scrape():
-    print("Scraping replay data from pages 1-100")
-    battle_jsons = [
-        battle_json
-        for page in range(1, 101)
-        for battle_json in get_battle_jsons(page)
-        if battle_json["rating"] is None
-    ]
-    print(f"Retrieved {len(battle_jsons)} battle header jsons")
-    log_jsons = [get_log_json(battle_json["id"][16:]) for battle_json in battle_jsons]
-    print(f"Converted to {len(log_jsons)} battle logs")
-    logs = [lj["log"] for lj in log_jsons if "|showteam|" in lj["log"]]
-    print(f"Saving {len(logs)} battle logs with open sheets to json/human.json")
+    if os.path.exists("json/human.json"):
+        with open("json/human.json", "r") as f:
+            old_logs = json.load(f)
+        print(f"Loaded {len(old_logs)} logs from json/human.json")
+    else:
+        old_logs = {}
+    battle_jsons = [bj for p in range(1, 101) for bj in get_battle_jsons(p) if bj["rating"] is None]
+    print(f"Scraped {len(battle_jsons)} battle header jsons")
+    log_jsons = [get_log_json(bj["id"][16:]) for bj in battle_jsons]
+    new_logs = {lj["id"]: lj["log"] for lj in log_jsons if "|showteam|" in lj["log"]}
+    print(f"Filtered down to {len(new_logs)} battle logs with open sheets")
+    logs = {**old_logs, **new_logs}
+    print(f"Total new logs gathered: {len(logs) - len(old_logs)}")
     with open("json/human.json", "w") as f:
         json.dump(logs, f)
 
