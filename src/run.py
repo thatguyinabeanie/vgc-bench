@@ -1,6 +1,6 @@
 import argparse
-from subprocess import run
 import time
+from subprocess import run
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
