@@ -79,5 +79,4 @@ if __name__ == "__main__":
     assert args.num_teams or (args.teams and args.opp_teams)
     teams: list[int] = args.teams or list(range(args.num_teams))
     opp_teams: list[int] = args.opp_teams or list(range(args.num_teams))
-    while True:
-        train(teams, opp_teams, args.port, args.device)
+    train(teams, opp_teams, args.port, args.device)
