@@ -96,37 +96,60 @@ class HumanPlayer(Player):
         return states, orders
 
 
-def scrape():
+def scrape(increment: int):
     if os.path.exists("json/human.json"):
         with open("json/human.json", "r") as f:
             old_logs = json.load(f)
-        print(f"Loaded {len(old_logs)} logs from json/human.json")
+        log_times = [int(time) for time, _ in old_logs.values()]
+        before = min(log_times)
+        newest = max(log_times)
     else:
         old_logs = {}
-    battle_jsons = [bj for p in range(1, 101) for bj in get_battle_jsons(p) if bj["rating"] is None]
-    print(f"Scraped {len(battle_jsons)} battle header jsons")
-    log_jsons = [get_log_json(bj["id"][16:]) for bj in battle_jsons]
-    new_logs = {lj["id"]: lj["log"] for lj in log_jsons if "|showteam|" in lj["log"]}
-    print(f"Filtered down to {len(new_logs)} battle logs with open sheets")
+        before = 2_000_000_000
+        newest = None
+    print("total battle logs:", len(old_logs), end="\r")
+    battle_idents = get_battle_idents(increment, before + 1, newest)
+    log_jsons = [get_log_json(ident) for ident in battle_idents]
+    new_logs = {
+        lj["id"]: (lj["uploadtime"], lj["log"])
+        for lj in log_jsons
+        if lj is not None and "|showteam|" in lj["log"]
+    }
     logs = {**old_logs, **new_logs}
-    print(f"Total new logs gathered: {len(logs) - len(old_logs)}")
     with open("json/human.json", "w") as f:
         json.dump(logs, f)
 
 
-def get_battle_jsons(page: int) -> Any:
-    site = "https://replay.pokemonshowdown.com"
-    response = requests.get(f"{site}/search.json?format=gen9vgc2024regh&page={page}")
-    return json.loads(response.text)
+def get_battle_idents(num_battles: int, before: int, newest: int | None) -> list[str]:
+    battle_idents = set()
+    if newest is not None:
+        before_ = 2_000_000_000
+        while len(battle_idents) < num_battles and before >= newest:
+            battle_idents, before_ = update_battle_idents(battle_idents, before_)
+    while len(battle_idents) < num_battles:
+        battle_idents, before = update_battle_idents(battle_idents, before)
+    return list(battle_idents)[:num_battles]
 
 
-def get_log_json(ident: str) -> Any:
+def update_battle_idents(battle_idents: set[str], before: int) -> tuple[set[str], int]:
     site = "https://replay.pokemonshowdown.com"
-    response = requests.get(f"{site}/gen9vgc2024regh-{ident}.json")
-    return json.loads(response.text)
+    response = requests.get(f"{site}/search.json?format=gen9vgc2024regh&before={before}")
+    new_battle_jsons = json.loads(response.text)
+    before = new_battle_jsons[-1]["uploadtime"] + 1
+    battle_idents |= {bj["id"] for bj in new_battle_jsons if bj["rating"] is None}
+    return battle_idents, before
+
+
+def get_log_json(ident: str) -> dict[str, Any] | None:
+    site = "https://replay.pokemonshowdown.com"
+    response = requests.get(f"{site}/{ident}.json")
+    if response:
+        return json.loads(response.text)
 
 
 if __name__ == "__main__":
+    # while True:
+    #     scrape(1000)
     with open("json/human.json", "r") as f:
         log_jsons = json.load(f)
     player1 = HumanPlayer(
