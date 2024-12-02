@@ -158,7 +158,7 @@ if __name__ == "__main__":
     player2 = HumanPlayer(
         battle_format="gen9vgc2024regh", accept_open_team_sheet=True, start_listening=False
     )
-    tag, log = list(log_jsons.items())[0]
+    tag, (time, log) = list(log_jsons.items())[0]
     states1, orders1 = asyncio.run(player1.follow_log(tag, log, "p1"))
     states2, orders2 = asyncio.run(player2.follow_log(tag, log, "p2"))
     print(log)
