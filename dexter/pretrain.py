@@ -9,25 +9,24 @@ from src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from src.policy import MaskedActorCriticPolicy
 from src.reader import LogReader
 from stable_baselines3 import PPO
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
 def pretrain(teams: list[int], opp_teams: list[int], port: int, device: str):
-    num_envs = 32
+    num_envs = 1
     battle_format = "gen9vgc2024regh"
     num_frames = 3
     self_play = True
     env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
-    env = SubprocVecEnv(
-        [
-            lambda i=i: Monitor(
-                env_class.create_env(
-                    i, battle_format, num_frames, port, teams, opp_teams, self_play, device
-                )
-            )
-            for i in range(num_envs)
-        ]
+    env = env_class.create_env(
+        0,
+        battle_format,
+        num_frames,
+        port,
+        teams,
+        opp_teams,
+        self_play,
+        device,
+        start_listening=False,
     )
     ppo = PPO(
         MaskedActorCriticPolicy,

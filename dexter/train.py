@@ -30,7 +30,15 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         [
             lambda i=i: Monitor(
                 env_class.create_env(
-                    i, battle_format, num_frames, port, teams, opp_teams, self_play, device
+                    i,
+                    battle_format,
+                    num_frames,
+                    port,
+                    teams,
+                    opp_teams,
+                    self_play,
+                    device,
+                    start_listening=True,
                 )
             )
             for i in range(num_envs)
