@@ -41,6 +41,11 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
     if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
         files = os.listdir(f"saves/{run_name}")
         num_saved_timesteps = max([int(file[:-4]) for file in files])
+    if num_saved_timesteps == 0:
+        if not os.path.exists("logs"):
+            os.mkdir("logs")
+        with open(f"logs/{run_name}-win-rates.json", "w") as f:
+            json.dump([], f)
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
@@ -53,15 +58,8 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         policy_kwargs={"num_frames": num_frames},
         device=device,
     )
-    if num_saved_timesteps > 0:
-        ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
-        ppo.num_timesteps = num_saved_timesteps
-    else:
-        # pretrain(ppo)
-        if not os.path.exists("logs"):
-            os.mkdir("logs")
-        with open(f"logs/{run_name}-win-rates.json", "w") as f:
-            json.dump([], f)
+    ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
+    ppo.num_timesteps = num_saved_timesteps
     callback = Callback(steps, battle_format, num_frames, teams, opp_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()

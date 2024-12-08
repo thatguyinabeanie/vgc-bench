@@ -13,7 +13,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
-def pretrain(port: int, device: str):
+def pretrain(teams: list[int], opp_teams: list[int], port: int, device: str):
     num_envs = 32
     battle_format = "gen9vgc2024regh"
     num_frames = 3
@@ -52,6 +52,8 @@ def pretrain(port: int, device: str):
         demonstrations=trajs,
     )
     bc.train(n_epochs=10)
+    run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
+    ppo.save(f"saves/{run_name}/0")
 
 
 def process_logs(log_jsons: dict[str, tuple[str, str]], n: int) -> list[Trajectory]:
@@ -87,4 +89,4 @@ if __name__ == "__main__":
     assert args.num_teams or (args.teams and args.opp_teams)
     teams: list[int] = args.teams or list(range(args.num_teams))
     opp_teams: list[int] = args.opp_teams or list(range(args.num_teams))
-    pretrain(args.port, args.device)
+    pretrain(teams, opp_teams, args.port, args.device)
