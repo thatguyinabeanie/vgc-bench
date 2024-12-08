@@ -1,3 +1,4 @@
+imitation
 numpy==1.26.4  # tensorboard doesn't work with newer versions yet
 git+https://github.com/cameronangliss/poke-env.git@player-as-log-reader
 sentence-transformers

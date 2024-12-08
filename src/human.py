@@ -6,21 +6,25 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 import requests
+from imitation.data.types import Trajectory
 from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
-from poke_env.player import BattleOrder, DoubleBattleOrder, Player, DefaultBattleOrder
+from poke_env.player import BattleOrder, DefaultBattleOrder, DoubleBattleOrder, Player
 
 from agent import Agent
+from constants import doubles_act_len
 
 
 class HumanPlayer(Player):
-    state_action_pairs: list[tuple[npt.NDArray[np.float32], str]]
+    obs: list[npt.NDArray[np.float32]]
+    logits: list[npt.NDArray[np.float32]]
     next_msg: str | None
     teampreview_draft: list[str]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.state_action_pairs = []
+        self.obs = []
+        self.logits = []
         self.next_msg = None
         self.teampreview_draft = []
 
@@ -30,7 +34,7 @@ class HumanPlayer(Player):
         order1 = self.get_order(battle, self.next_msg, False)
         order2 = self.get_order(battle, self.next_msg, True)
         order = DoubleBattleOrder(order1, order2)
-        self.state_action_pairs.append((Agent.embed_battle(battle, self.teampreview_draft), str(order)))
+        self.embed_data_pair(battle, order)
         return order
 
     @staticmethod
@@ -48,7 +52,9 @@ class HumanPlayer(Player):
             if to_id_str(move_msg_parts[3]) == "struggle":
                 return DefaultBattleOrder()
             move_name = to_id_str(move_msg_parts[3])
-            move = active.moves[move_name] if move_name in active.moves else active.moves["metronome"]
+            move = (
+                active.moves[move_name] if move_name in active.moves else active.moves["metronome"]
+            )
             labels = ["p1a", "p1b", "p2a", "p2b"]
             target = (
                 None
@@ -81,18 +87,24 @@ class HumanPlayer(Player):
 
     def teampreview(self, battle: AbstractBattle) -> str:
         assert self.next_msg is not None
+        assert isinstance(battle, DoubleBattle)
         id1 = self.get_teampreview_order(battle, self.next_msg, True)
         id2 = self.get_teampreview_order(battle, self.next_msg, False)
         all_choices = [str(c) for c in range(1, 7)]
-        all_choices.remove(id1)
-        all_choices.remove(id2)
-        order = f"/team {id1}{id2}{all_choices[0]}{all_choices[1]}"
-        self.teampreview_draft = [p.name for i, p in enumerate(battle.team.values()) if i + 1 in [id1, id2]]
-        self.state_action_pairs.append((Agent.embed_battle(battle, self.teampreview_draft), order))
-        return order
+        all_choices.remove(str(id1))
+        all_choices.remove(str(id2))
+        order_str = f"/team {id1}{id2}{all_choices[0]}{all_choices[1]}"
+        order1 = BattleOrder(list(battle.team.values())[id1 - 1])
+        order2 = BattleOrder(list(battle.team.values())[id2 - 1])
+        order = DoubleBattleOrder(order1, order2)
+        self.embed_data_pair(battle, order)
+        self.teampreview_draft = [
+            p.name for i, p in enumerate(battle.team.values()) if i + 1 in [id1, id2]
+        ]
+        return order_str
 
     @staticmethod
-    def get_teampreview_order(battle: AbstractBattle, msg: str, is_left: bool) -> str:
+    def get_teampreview_order(battle: AbstractBattle, msg: str, is_left: bool) -> int:
         pos = "a" if is_left else "b"
         start = msg.index(f"|switch|{battle.player_role}{pos}: ")
         end = msg.index("\n", start)
@@ -103,52 +115,75 @@ class HumanPlayer(Player):
             for i, p in enumerate(battle.team.values())
             if to_id_str(form).startswith(to_id_str(p._last_details.split(", ")[0]))
         ][0]
-        return str(index + 1)
+        return index + 1
 
-    async def follow_log(self, tag: str, log: str, role: str) -> list[tuple[npt.NDArray[np.float32], str]]:
-        assert not self.state_action_pairs
+    def embed_data_pair(self, battle: DoubleBattle, order: DoubleBattleOrder):
+        obs = Agent.embed_battle(battle, self.teampreview_draft)
+        action1, action2 = Agent.doubles_order_to_action(order, battle)
+        action_logits = np.zeros(2 * doubles_act_len, dtype=np.float32)
+        action_logits[action1] = 1
+        action_logits[action2] = 1
+        self.obs += [obs]
+        self.logits += [action_logits]
+
+    async def follow_log(
+        self, tag: str, log: str, role: str
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+        self.obs = []
+        self.logits = []
+        self.teampreview_draft = []
         tag = f"battle-{tag}"
         messages = [f">{tag}\n" + m for m in log.split("\n|\n")]
-        for i in range(len(messages) - 2):
+        for i in range(len(messages) - 1):
+            split_messages = [m.split("|") for m in messages[i].split("\n")]
             self.next_msg = messages[i + 1]
             if i == 0:
                 battle = await self._create_battle(f">{tag}".split("-"))
                 battle.logger = None
                 battle._player_role = role
                 battle._teampreview = True
-            split_messages = [m.split("|") for m in messages[i].split("\n")]
-            await self._handle_battle_message(split_messages)
-            if i > 0:
+                await self._handle_battle_message(split_messages)
+            else:
                 battle = self.battles[tag]
+                battle._teampreview = False
+                await self._handle_battle_message(split_messages)
                 self.choose_move(battle)
-        pairs = self.state_action_pairs
-        self.state_action_pairs = []
-        return pairs
+        split_messages = [m.split("|") for m in messages[-1].split("\n")]
+        await self._handle_battle_message(split_messages)
+        last_obs = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
+        self.obs += [last_obs]
+        return np.stack(self.obs, axis=0), np.stack(self.logits, axis=0)
 
 
-def process_logs(
-    log_jsons: dict[str, tuple[str, str]], n: int
-) -> list[tuple[AbstractBattle, str]]:
-    state_action_pairs = []
+def process_logs(log_jsons: dict[str, tuple[str, str]], n: int) -> list[Trajectory]:
+    trajs = []
     for i, (tag, (_, log)) in enumerate(log_jsons.items()):
         if i == n:
             break
-        print(f"conversion progress: {round(100 * i / min(n, len(log_jsons)), ndigits=2)}%", end="\r")
+        print(
+            f"conversion progress: {round(100 * i / min(n, len(log_jsons)), ndigits=2)}%",
+            end="\r",
+            flush=True,
+        )
         player1 = HumanPlayer(
             battle_format="gen9vgc2024regh", accept_open_team_sheet=True, start_listening=False
         )
         player2 = HumanPlayer(
             battle_format="gen9vgc2024regh", accept_open_team_sheet=True, start_listening=False
         )
-        state_action_pairs += asyncio.run(player1.follow_log(tag, log, "p1"))
-        state_action_pairs += asyncio.run(player2.follow_log(tag, log, "p2"))
-    print("done!")
-    return state_action_pairs
+        obs1, logits1 = asyncio.run(player1.follow_log(tag, log, "p1"))
+        obs2, logits2 = asyncio.run(player2.follow_log(tag, log, "p2"))
+        trajs += [
+            Trajectory(obs=obs1, acts=logits1, infos=None, terminal=True),
+            Trajectory(obs=obs2, acts=logits2, infos=None, terminal=True),
+        ]
+    print("done!", flush=True)
+    return trajs
 
 
 def scrape(increment: int):
-    if os.path.exists("json/human-logs.json"):
-        with open("json/human-logs.json", "r") as f:
+    if os.path.exists("json/human.json"):
+        with open("json/human.json", "r") as f:
             old_logs = json.load(f)
         log_times = [int(time) for time, _ in old_logs.values()]
         before = min(log_times)
@@ -171,7 +206,7 @@ def scrape(increment: int):
         and "Zorua" not in lj["log"]
     }
     logs = {**old_logs, **new_logs}
-    with open("json/human-logs.json", "w") as f:
+    with open("json/human.json", "w") as f:
         json.dump(logs, f)
 
 

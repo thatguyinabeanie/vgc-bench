@@ -4,13 +4,30 @@ import os
 import time
 from subprocess import PIPE, STDOUT, Popen
 
+import numpy as np
+from imitation.algorithms.bc import BC
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from callback import Callback
 from env import ShowdownDoublesEnv, ShowdownSinglesEnv
+from human import process_logs
 from policy import MaskedActorCriticPolicy
+
+
+def pretrain(ppo: PPO):
+    with open("json/human.json", "r") as f:
+        logs = json.load(f)
+    trajs = process_logs(logs, 100)
+    bc = BC(
+        observation_space=ppo.observation_space,
+        action_space=ppo.action_space,
+        rng=np.random.default_rng(0),
+        policy=ppo.policy,
+        demonstrations=trajs,
+    )
+    bc.train(n_epochs=10)
 
 
 def train(teams: list[int], opp_teams: list[int], port: int, device: str):
@@ -58,6 +75,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
         ppo.num_timesteps = num_saved_timesteps
     else:
+        pretrain(ppo)
         if not os.path.exists("logs"):
             os.mkdir("logs")
         with open(f"logs/{run_name}-win-rates.json", "w") as f:

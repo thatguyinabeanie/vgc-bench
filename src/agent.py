@@ -11,6 +11,7 @@ from poke_env.environment import (
     DoubleBattle,
     Effect,
     Field,
+    Move,
     Pokemon,
     PokemonGender,
     PokemonType,
@@ -159,9 +160,8 @@ class Agent(Player):
     @staticmethod
     def action_to_move_ind(action: int, battle: DoubleBattle, pos: int) -> BattleOrder | None:
         action_space = Agent.get_action_space(battle, pos)
-        if action not in action_space:
-            raise LookupError(f"{action} not in {action_space}")
-        elif action == 0:
+        assert action in action_space, f"{action} not in {action_space}"
+        if action == 0:
             order = None
         elif action < 7:
             order = Player.create_order(list(battle.team.values())[action - 1])
@@ -180,6 +180,32 @@ class Agent(Player):
                 move_target=(int(action) - 7) % 5 - 2,
             )
         return order
+
+    @staticmethod
+    def doubles_order_to_action(order: DoubleBattleOrder, battle: DoubleBattle) -> tuple[int, int]:
+        action1 = Agent.order_to_action_ind(order.first_order, battle, pos=0)
+        action2 = Agent.order_to_action_ind(order.second_order, battle, pos=1)
+        return action1, action2
+
+    @staticmethod
+    def order_to_action_ind(order: BattleOrder | None, battle: DoubleBattle, pos: int) -> int:
+        if order is None:
+            action = 0
+        else:
+            order_item = order.order
+            if isinstance(order_item, Pokemon):
+                index = [p.name for p in battle.team.values()].index(order_item.name)
+                action = 1 + index
+            elif isinstance(order_item, Move):
+                active = battle.active_pokemon[pos]
+                assert active is not None
+                index = [m.id for m in active.moves.values()].index(order_item.id)
+                tera = 20 if order.terastallize else 0
+                target = order.move_target + 2
+                action = 7 + 5 * index + target + tera
+            else:
+                raise ValueError()
+        return action
 
     @staticmethod
     def embed_battle(
