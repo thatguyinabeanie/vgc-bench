@@ -5,15 +5,14 @@ from typing import Any
 import torch
 from gymnasium import Space
 from gymnasium.spaces import Discrete
+from src.constants import doubles_chunk_obs_len, doubles_glob_obs_len, side_obs_len
+from src.data import abilities, items, moves
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution, MultiCategoricalDistribution
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs
 from torch import nn
-
-from constants import doubles_chunk_obs_len, doubles_glob_obs_len, side_obs_len
-from data import abilities, items, moves
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):

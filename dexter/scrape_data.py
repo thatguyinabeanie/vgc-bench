@@ -3,8 +3,6 @@ import os
 import re
 import warnings
 
-import numpy as np
-import numpy.typing as npt
 import requests
 from sentence_transformers import SentenceTransformer
 from sklearn.decomposition import PCA
@@ -48,15 +46,3 @@ if __name__ == "__main__":
     update_desc_embeddings(
         "https://play.pokemonshowdown.com/data", "moves.js", extras={"no move": {"desc": "no move"}}
     )
-with open("json/abilities.json") as f:
-    ability_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
-    abilities = list(ability_descs.keys())
-    ability_embeds = list(ability_descs.values())
-with open("json/items.json") as f:
-    item_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
-    items = list(item_descs.keys())
-    item_embeds = list(item_descs.values())
-with open("json/moves.json") as f:
-    move_descs: dict[str, npt.NDArray[np.float32]] = json.load(f)
-    moves = list(move_descs.keys())
-    move_embeds = list(move_descs.values())

@@ -6,12 +6,11 @@ import warnings
 
 from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
+from src.agent import Agent
+from src.policy import MaskedActorCriticPolicy
+from src.teams import RandomTeamBuilder
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
-
-from agent import Agent
-from policy import MaskedActorCriticPolicy
-from teams import RandomTeamBuilder
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

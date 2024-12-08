@@ -1,28 +1,20 @@
-import asyncio
-import json
-import os
-from typing import Any
-
 import numpy as np
 import numpy.typing as npt
-import requests
-from imitation.data.types import Trajectory
 from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
 from poke_env.player import BattleOrder, DefaultBattleOrder, DoubleBattleOrder, Player
+from src.agent import Agent
+from src.constants import doubles_act_len
 
-from agent import Agent
-from constants import doubles_act_len
 
-
-class HumanPlayer(Player):
+class LogReader(Player):
     obs: list[npt.NDArray[np.float32]]
     logits: list[npt.NDArray[np.float32]]
     next_msg: str | None
     teampreview_draft: list[str]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(start_listening=False, *args, **kwargs)
         self.obs = []
         self.logits = []
         self.next_msg = None
@@ -153,95 +145,3 @@ class HumanPlayer(Player):
         last_obs = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
         self.obs += [last_obs]
         return np.stack(self.obs, axis=0), np.stack(self.logits, axis=0)
-
-
-def process_logs(log_jsons: dict[str, tuple[str, str]], n: int) -> list[Trajectory]:
-    trajs = []
-    for i, (tag, (_, log)) in enumerate(log_jsons.items()):
-        if i == n:
-            break
-        print(
-            f"conversion progress: {round(100 * i / min(n, len(log_jsons)), ndigits=2)}%",
-            end="\r",
-            flush=True,
-        )
-        player1 = HumanPlayer(
-            battle_format="gen9vgc2024regh", accept_open_team_sheet=True, start_listening=False
-        )
-        player2 = HumanPlayer(
-            battle_format="gen9vgc2024regh", accept_open_team_sheet=True, start_listening=False
-        )
-        obs1, logits1 = asyncio.run(player1.follow_log(tag, log, "p1"))
-        obs2, logits2 = asyncio.run(player2.follow_log(tag, log, "p2"))
-        trajs += [
-            Trajectory(obs=obs1, acts=logits1, infos=None, terminal=True),
-            Trajectory(obs=obs2, acts=logits2, infos=None, terminal=True),
-        ]
-    print("done!", flush=True)
-    return trajs
-
-
-def scrape(increment: int):
-    if os.path.exists("json/human.json"):
-        with open("json/human.json", "r") as f:
-            old_logs = json.load(f)
-        log_times = [int(time) for time, _ in old_logs.values()]
-        before = min(log_times)
-        newest = max(log_times)
-    else:
-        old_logs = {}
-        before = 2_000_000_000
-        newest = None
-    print("total battle logs:", len(old_logs), end="\r")
-    battle_idents = get_battle_idents(increment, before + 1, newest)
-    log_jsons = [get_log_json(ident) for ident in battle_idents]
-    new_logs = {
-        lj["id"]: (lj["uploadtime"], lj["log"])
-        for lj in log_jsons
-        if lj is not None
-        and lj["log"].count("|poke|p1|") == 6
-        and lj["log"].count("|poke|p2|") == 6
-        and "|showteam|" in lj["log"]
-        and "Zoroark" not in lj["log"]
-        and "Zorua" not in lj["log"]
-    }
-    logs = {**old_logs, **new_logs}
-    with open("json/human.json", "w") as f:
-        json.dump(logs, f)
-
-
-def get_battle_idents(num_battles: int, before: int, newest: int | None) -> list[str]:
-    battle_idents = set()
-    if newest is not None:
-        before_ = 2_000_000_000
-        while len(battle_idents) < num_battles and before >= newest:
-            battle_idents, before_ = update_battle_idents(battle_idents, before_)
-    while len(battle_idents) < num_battles:
-        battle_idents, before = update_battle_idents(battle_idents, before)
-    return list(battle_idents)[:num_battles]
-
-
-def update_battle_idents(battle_idents: set[str], before: int) -> tuple[set[str], int]:
-    site = "https://replay.pokemonshowdown.com"
-    format_str = "gen9vgc2024regh"
-    response = requests.get(f"{site}/search.json?format={format_str}&before={before}")
-    new_battle_jsons = json.loads(response.text)
-    before = new_battle_jsons[-1]["uploadtime"] + 1
-    battle_idents |= {
-        bj["id"]
-        for bj in new_battle_jsons
-        if bj["id"].startswith(format_str) and bj["rating"] is None
-    }
-    return battle_idents, before
-
-
-def get_log_json(ident: str) -> dict[str, Any] | None:
-    site = "https://replay.pokemonshowdown.com"
-    response = requests.get(f"{site}/{ident}.json")
-    if response:
-        return json.loads(response.text)
-
-
-if __name__ == "__main__":
-    while True:
-        scrape(1000)

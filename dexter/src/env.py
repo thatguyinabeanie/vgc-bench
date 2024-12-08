@@ -19,12 +19,16 @@ from poke_env.player import (
     RandomPlayer,
     SimpleHeuristicsPlayer,
 )
-
-from agent import Agent
-from constants import doubles_act_len, doubles_chunk_obs_len, singles_act_len, singles_chunk_obs_len
-from data import moves
-from policy import MaskedActorCriticPolicy
-from teams import RandomTeamBuilder
+from src.agent import Agent
+from src.constants import (
+    doubles_act_len,
+    doubles_chunk_obs_len,
+    singles_act_len,
+    singles_chunk_obs_len,
+)
+from src.data import moves
+from src.policy import MaskedActorCriticPolicy
+from src.teams import RandomTeamBuilder
 
 
 class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):

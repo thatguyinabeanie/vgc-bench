@@ -8,8 +8,22 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int)
     parser.add_argument("--device", type=str)
     args = parser.parse_args()
-    while True:
-        with open("debug.log", "w") as debug_log:
+    with open("debug.log", "w") as debug_log:
+        result = run(
+            [
+                "python",
+                "src/pretrain.py",
+                "--num_teams",
+                str(args.num_teams),
+                "--port",
+                str(args.port),
+                "--device",
+                str(args.device),
+            ],
+            stdout=debug_log,
+            stderr=debug_log,
+        )
+        while True:
             result = run(
                 [
                     "python",
@@ -24,5 +38,5 @@ if __name__ == "__main__":
                 stdout=debug_log,
                 stderr=debug_log,
             )
-        if result.returncode == 1:
-            time.sleep(10)
+            if result.returncode == 1:
+                time.sleep(10)
