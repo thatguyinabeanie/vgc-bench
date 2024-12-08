@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
-from poke_env.player import BattleOrder, DefaultBattleOrder, DoubleBattleOrder, Player
+from poke_env.player import BattleOrder, DoubleBattleOrder, Player
 from src.agent import Agent
 from src.constants import doubles_act_len
 
@@ -42,11 +42,14 @@ class LogReader(Player):
             assert active is not None, battle.active_pokemon
             move_msg_parts = move_lines[0].split("|")
             if to_id_str(move_msg_parts[3]) == "struggle":
-                return DefaultBattleOrder()
-            move_name = to_id_str(move_msg_parts[3])
-            move = (
-                active.moves[move_name] if move_name in active.moves else active.moves["metronome"]
-            )
+                move = list(active.moves.values())[0]
+            else:
+                move_name = to_id_str(move_msg_parts[3])
+                move = (
+                    active.moves[move_name]
+                    if move_name in active.moves
+                    else active.moves["metronome"]
+                )
             labels = ["p1a", "p1b", "p2a", "p2b"]
             target = (
                 None

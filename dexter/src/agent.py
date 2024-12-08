@@ -253,15 +253,21 @@ class Agent(Player):
         battle: AbstractBattle, teampreview_draft: list[str]
     ) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
-            action_space = Agent.get_action_space(battle)
-            mask = [float(i not in action_space) for i in range(singles_act_len)]
+            if not battle._last_request:
+                mask = np.zeros(singles_act_len)
+            else:
+                action_space = Agent.get_action_space(battle)
+                mask = [float(i not in action_space) for i in range(singles_act_len)]
             force_switch = [float(battle.force_switch), 0]
         elif isinstance(battle, DoubleBattle):
-            action_space1 = Agent.get_action_space(battle, 0)
-            mask1 = [float(i not in action_space1) for i in range(doubles_act_len)]
-            action_space2 = Agent.get_action_space(battle, 1)
-            mask2 = [float(i not in action_space2) for i in range(doubles_act_len)]
-            mask = mask1 + mask2
+            if not battle._last_request:
+                mask = np.zeros(2 * doubles_act_len)
+            else:
+                action_space1 = Agent.get_action_space(battle, 0)
+                mask1 = [float(i not in action_space1) for i in range(doubles_act_len)]
+                action_space2 = Agent.get_action_space(battle, 1)
+                mask2 = [float(i not in action_space2) for i in range(doubles_act_len)]
+                mask = mask1 + mask2
             force_switch = [float(f) for f in battle.force_switch]
         else:
             raise TypeError()

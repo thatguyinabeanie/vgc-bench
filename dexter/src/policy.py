@@ -43,10 +43,13 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def forward(
         self, obs: torch.Tensor, deterministic: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if len(obs.size()) == 3:
+            obs = obs.unsqueeze(1)
         action_logits, value_logits = self.get_logits(obs)
         distribution = self.get_dist_from_logits(obs, action_logits)
         actions = distribution.get_actions(deterministic=deterministic)
         if isinstance(distribution, MultiCategoricalDistribution):
+            print("this?")
             distribution2 = self.get_dist_from_logits(obs, action_logits, actions[:, :1])
             assert isinstance(distribution2, MultiCategoricalDistribution)
             actions2 = distribution2.get_actions(deterministic=deterministic)
@@ -60,6 +63,10 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         self, obs: PyTorchObs, actions: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
         assert isinstance(obs, torch.Tensor)
+        if len(obs.size()) == 3:
+            obs = obs.unsqueeze(1)
+        if obs.device != actions.device:
+            actions = actions.to(obs.device)
         action_logits, value_logits = self.get_logits(obs)
         distribution = self.get_dist_from_logits(obs, action_logits)
         if isinstance(distribution, MultiCategoricalDistribution):
