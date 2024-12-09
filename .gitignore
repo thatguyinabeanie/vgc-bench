@@ -1,8 +1,7 @@
 __pycache__
-.vscode
-bin
-json
-logs*
-saves*
+bin/
+json/
+logs*/
+saves*/
 debug.log
 profile.prof
