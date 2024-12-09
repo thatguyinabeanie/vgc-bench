@@ -62,13 +62,13 @@ def process_logs(log_jsons: dict[str, tuple[str, str]]) -> list[Trajectory]:
         result1 = asyncio.run(player1.follow_log(tag, log, "p1"))
         result2 = asyncio.run(player2.follow_log(tag, log, "p2"))
         if result1 is not None:
-            obs1, logits1 = result1
-            total += len(obs1)
-            trajs += [Trajectory(obs=obs1, acts=logits1, infos=None, terminal=True)]
+            states1, actions1 = result1
+            total += len(states1)
+            trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
         if result2 is not None:
-            obs2, logits2 = result2
-            total += len(obs2)
-            trajs += [Trajectory(obs=obs2, acts=logits2, infos=None, terminal=True)]
+            states2, actions2 = result2
+            total += len(states2)
+            trajs += [Trajectory(obs=states2, acts=actions2, infos=None, terminal=True)]
     print(f"prepared {len(trajs)} trajectories with {total} total state-action pairs", flush=True)
     return trajs
 
