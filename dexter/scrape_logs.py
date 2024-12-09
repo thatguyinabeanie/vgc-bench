@@ -6,8 +6,8 @@ import requests
 
 
 def scrape_logs(increment: int):
-    if os.path.exists("data/human.json"):
-        with open("data/human.json", "r") as f:
+    if os.path.exists("data/logs.json"):
+        with open("data/logs.json", "r") as f:
             old_logs = json.load(f)
         log_times = [int(time) for time, _ in old_logs.values()]
         before = min(log_times)
@@ -30,7 +30,7 @@ def scrape_logs(increment: int):
         and "Zorua" not in lj["log"]
     }
     logs = {**old_logs, **new_logs}
-    with open("data/human.json", "w") as f:
+    with open("data/logs.json", "w") as f:
         json.dump(logs, f)
 
 
