@@ -25,8 +25,8 @@ self_play = True
 steps = 98_304
 
 env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
-opp_teams = list(range(16))
-teams = list(range(16))
+opp_teams = list(range(num_teams))
+teams = list(range(num_teams))
 run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
 
 
