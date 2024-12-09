@@ -4,19 +4,18 @@ from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
 from poke_env.player import BattleOrder, DoubleBattleOrder, Player
 from src.agent import Agent
-from src.constants import doubles_act_len
 
 
 class LogReader(Player):
     obs: list[npt.NDArray[np.float32]]
-    logits: list[npt.NDArray[np.float32]]
+    actions: list[npt.NDArray[np.int32]]
     next_msg: str | None
     teampreview_draft: list[str]
 
     def __init__(self, *args, **kwargs):
         super().__init__(start_listening=False, *args, **kwargs)
         self.obs = []
-        self.logits = []
+        self.actions = []
         self.next_msg = None
         self.teampreview_draft = []
 
@@ -26,7 +25,10 @@ class LogReader(Player):
         order1 = self.get_order(battle, self.next_msg, False)
         order2 = self.get_order(battle, self.next_msg, True)
         order = DoubleBattleOrder(order1, order2)
-        self.embed_data_pair(battle, order)
+        obs = Agent.embed_battle(battle, self.teampreview_draft)
+        action = Agent.doubles_order_to_action(order, battle)
+        self.obs += [obs]
+        self.actions += [action]
         return order
 
     @staticmethod
@@ -92,7 +94,10 @@ class LogReader(Player):
         order1 = BattleOrder(list(battle.team.values())[id1 - 1])
         order2 = BattleOrder(list(battle.team.values())[id2 - 1])
         order = DoubleBattleOrder(order1, order2)
-        self.embed_data_pair(battle, order)
+        obs = Agent.embed_battle(battle, self.teampreview_draft)
+        action = Agent.doubles_order_to_action(order, battle)
+        self.obs += [obs]
+        self.actions += [action]
         self.teampreview_draft = [
             p.name for i, p in enumerate(battle.team.values()) if i + 1 in [id1, id2]
         ]
@@ -112,20 +117,11 @@ class LogReader(Player):
         ][0]
         return index + 1
 
-    def embed_data_pair(self, battle: DoubleBattle, order: DoubleBattleOrder):
-        obs = Agent.embed_battle(battle, self.teampreview_draft)
-        action1, action2 = Agent.doubles_order_to_action(order, battle)
-        action_logits = np.zeros(2 * doubles_act_len, dtype=np.float32)
-        action_logits[action1] = 1
-        action_logits[action2] = 1
-        self.obs += [obs]
-        self.logits += [action_logits]
-
     async def follow_log(
         self, tag: str, log: str, role: str
-    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]] | None:
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int32]] | None:
         self.obs = []
-        self.logits = []
+        self.actions = []
         self.teampreview_draft = []
         tag = f"battle-{tag}"
         messages = [f">{tag}\n" + m for m in log.split("\n|\n")]
@@ -149,4 +145,4 @@ class LogReader(Player):
         await self._handle_battle_message(split_messages)
         last_obs = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
         self.obs += [last_obs]
-        return np.stack(self.obs, axis=0), np.stack(self.logits, axis=0)
+        return np.stack(self.obs, axis=0), np.stack(self.actions, axis=0)

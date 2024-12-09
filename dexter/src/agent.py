@@ -181,10 +181,10 @@ class Agent(Player):
         return order
 
     @staticmethod
-    def doubles_order_to_action(order: DoubleBattleOrder, battle: DoubleBattle) -> tuple[int, int]:
+    def doubles_order_to_action(order: DoubleBattleOrder, battle: DoubleBattle) -> npt.NDArray[np.int32]:
         action1 = Agent.order_to_action_ind(order.first_order, battle, pos=0)
         action2 = Agent.order_to_action_ind(order.second_order, battle, pos=1)
-        return action1, action2
+        return np.array([action1, action2])
 
     @staticmethod
     def order_to_action_ind(order: BattleOrder | None, battle: DoubleBattle, pos: int) -> int:
