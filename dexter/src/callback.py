@@ -6,11 +6,12 @@ import warnings
 
 from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
-from src.agent import Agent
-from src.policy import MaskedActorCriticPolicy
-from src.teams import RandomTeamBuilder
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
+
+from dexter.src.agent import Agent
+from dexter.src.policy import MaskedActorCriticPolicy
+from dexter.src.teams import RandomTeamBuilder
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -32,6 +33,10 @@ class Callback(BaseCallback):
         self.run_name = (
             f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
         )
+        if not os.path.exists("logs"):
+            os.mkdir("logs")
+            with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
+                json.dump([], f)
         with open(f"logs/{self.run_name}-win-rates.json") as f:
             self.win_rates = json.load(f)
         if self_play:

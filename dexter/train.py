@@ -1,18 +1,67 @@
-import argparse
-import json
 import os
+import pickle
 import time
 from subprocess import PIPE, STDOUT, Popen
 
-from src.callback import Callback
-from src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
-from src.policy import MaskedActorCriticPolicy
+import numpy as np
+from imitation.algorithms.bc import BC
+from poke_env import AccountConfiguration
+from poke_env.player import RandomPlayer
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
+from dexter.src.callback import Callback
+from dexter.src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
+from dexter.src.policy import MaskedActorCriticPolicy
 
-def train(teams: list[int], opp_teams: list[int], port: int, device: str):
+battle_format = "gen9vgc2024regh"
+device = "cuda:3"
+num_envs = 32
+num_frames = 3
+opp_teams = list(range(16))
+port = 8000
+self_play = True
+steps = 98_304
+teams = list(range(16))
+
+run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
+env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
+
+
+def pretrain():
+    env = env_class(
+        RandomPlayer(
+            account_configuration=AccountConfiguration("DummyPlayer", None),
+            battle_format=battle_format,
+            log_level=40,
+            accept_open_team_sheet=True,
+            start_listening=False,
+        ),
+        account_configuration=AccountConfiguration(f"DummyEnv", None),
+        battle_format=battle_format,
+        log_level=40,
+        accept_open_team_sheet=True,
+        start_listening=False,
+    )
+    ppo = PPO(MaskedActorCriticPolicy, env, policy_kwargs={"num_frames": num_frames}, device=device)
+    print("loading trajectories...", flush=True)
+    with open("data/trajs.pkl", "rb") as f:
+        trajs = pickle.load(f)
+    print(f"loaded {len(trajs)} trajectories", flush=True)
+    bc = BC(
+        observation_space=ppo.observation_space,
+        action_space=ppo.action_space,
+        rng=np.random.default_rng(0),
+        policy=ppo.policy,
+        demonstrations=trajs,
+        device=device,
+    )
+    bc.train(n_epochs=10)
+    ppo.save(f"saves/{run_name}/0")
+
+
+def train():
     server = Popen(
         ["node", "pokemon-showdown", "start", str(port), "--no-security"],
         stdout=PIPE,
@@ -20,40 +69,16 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         cwd="pokemon-showdown",
     )
     time.sleep(10)
-    steps = 98_304
-    num_envs = 32
-    battle_format = "gen9vgc2024regh"
-    num_frames = 3
-    self_play = True
-    env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
                 env_class.create_env(
-                    i,
-                    battle_format,
-                    num_frames,
-                    port,
-                    teams,
-                    opp_teams,
-                    self_play,
-                    device,
-                    start_listening=True,
+                    i, battle_format, num_frames, port, teams, opp_teams, self_play, device
                 )
             )
             for i in range(num_envs)
         ]
     )
-    run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
-    num_saved_timesteps = 0
-    if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
-        files = os.listdir(f"saves/{run_name}")
-        num_saved_timesteps = max([int(file[:-4]) for file in files])
-    if num_saved_timesteps == 0:
-        if not os.path.exists("logs"):
-            os.mkdir("logs")
-        with open(f"logs/{run_name}-win-rates.json", "w") as f:
-            json.dump([], f)
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
@@ -66,8 +91,9 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
         policy_kwargs={"num_frames": num_frames},
         device=device,
     )
-    ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
+    num_saved_timesteps = max([int(file[:-4]) for file in os.listdir(f"saves/{run_name}")])
     ppo.num_timesteps = num_saved_timesteps
+    ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
     callback = Callback(steps, battle_format, num_frames, teams, opp_teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()
@@ -75,14 +101,7 @@ def train(teams: list[int], opp_teams: list[int], port: int, device: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--teams", nargs="+", type=int, required=False)
-    parser.add_argument("--opp_teams", nargs="+", type=int, required=False)
-    parser.add_argument("--num_teams", type=int, required=False)
-    parser.add_argument("--port", type=int)
-    parser.add_argument("--device", type=str)
-    args = parser.parse_args()
-    assert args.num_teams or (args.teams and args.opp_teams)
-    teams: list[int] = args.teams or list(range(args.num_teams))
-    opp_teams: list[int] = args.opp_teams or list(range(args.num_teams))
-    train(teams, opp_teams, args.port, args.device)
+    if not os.path.exists(f"saves/{run_name}/0.zip"):
+        pretrain()
+    while True:
+        train()

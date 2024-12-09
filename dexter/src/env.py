@@ -19,16 +19,17 @@ from poke_env.player import (
     RandomPlayer,
     SimpleHeuristicsPlayer,
 )
-from src.agent import Agent
-from src.constants import (
+
+from dexter.src.agent import Agent
+from dexter.src.policy import MaskedActorCriticPolicy
+from dexter.src.teams import RandomTeamBuilder
+from dexter.src.utils import (
     doubles_act_len,
     doubles_chunk_obs_len,
+    moves,
     singles_act_len,
     singles_chunk_obs_len,
 )
-from src.data import moves
-from src.policy import MaskedActorCriticPolicy
-from src.teams import RandomTeamBuilder
 
 
 class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
@@ -49,7 +50,6 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
         opp_teams: list[int],
         self_play: bool,
         device: str,
-        start_listening: bool,
     ) -> FrameStack:
         if self_play:
             num_gpus = torch.cuda.device_count()
@@ -69,7 +69,6 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 log_level=40,
                 accept_open_team_sheet=True,
                 team=RandomTeamBuilder(opp_teams, battle_format),
-                start_listening=start_listening,
             )
         else:
             opp_classes = (
@@ -87,7 +86,6 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
                 log_level=40,
                 accept_open_team_sheet=True,
                 team=RandomTeamBuilder(opp_teams, battle_format),
-                start_listening=start_listening,
             )
         env = cls(
             opponent,
@@ -100,7 +98,6 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             log_level=40,
             accept_open_team_sheet=True,
             team=RandomTeamBuilder(teams, battle_format),
-            start_listening=start_listening,
         )
         return FrameStack(env, num_frames)
 

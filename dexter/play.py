@@ -5,9 +5,10 @@ import os
 
 import numpy as np
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
-from src.agent import Agent
-from src.teams import RandomTeamBuilder
 from stable_baselines3 import PPO
+
+from dexter.src.agent import Agent
+from dexter.src.teams import RandomTeamBuilder
 
 
 async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_ladder: bool):

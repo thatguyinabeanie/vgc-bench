@@ -20,16 +20,19 @@ from poke_env.environment import (
     Weather,
 )
 from poke_env.player import BattleOrder, DoubleBattleOrder, ForfeitBattleOrder, Player
-from src.constants import (
+from stable_baselines3.common.policies import ActorCriticPolicy
+
+from dexter.src.policy import MaskedActorCriticPolicy
+from dexter.src.utils import (
+    abilities,
     doubles_act_len,
     doubles_chunk_obs_len,
+    items,
+    moves,
     pokemon_obs_len,
     singles_act_len,
     singles_chunk_obs_len,
 )
-from src.data import abilities, items, moves
-from src.policy import MaskedActorCriticPolicy
-from stable_baselines3.common.policies import ActorCriticPolicy
 
 
 class Agent(Player):
