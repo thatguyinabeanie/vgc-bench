@@ -1,6 +1,6 @@
 __pycache__
 bin/
-json/
+data/
 logs*/
 saves*/
 debug.log
