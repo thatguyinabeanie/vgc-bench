@@ -247,7 +247,8 @@ class Agent(Player):
         opp_pokemons += [np.zeros(pokemon_obs_len, dtype=np.float32)] * (6 - len(opp_pokemons))
         return np.stack(
             [np.concatenate([glob, side, p]) for p in pokemons]
-            + [np.concatenate([glob, opp_side, p]) for p in opp_pokemons]
+            + [np.concatenate([glob, opp_side, p]) for p in opp_pokemons],
+            dtype=np.float32,
         )
 
     @staticmethod
@@ -286,7 +287,7 @@ class Agent(Player):
             else:
                 teampreview_draft = teampreview_draft[:2]
         draft_positions = [float(p.name in teampreview_draft) for p in battle.team.values()]
-        return np.concatenate([mask, weather, fields, draft_positions, force_switch])
+        return np.concatenate([mask, weather, fields, draft_positions, force_switch], dtype=np.float32)
 
     @staticmethod
     def embed_side(battle: AbstractBattle, opp: bool = False) -> npt.NDArray[np.float32]:
@@ -341,7 +342,7 @@ class Agent(Player):
         ]
         gims = opp_gims if opp else gims
         gimmicks = [float(g) for g in gims]
-        return np.concatenate([side_conditions, gimmicks])
+        return np.concatenate([side_conditions, gimmicks], dtype=np.float32)
 
     @staticmethod
     def embed_pokemon(
@@ -399,7 +400,7 @@ class Agent(Player):
                 float(active_b),
                 *pos_onehot,
                 float(from_opponent),
-            ]
+            ], dtype=np.float32
         )
 
     @staticmethod
