@@ -123,12 +123,14 @@ class LogReader(Player):
 
     async def follow_log(
         self, tag: str, log: str, role: str
-    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]] | None:
         self.obs = []
         self.logits = []
         self.teampreview_draft = []
         tag = f"battle-{tag}"
         messages = [f">{tag}\n" + m for m in log.split("\n|\n")]
+        if "|win|" in messages[1]:
+            return
         for i in range(len(messages) - 1):
             split_messages = [m.split("|") for m in messages[i].split("\n")]
             self.next_msg = messages[i + 1]

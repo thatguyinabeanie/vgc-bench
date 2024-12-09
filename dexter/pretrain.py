@@ -55,16 +55,20 @@ def process_logs(log_jsons: dict[str, tuple[str, str]]) -> list[Trajectory]:
     print("preparing data...", flush=True)
     trajs = []
     total = 0
-    for tag, (_, log) in log_jsons.items():
+    for i, (tag, (_, log)) in enumerate(log_jsons.items()):
+        print(f"{round(100 * i / len(log_jsons), ndigits=2)}%", end="\r", flush=True)
         player1 = LogReader(battle_format="gen9vgc2024regh", accept_open_team_sheet=True)
         player2 = LogReader(battle_format="gen9vgc2024regh", accept_open_team_sheet=True)
-        obs1, logits1 = asyncio.run(player1.follow_log(tag, log, "p1"))
-        obs2, logits2 = asyncio.run(player2.follow_log(tag, log, "p2"))
-        total += len(obs1) + len(obs2)
-        trajs += [
-            Trajectory(obs=obs1, acts=logits1, infos=None, terminal=True),
-            Trajectory(obs=obs2, acts=logits2, infos=None, terminal=True),
-        ]
+        result1 = asyncio.run(player1.follow_log(tag, log, "p1"))
+        result2 = asyncio.run(player2.follow_log(tag, log, "p2"))
+        if result1 is not None:
+            obs1, logits1 = result1
+            total += len(obs1)
+            trajs += [Trajectory(obs=obs1, acts=logits1, infos=None, terminal=True)]
+        if result2 is not None:
+            obs2, logits2 = result2
+            total += len(obs2)
+            trajs += [Trajectory(obs=obs2, acts=logits2, infos=None, terminal=True)]
     print(f"prepared {len(trajs)} trajectories with {total} total state-action pairs", flush=True)
     return trajs
 
