@@ -35,10 +35,13 @@ class Callback(BaseCallback):
         )
         if not os.path.exists("logs"):
             os.mkdir("logs")
+        if os.path.exists(f"logs/{self.run_name}-win-rates.json"):
+            with open(f"logs/{self.run_name}-win-rates.json") as f:
+                self.win_rates = json.load(f)
+        else:
+            self.win_rates = []
             with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
-                json.dump([], f)
-        with open(f"logs/{self.run_name}-win-rates.json") as f:
-            self.win_rates = json.load(f)
+                json.dump(self.win_rates, f)
         if self_play:
             self.policy_pool = (
                 []
@@ -77,6 +80,14 @@ class Callback(BaseCallback):
     def _on_step(self) -> bool:
         return True
 
+    def _on_training_start(self):
+        if len(self.policy_pool) == 1 and len(self.win_rates) == 0:
+            win_rate = self.evaluate()
+            self.win_rates.append(win_rate)
+            with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
+                json.dump(self.win_rates, f)
+            self.model.logger.record("train/eval", win_rate)
+
     def _on_rollout_start(self):
         if self.self_play:
             assert self.model.env is not None
@@ -90,16 +101,21 @@ class Callback(BaseCallback):
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_interval == 0:
-            new_policy = MaskedActorCriticPolicy.clone(self.model)
-            self.eval_agent.set_policy(new_policy)
-            asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
-            win_rate = self.eval_agent.win_rate
+            win_rate = self.evaluate()
             self.win_rates.append(win_rate)
             with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
                 json.dump(self.win_rates, f)
-            self.eval_agent.reset_battles()
-            self.eval_opponent.reset_battles()
             self.model.save(f"saves/{self.run_name}/{self.model.num_timesteps}")
             self.model.logger.record("train/eval", win_rate)
             if self.self_play:
-                self.policy_pool.append(new_policy)
+                policy = MaskedActorCriticPolicy.clone(self.model)
+                self.policy_pool.append(policy)
+
+    def evaluate(self) -> float:
+        policy = MaskedActorCriticPolicy.clone(self.model)
+        self.eval_agent.set_policy(policy)
+        asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
+        win_rate = self.eval_agent.win_rate
+        self.eval_agent.reset_battles()
+        self.eval_opponent.reset_battles()
+        return win_rate
