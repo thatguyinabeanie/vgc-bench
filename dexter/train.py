@@ -19,14 +19,15 @@ battle_format = "gen9vgc2024regh"
 device = "cuda:3"
 num_envs = 32
 num_frames = 3
-opp_teams = list(range(16))
+num_teams = 16
 port = 8000
 self_play = True
 steps = 98_304
-teams = list(range(16))
 
-run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
 env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
+opp_teams = list(range(16))
+teams = list(range(16))
+run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
 
 
 def pretrain():
