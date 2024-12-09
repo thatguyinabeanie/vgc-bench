@@ -33,8 +33,10 @@ def pretrain(teams: list[int], opp_teams: list[int], port: int, device: str):
         start_listening=False,
     )
     ppo = PPO(MaskedActorCriticPolicy, env, policy_kwargs={"num_frames": num_frames}, device=device)
+    print("loading trajectories...", flush=True)
     with open("data/trajs.pkl", "rb") as f:
         trajs = pickle.load(f)
+    print(f"loaded {len(trajs)} trajectories", flush=True)
     bc = BC(
         observation_space=ppo.observation_space,
         action_space=ppo.action_space,
