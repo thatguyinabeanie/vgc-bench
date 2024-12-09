@@ -55,7 +55,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         distribution = self.get_dist_from_logits(obs, action_logits)
         actions = distribution.get_actions(deterministic=deterministic)
         if isinstance(distribution, MultiCategoricalDistribution):
-            print("this?")
             distribution2 = self.get_dist_from_logits(obs, action_logits, actions[:, :1])
             assert isinstance(distribution2, MultiCategoricalDistribution)
             actions2 = distribution2.get_actions(deterministic=deterministic)
