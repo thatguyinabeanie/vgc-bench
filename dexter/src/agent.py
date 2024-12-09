@@ -287,7 +287,9 @@ class Agent(Player):
             else:
                 teampreview_draft = teampreview_draft[:2]
         draft_positions = [float(p.name in teampreview_draft) for p in battle.team.values()]
-        return np.concatenate([mask, weather, fields, draft_positions, force_switch], dtype=np.float32)
+        return np.concatenate(
+            [mask, weather, fields, draft_positions, force_switch], dtype=np.float32
+        )
 
     @staticmethod
     def embed_side(battle: AbstractBattle, opp: bool = False) -> npt.NDArray[np.float32]:
@@ -400,7 +402,8 @@ class Agent(Player):
                 float(active_b),
                 *pos_onehot,
                 float(from_opponent),
-            ], dtype=np.float32
+            ],
+            dtype=np.float32,
         )
 
     @staticmethod
