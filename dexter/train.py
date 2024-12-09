@@ -7,13 +7,12 @@ import numpy as np
 from imitation.algorithms.bc import BC
 from poke_env import AccountConfiguration
 from poke_env.player import RandomPlayer
+from src.callback import Callback
+from src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
+from src.policy import MaskedActorCriticPolicy
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
-
-from dexter.src.callback import Callback
-from dexter.src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
-from dexter.src.policy import MaskedActorCriticPolicy
 
 battle_format = "gen9vgc2024regh"
 device = "cuda:3"

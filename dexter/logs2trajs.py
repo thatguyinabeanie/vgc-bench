@@ -8,8 +8,7 @@ from imitation.data.types import Trajectory
 from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
 from poke_env.player import BattleOrder, DoubleBattleOrder, Player
-
-from dexter.src.agent import Agent
+from src.agent import Agent
 
 
 class LogReader(Player):

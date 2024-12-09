@@ -19,11 +19,10 @@ from poke_env.player import (
     RandomPlayer,
     SimpleHeuristicsPlayer,
 )
-
-from dexter.src.agent import Agent
-from dexter.src.policy import MaskedActorCriticPolicy
-from dexter.src.teams import RandomTeamBuilder
-from dexter.src.utils import (
+from src.agent import Agent
+from src.policy import MaskedActorCriticPolicy
+from src.teams import RandomTeamBuilder
+from src.utils import (
     doubles_act_len,
     doubles_chunk_obs_len,
     moves,
