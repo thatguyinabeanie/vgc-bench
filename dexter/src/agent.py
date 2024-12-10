@@ -78,8 +78,13 @@ class Agent(Player):
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         self.frames.append(battle)
+        num_frames = self.frames.maxlen
+        assert num_frames is not None
         obs = np.stack(
-            [self.embed_battle(frame, self.__teampreview_draft) for frame in self.frames]
+            [
+                self.embed_battle(self.frames[max(i, 0)], self.__teampreview_draft)
+                for i in range(num_frames)
+            ]
         )
         with torch.no_grad():
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
