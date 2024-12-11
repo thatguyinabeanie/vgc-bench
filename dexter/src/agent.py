@@ -82,7 +82,9 @@ class Agent(Player):
         assert num_frames is not None
         obs = np.stack(
             [
-                self.embed_battle(self.frames[max(i, 0)], self.__teampreview_draft)
+                self.embed_battle(
+                    self.frames[max(0, i + len(self.frames) - num_frames)], self.__teampreview_draft
+                )
                 for i in range(num_frames)
             ]
         )
