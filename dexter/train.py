@@ -54,7 +54,7 @@ def pretrain():
             obs=np.stack(
                 [
                     np.stack(
-                        [traj.obs[max(j, 0)] for j in range(i - num_frames + 1, i + 1)],  # type: ignore
+                        [traj.obs[max(0, i + 1 + j - num_frames)] for j in range(num_frames)],  # type: ignore
                         axis=0,
                     )
                     for i in range(len(traj.obs))
