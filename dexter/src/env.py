@@ -129,7 +129,7 @@ class ShowdownEnv(EnvPlayer[npt.NDArray[np.float32], ActType]):
             return 0
 
     def embed_battle(self, battle: AbstractBattle) -> npt.NDArray[np.float32]:
-        return Agent.embed_battle(battle, self._teampreview_draft)
+        return Agent.embed_battle(battle, self._teampreview_draft, fake_ratings=True)
 
 
 class ShowdownSinglesEnv(ShowdownEnv[np.int64]):

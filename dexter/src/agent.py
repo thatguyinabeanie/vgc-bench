@@ -83,7 +83,9 @@ class Agent(Player):
         obs = np.stack(
             [
                 self.embed_battle(
-                    self.frames[max(0, i + len(self.frames) - num_frames)], self.__teampreview_draft
+                    self.frames[max(0, i + len(self.frames) - num_frames)],
+                    self.__teampreview_draft,
+                    fake_ratings=True,
                 )
                 for i in range(num_frames)
             ]
@@ -219,11 +221,11 @@ class Agent(Player):
 
     @staticmethod
     def embed_battle(
-        battle: AbstractBattle, teampreview_draft: list[str]
+        battle: AbstractBattle, teampreview_draft: list[str], fake_ratings: bool = False
     ) -> npt.NDArray[np.float32]:
         glob = Agent.embed_global(battle, teampreview_draft)
-        side = Agent.embed_side(battle)
-        opp_side = Agent.embed_side(battle, opp=True)
+        side = Agent.embed_side(battle, fake_ratings)
+        opp_side = Agent.embed_side(battle, fake_ratings, opp=True)
         [a1, a2, *_] = (
             [battle.active_pokemon] if isinstance(battle, Battle) else battle.active_pokemon
         )
@@ -301,7 +303,9 @@ class Agent(Player):
         )
 
     @staticmethod
-    def embed_side(battle: AbstractBattle, opp: bool = False) -> npt.NDArray[np.float32]:
+    def embed_side(
+        battle: AbstractBattle, fake_ratings: bool, opp: bool = False
+    ) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             gims = [
                 battle.can_mega_evolve,
@@ -353,7 +357,9 @@ class Agent(Player):
         ]
         gims = opp_gims if opp else gims
         gimmicks = [float(g) for g in gims]
-        return np.concatenate([side_conditions, gimmicks], dtype=np.float32)
+        rat = battle.opponent_rating if opp else battle.rating
+        rating = 1 if fake_ratings else (rat or 0) / 2000
+        return np.array([*side_conditions, *gimmicks, rating], dtype=np.float32)
 
     @staticmethod
     def embed_pokemon(
