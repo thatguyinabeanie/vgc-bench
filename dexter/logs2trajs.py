@@ -30,9 +30,9 @@ class LogReader(Player):
         order1 = self.get_order(battle, self.next_msg, False)
         order2 = self.get_order(battle, self.next_msg, True)
         order = DoubleBattleOrder(order1, order2)
-        states = Agent.embed_battle(battle, self.teampreview_draft)
+        state = Agent.embed_battle(battle, self.teampreview_draft)
         action = Agent.doubles_order_to_action(order, battle)
-        self.states += [states]
+        self.states += [state]
         self.actions += [action]
         return order
 
@@ -99,9 +99,9 @@ class LogReader(Player):
         order1 = BattleOrder(list(battle.team.values())[id1 - 1])
         order2 = BattleOrder(list(battle.team.values())[id2 - 1])
         order = DoubleBattleOrder(order1, order2)
-        states = Agent.embed_battle(battle, self.teampreview_draft)
+        state = Agent.embed_battle(battle, self.teampreview_draft)
         action = Agent.doubles_order_to_action(order, battle)
-        self.states += [states]
+        self.states += [state]
         self.actions += [action]
         self.teampreview_draft = [
             p.name for i, p in enumerate(battle.team.values()) if i + 1 in [id1, id2]
@@ -148,8 +148,8 @@ class LogReader(Player):
                 self.choose_move(battle)
         split_messages = [m.split("|") for m in messages[-1].split("\n")]
         await self._handle_battle_message(split_messages)
-        last_states = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
-        self.states += [last_states]
+        last_state = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
+        self.states += [last_state]
         return np.stack(self.states, axis=0), np.stack(self.actions, axis=0)
 
 
