@@ -7,7 +7,6 @@ from src.policy import MaskedActorCriticPolicy
 from src.utils import (
     battle_format,
     device,
-    env_class,
     num_envs,
     num_frames,
     opp_teams,
@@ -20,9 +19,11 @@ from src.utils import (
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
+from src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
 
 
 def train():
+    env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     server = Popen(
         ["node", "pokemon-showdown", "start", str(port), "--no-security"],
         stdout=PIPE,
