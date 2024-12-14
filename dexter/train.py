@@ -1,84 +1,25 @@
 import os
-import pickle
 import time
 from subprocess import PIPE, STDOUT, Popen
 
-import numpy as np
-from imitation.algorithms.bc import BC
-from imitation.data.types import Trajectory
-from imitation.util.logger import configure
-from poke_env import AccountConfiguration
-from poke_env.player import RandomPlayer
 from src.callback import Callback
-from src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
 from src.policy import MaskedActorCriticPolicy
+from src.utils import (
+    battle_format,
+    device,
+    env_class,
+    num_envs,
+    num_frames,
+    opp_teams,
+    port,
+    run_name,
+    self_play,
+    steps,
+    teams,
+)
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
-
-battle_format = "gen9vgc2024regh"
-device = "cuda:3"
-num_envs = 32
-num_frames = 3
-num_teams = 16
-port = 8000
-self_play = True
-steps = 98_304
-
-env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
-opp_teams = list(range(num_teams))
-teams = list(range(num_teams))
-run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
-
-
-def pretrain():
-    env = env_class(
-        RandomPlayer(
-            account_configuration=AccountConfiguration("DummyPlayer", None),
-            battle_format=battle_format,
-            log_level=40,
-            accept_open_team_sheet=True,
-            start_listening=False,
-        ),
-        account_configuration=AccountConfiguration(f"DummyEnv", None),
-        battle_format=battle_format,
-        log_level=40,
-        accept_open_team_sheet=True,
-        start_listening=False,
-    )
-    ppo = PPO(MaskedActorCriticPolicy, env, policy_kwargs={"num_frames": num_frames}, device=device)
-    with open("data/trajs.pkl", "rb") as f:
-        trajs: list[Trajectory] = pickle.load(f)
-    trajs = [
-        Trajectory(
-            obs=np.stack(
-                [
-                    np.stack(
-                        [traj.obs[max(0, i + 1 + j - num_frames)] for j in range(num_frames)],  # type: ignore
-                        axis=0,
-                    )
-                    for i in range(len(traj.obs))
-                ],
-                axis=0,
-            ),
-            acts=traj.acts,
-            infos=None,
-            terminal=True,
-        )
-        for traj in trajs
-    ]
-    bc = BC(
-        observation_space=ppo.observation_space,
-        action_space=ppo.action_space,
-        rng=np.random.default_rng(0),
-        policy=ppo.policy,
-        demonstrations=trajs,
-        batch_size=1024,
-        device=device,
-        custom_logger=configure(f"logs/{run_name}", ["tensorboard"]),
-    )
-    bc.train(n_epochs=100)
-    ppo.save(f"saves/{run_name}/0")
 
 
 def train():
@@ -121,7 +62,4 @@ def train():
 
 
 if __name__ == "__main__":
-    if not os.path.exists(f"saves/{run_name}/0.zip"):
-        pretrain()
-    while True:
-        train()
+    train()
