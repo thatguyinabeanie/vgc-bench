@@ -24,6 +24,7 @@ from torch import nn
 class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
         self.num_frames = num_frames
+        self.actor_grad = True
         super().__init__(
             *args,
             **kwargs,
@@ -51,7 +52,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if len(obs.size()) == 3:
             obs = obs.unsqueeze(1)
-        action_logits, value_logits = self.get_logits(obs)
+        action_logits, value_logits = self.get_logits(obs, actor_grad=True)
         distribution = self.get_dist_from_logits(obs, action_logits)
         actions = distribution.get_actions(deterministic=deterministic)
         if isinstance(distribution, MultiCategoricalDistribution):
@@ -72,7 +73,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             obs = obs.unsqueeze(1)
         if obs.device != actions.device:
             actions = actions.to(obs.device)
-        action_logits, value_logits = self.get_logits(obs)
+        action_logits, value_logits = self.get_logits(obs, self.actor_grad)
         distribution = self.get_dist_from_logits(obs, action_logits)
         if isinstance(distribution, MultiCategoricalDistribution):
             distribution2 = self.get_dist_from_logits(obs, action_logits, actions[:, :1])
@@ -82,15 +83,18 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         entropy = distribution.entropy()
         return value_logits, log_prob, entropy
 
-    def get_logits(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def get_logits(self, obs: torch.Tensor, actor_grad: bool) -> tuple[torch.Tensor, torch.Tensor]:
+        actor_context = torch.enable_grad() if actor_grad else torch.no_grad()
         features = self.extract_features(obs)  # type: ignore
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
         else:
             pi_features, vf_features = features
-            latent_pi = self.mlp_extractor.forward_actor(pi_features)
+            with actor_context:
+                latent_pi = self.mlp_extractor.forward_actor(pi_features)
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
-        action_logits = self.action_net(latent_pi)
+        with actor_context:
+            action_logits = self.action_net(latent_pi)
         value_logits = self.value_net(latent_vf)
         return action_logits, value_logits
 
