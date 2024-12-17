@@ -7,12 +7,12 @@ import numpy as np
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
+from src.utils import run_name, teams
 from stable_baselines3 import PPO
 
 
-async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_ladder: bool):
+async def play(n_games: int, play_on_ladder: bool):
     print("Setting up...")
-    run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
     if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
         files = os.listdir(f"saves/{run_name}")
         with open(f"logs/{run_name}-win-rates.json") as f:
@@ -45,13 +45,7 @@ async def play(teams: list[int], opp_teams: list[int], n_games: int, play_on_lad
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--teams", nargs="+", type=int, required=False)
-    parser.add_argument("--opp_teams", nargs="+", type=int, required=False)
-    parser.add_argument("--num_teams", type=int, required=False)
     parser.add_argument("-n", type=int, default=1, help="Number of games to play. Default is 1.")
     parser.add_argument("-l", action="store_true", help="Play ladder. Default accepts challenges.")
     args = parser.parse_args()
-    assert args.num_teams or (args.teams and args.opp_teams)
-    teams: list[int] = args.teams or list(range(args.num_teams))
-    opp_teams: list[int] = args.opp_teams or list(range(args.num_teams))
-    asyncio.run(play(teams, opp_teams, args.n, args.l))
+    asyncio.run(play(args.n, args.l))
