@@ -23,12 +23,11 @@ self_play = True
 steps = 98_304
 
 teams = list(range(num_teams))
-opp_teams = list(range(num_teams))
-run_name = f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
+run_name = ",".join([str(t) for t in teams])
 
 # observation length constants
 singles_act_len = 26
-doubles_act_len = 47
+doubles_act_len = 107
 singles_glob_obs_len = singles_act_len + len(Field) + len(Weather) + 7
 doubles_glob_obs_len = 2 * doubles_act_len + len(Field) + len(Weather) + 8
 side_obs_len = len(SideCondition) + 5

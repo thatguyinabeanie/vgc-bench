@@ -3,7 +3,7 @@ if [[ $PATH != "/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:"* ]]; the
     export PATH="/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:$PATH"
 fi
 
-python dexter/pretrain.py
+# python dexter/pretrain.py
 while true; do
     python dexter/train.py > debug.log 2>&1
     [[ $? -ne 0 ]] && sleep 10

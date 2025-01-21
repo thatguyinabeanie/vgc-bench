@@ -3,13 +3,13 @@ import time
 from subprocess import PIPE, STDOUT, Popen
 
 from src.callback import Callback
+from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
 from src.utils import (
     battle_format,
     device,
     num_envs,
     num_frames,
-    opp_teams,
     port,
     run_name,
     self_play,
@@ -19,11 +19,9 @@ from src.utils import (
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
 
 
 def train():
-    env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
     server = Popen(
         ["node", "pokemon-showdown", "start", str(port), "--no-security"],
         stdout=PIPE,
@@ -34,9 +32,7 @@ def train():
     env = SubprocVecEnv(
         [
             lambda i=i: Monitor(
-                env_class.create_env(
-                    i, battle_format, num_frames, port, teams, opp_teams, self_play, device
-                )
+                ShowdownEnv.create_env(i, battle_format, num_frames, port, teams, self_play)
             )
             for i in range(num_envs)
         ]
@@ -53,11 +49,12 @@ def train():
         policy_kwargs={"num_frames": num_frames},
         device=device,
     )
-    num_saved_timesteps = max([int(file[:-4]) for file in os.listdir(f"saves/{run_name}")])
-    ppo.num_timesteps = num_saved_timesteps
-    ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
-    ppo.policy.actor_grad = num_saved_timesteps > 0  # type: ignore
-    callback = Callback(steps, battle_format, num_frames, teams, opp_teams, port, self_play)
+    if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
+        num_saved_timesteps = max([int(file[:-4]) for file in os.listdir(f"saves/{run_name}")])
+        ppo.num_timesteps = num_saved_timesteps
+        ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
+    # ppo.policy.actor_grad = num_saved_timesteps > 0  # type: ignore
+    callback = Callback(steps, battle_format, num_frames, teams, port, self_play)
     ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()
     server.wait()

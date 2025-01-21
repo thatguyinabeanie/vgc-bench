@@ -22,16 +22,13 @@ class Callback(BaseCallback):
         battle_format: str,
         num_frames: int,
         teams: list[int],
-        opp_teams: list[int],
         port: int,
         self_play: bool,
     ):
         super().__init__()
         self.save_interval = save_interval
         self.self_play = self_play
-        self.run_name = (
-            f"{','.join([str(t) for t in teams])}|{','.join([str(t) for t in opp_teams])}"
-        )
+        self.run_name = ",".join([str(t) for t in teams])
         if not os.path.exists("logs"):
             os.mkdir("logs")
         if os.path.exists(f"logs/{self.run_name}-win-rates.json"):
@@ -73,29 +70,19 @@ class Callback(BaseCallback):
             battle_format=battle_format,
             log_level=40,
             accept_open_team_sheet=True,
-            team=RandomTeamBuilder(opp_teams, battle_format),
+            team=RandomTeamBuilder(teams, battle_format),
         )
 
     def _on_step(self) -> bool:
         return True
 
-    def _on_training_start(self):
-        if len(self.policy_pool) == 1 and len(self.win_rates) == 0:
-            win_rate = self.evaluate()
-            self.win_rates.append(win_rate)
-            with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
-                json.dump(self.win_rates, f)
-            self.model.logger.record("train/eval", win_rate)
-
-    def _on_rollout_start(self):
-        if self.self_play:
-            assert self.model.env is not None
-            policies = random.choices(
-                self.policy_pool + [MaskedActorCriticPolicy.clone(self.model)],
-                k=self.model.env.num_envs,
-            )
-            for i in range(self.model.env.num_envs):
-                self.model.env.env_method("set_opp_policy", policies[i], indices=i)
+    # def _on_training_start(self):
+    #     if self.self_play and len(self.policy_pool) == 1 and len(self.win_rates) == 0:
+    #         win_rate = self.evaluate()
+    #         self.win_rates.append(win_rate)
+    #         with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
+    #             json.dump(self.win_rates, f)
+    #         self.model.logger.record("train/eval", win_rate)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % self.save_interval == 0:

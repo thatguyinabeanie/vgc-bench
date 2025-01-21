@@ -11,7 +11,6 @@ from poke_env.environment import (
     DoubleBattle,
     Effect,
     Field,
-    Move,
     Pokemon,
     PokemonGender,
     PokemonType,
@@ -19,7 +18,7 @@ from poke_env.environment import (
     Status,
     Weather,
 )
-from poke_env.player import BattleOrder, DoubleBattleOrder, ForfeitBattleOrder, Player
+from poke_env.player import BattleOrder, DoubleBattleOrder, DoublesEnv, Player, SinglesEnv
 from src.policy import MaskedActorCriticPolicy
 from src.utils import (
     abilities,
@@ -40,18 +39,11 @@ class Agent(Player):
     __teampreview_draft: list[str]
 
     def __init__(
-        self,
-        policy: ActorCriticPolicy | None,
-        num_frames: int,
-        device: torch.device | None = None,
-        *args: Any,
-        **kwargs: Any,
+        self, policy: ActorCriticPolicy | None, num_frames: int, *args: Any, **kwargs: Any
     ):
         super().__init__(*args, **kwargs)
-        if device is None:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if policy is not None:
-            self.__policy = policy.to(device)
+            self.__policy = policy
         elif self.format_is_doubles:
             self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(
@@ -60,7 +52,7 @@ class Agent(Player):
                 action_space=MultiDiscrete([doubles_act_len, doubles_act_len]),
                 lr_schedule=lambda _: 1e-5,
                 num_frames=num_frames,
-            ).to(device)
+            )
         else:
             self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(
@@ -69,7 +61,7 @@ class Agent(Player):
                 action_space=Discrete(singles_act_len),
                 lr_schedule=lambda _: 1e-5,
                 num_frames=num_frames,
-            ).to(device)
+            )
         self.frames = Deque(maxlen=num_frames)
         self.__teampreview_draft = []
 
@@ -94,10 +86,9 @@ class Agent(Player):
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
             action, _, _ = self.__policy.forward(obs_tensor)
         if isinstance(battle, Battle):
-            return Agent.singles_action_to_move(int(action.item()), battle)
+            return SinglesEnv.action_to_order(action.cpu().numpy()[0], battle)
         elif isinstance(battle, DoubleBattle):
-            [action1, action2, *_] = action.cpu().numpy()[0]
-            return Agent.doubles_action_to_move(action1, action2, battle)
+            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle)
         else:
             raise TypeError()
 
@@ -137,87 +128,6 @@ class Agent(Player):
             return f"/team {action1}{action2}{action3}{action4}"
         else:
             raise TypeError()
-
-    @staticmethod
-    def singles_action_to_move(action: int, battle: Battle) -> BattleOrder:
-        action_space = Agent.get_action_space(battle)
-        if action == -1:
-            return ForfeitBattleOrder()
-        elif action not in action_space:
-            raise LookupError(f"{action} not in {action_space}")
-        elif action < 6:
-            order = Player.create_order(list(battle.team.values())[action])
-        else:
-            active_mon = battle.active_pokemon
-            assert active_mon is not None
-            order = Player.create_order(
-                list(active_mon.moves.values())[(action - 6) % 4],
-                mega=10 <= action < 14,
-                z_move=14 <= action < 18,
-                dynamax=18 <= action < 22,
-                terastallize=22 <= action < 26,
-            )
-        return order
-
-    @staticmethod
-    def doubles_action_to_move(action1: int, action2: int, battle: DoubleBattle) -> BattleOrder:
-        if action1 == -1 or action2 == -1:
-            return ForfeitBattleOrder()
-        order1 = Agent.action_to_move_ind(action1, battle, 0)
-        order2 = Agent.action_to_move_ind(action2, battle, 1)
-        return DoubleBattleOrder(order1, order2)
-
-    @staticmethod
-    def action_to_move_ind(action: int, battle: DoubleBattle, pos: int) -> BattleOrder | None:
-        action_space = Agent.get_action_space(battle, pos)
-        assert action in action_space, f"{action} not in {action_space}"
-        if action == 0:
-            order = None
-        elif action < 7:
-            order = Player.create_order(list(battle.team.values())[action - 1])
-        else:
-            active_mon = battle.active_pokemon[pos]
-            assert active_mon is not None
-            mvs = (
-                battle.available_moves[pos]
-                if len(battle.available_moves[pos]) == 1
-                and battle.available_moves[pos][0].id in ["struggle", "recharge"]
-                else list(active_mon.moves.values())
-            )
-            order = Player.create_order(
-                mvs[(action - 7) % 20 // 5],
-                terastallize=bool((action - 7) // 20),
-                move_target=(int(action) - 7) % 5 - 2,
-            )
-        return order
-
-    @staticmethod
-    def doubles_order_to_action(
-        order: DoubleBattleOrder, battle: DoubleBattle
-    ) -> npt.NDArray[np.int32]:
-        action1 = Agent.order_to_action_ind(order.first_order, battle, pos=0)
-        action2 = Agent.order_to_action_ind(order.second_order, battle, pos=1)
-        return np.array([action1, action2])
-
-    @staticmethod
-    def order_to_action_ind(order: BattleOrder | None, battle: DoubleBattle, pos: int) -> int:
-        if order is None:
-            action = 0
-        else:
-            order_item = order.order
-            if isinstance(order_item, Pokemon):
-                index = [p.name for p in battle.team.values()].index(order_item.name)
-                action = 1 + index
-            elif isinstance(order_item, Move):
-                active = battle.active_pokemon[pos]
-                assert active is not None
-                index = [m.id for m in active.moves.values()].index(order_item.id)
-                tera = 20 if order.terastallize else 0
-                target = order.move_target + 2
-                action = 7 + 5 * index + target + tera
-            else:
-                raise ValueError()
-        return action
 
     @staticmethod
     def embed_battle(

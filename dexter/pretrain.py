@@ -6,30 +6,33 @@ from imitation.algorithms.bc import BC
 from imitation.data.types import Trajectory
 from imitation.util.logger import configure
 from poke_env import AccountConfiguration
-from poke_env.player import RandomPlayer
+from poke_env.player import RandomPlayer, SingleAgentWrapper
+from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
 from src.utils import battle_format, device, num_frames, run_name
 from stable_baselines3 import PPO
-from src.env import ShowdownDoublesEnv, ShowdownSinglesEnv
 
 
 def pretrain():
-    env_class = ShowdownDoublesEnv if "vgc" in battle_format else ShowdownSinglesEnv
-    env = env_class(
-        RandomPlayer(
-            account_configuration=AccountConfiguration("DummyPlayer", None),
-            battle_format=battle_format,
-            log_level=40,
-            accept_open_team_sheet=True,
-            start_listening=False,
-        ),
-        account_configuration=AccountConfiguration(f"DummyEnv", None),
+    env = ShowdownEnv(
         battle_format=battle_format,
         log_level=40,
         accept_open_team_sheet=True,
         start_listening=False,
     )
-    ppo = PPO(MaskedActorCriticPolicy, env, policy_kwargs={"num_frames": num_frames}, device=device)
+    opponent = RandomPlayer(
+        battle_format=battle_format,
+        log_level=40,
+        accept_open_team_sheet=True,
+        start_listening=False,
+    )
+    single_agent_env = SingleAgentWrapper(env, opponent)
+    ppo = PPO(
+        MaskedActorCriticPolicy,
+        single_agent_env,
+        policy_kwargs={"num_frames": num_frames},
+        device=device,
+    )
     with open("data/trajs.pkl", "rb") as f:
         trajs: list[Trajectory] = pickle.load(f)
     trajs = [
