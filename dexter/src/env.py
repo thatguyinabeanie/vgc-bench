@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from gymnasium import Env
 from gymnasium.spaces import Box
-from gymnasium.wrappers.frame_stack import FrameStack
+from pettingzoo.utils.env import ParallelEnv
 from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.environment import AbstractBattle
 from poke_env.player import (
@@ -20,7 +20,7 @@ from src.agent import Agent
 from src.teams import RandomTeamBuilder
 from src.utils import doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
-from supersuit import pettingzoo_env_to_vec_env_v1
+from supersuit import concat_vec_envs_v1, frame_stack_v2, pettingzoo_env_to_vec_env_v1
 
 
 class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
@@ -60,16 +60,19 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             team=RandomTeamBuilder(teams, battle_format),
             start_challenging=True,
         )
+        env = frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
+        assert isinstance(env, ParallelEnv)
         if self_play:
             env = pettingzoo_env_to_vec_env_v1(env)
+            env = concat_vec_envs_v1(env, 1, base_class="stable_baselines3")
         elif "vgc" in battle_format:
             opponent = MaxBasePowerPlayer(battle_format=battle_format, log_level=40)
-            env = SingleAgentWrapper(env, opponent)
+            env = SingleAgentWrapper(env, opponent)  # type: ignore
         else:
             opp_classes = [RandomPlayer, MaxBasePowerPlayer, SimpleHeuristicsPlayer]
             opponent = opp_classes[i % 3](battle_format=battle_format, log_level=40)
-            env = SingleAgentWrapper(env, opponent)
-        return FrameStack(env, num_frames)
+            env = SingleAgentWrapper(env, opponent)  # type: ignore
+        return env
 
     def reset(
         self, seed: int | None = None, options: dict[str, Any] | None = None

@@ -1,8 +1,10 @@
+gymnasium>=1.0.0
 imitation
 numpy==1.26.4  # tensorboard doesn't work with newer versions yet
 git+https://github.com/cameronangliss/poke-env.git@improve-env
 sentence-transformers
-stable_baselines3
+stable_baselines3>=2.0.0
+supersuit
 tensorboard
 torch
 torch-tb-profiler

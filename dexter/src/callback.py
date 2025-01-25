@@ -1,7 +1,6 @@
 import asyncio
 import json
 import os
-import random
 import warnings
 
 from poke_env import AccountConfiguration, ServerConfiguration
@@ -58,6 +57,7 @@ class Callback(BaseCallback):
             battle_format=battle_format,
             log_level=40,
             accept_open_team_sheet=True,
+            open_timeout=None,
             team=RandomTeamBuilder(teams, battle_format),
         )
         opp_class = MaxBasePowerPlayer if "vgc" in battle_format else SimpleHeuristicsPlayer
@@ -70,6 +70,7 @@ class Callback(BaseCallback):
             battle_format=battle_format,
             log_level=40,
             accept_open_team_sheet=True,
+            open_timeout=None,
             team=RandomTeamBuilder(teams, battle_format),
         )
 

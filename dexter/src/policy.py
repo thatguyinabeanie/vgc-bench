@@ -50,16 +50,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def forward(
         self, obs: torch.Tensor, deterministic: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        actions1, value_logits1, log_prob1 = self.forward_(obs[:, :, 0, :, :], deterministic)
-        actions2, value_logits2, log_prob2 = self.forward_(obs[:, :, 1, :, :], deterministic)
-        actions = torch.stack([actions1, actions2], dim=1)
-        value_logits = torch.stack([value_logits1, value_logits2], dim=1)
-        log_prob = torch.stack([log_prob1, log_prob2], dim=1)
-        return actions, value_logits, log_prob
-
-    def forward_(
-        self, obs: torch.Tensor, deterministic: bool
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         action_logits, value_logits = self.get_logits(obs, actor_grad=True)
         distribution = self.get_dist_from_logits(obs, action_logits)
         actions = distribution.get_actions(deterministic=deterministic)

@@ -17,7 +17,6 @@ from src.utils import (
     teams,
 )
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
 def train():
@@ -28,13 +27,7 @@ def train():
         cwd="pokemon-showdown",
     )
     time.sleep(10)
-    env = SubprocVecEnv(
-        [
-            lambda i=i: ShowdownEnv.create_env(i, battle_format, num_frames, port, teams, self_play)
-            for i in range(num_envs)
-        ]
-    )
-    # env = concat_vec_envs_v1(env, 1, base_class="stable_baselines3")
+    env = ShowdownEnv.create_env(0, battle_format, num_frames, port, teams, self_play)
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
