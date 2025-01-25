@@ -394,7 +394,7 @@ class Agent(Player):
                     if move.id in [m.id for m in battle.available_moves[pos]]
                 ]
                 move_space = [i for s in move_spaces for i in s]
-                tera_space = [i + 20 for i in move_space if battle.can_tera[pos]]
+                tera_space = [i + 80 for i in move_space if battle.can_tera[pos]]
                 if (
                     not move_space
                     and len(battle.available_moves[pos]) == 1
