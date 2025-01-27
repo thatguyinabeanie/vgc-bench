@@ -20,7 +20,7 @@ from src.agent import Agent
 from src.teams import RandomTeamBuilder
 from src.utils import doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
-from supersuit import concat_vec_envs_v1, frame_stack_v2, pettingzoo_env_to_vec_env_v1
+import supersuit as ss
 
 
 class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
@@ -60,11 +60,11 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             team=RandomTeamBuilder(teams, battle_format),
             start_challenging=True,
         )
-        env = frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
+        env = ss.frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
         assert isinstance(env, ParallelEnv)
         if self_play:
-            env = pettingzoo_env_to_vec_env_v1(env)
-            env = concat_vec_envs_v1(env, 1, base_class="stable_baselines3")
+            env = ss.pettingzoo_env_to_vec_env_v1(env)
+            env = ss.concat_vec_envs_v1(env, 1, base_class="stable_baselines3")
         elif "vgc" in battle_format:
             opponent = MaxBasePowerPlayer(battle_format=battle_format, log_level=40)
             env = SingleAgentWrapper(env, opponent)  # type: ignore

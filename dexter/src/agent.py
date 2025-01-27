@@ -184,11 +184,14 @@ class Agent(Player):
                 mask = [float(i not in action_space) for i in range(singles_act_len)]
             force_switch = [float(battle.force_switch), 0]
         elif isinstance(battle, DoubleBattle):
-            action_space1 = Agent.get_action_space(battle, 0)
-            mask1 = [float(i not in action_space1) for i in range(doubles_act_len)]
-            action_space2 = Agent.get_action_space(battle, 1)
-            mask2 = [float(i not in action_space2) for i in range(doubles_act_len)]
-            mask = mask1 + mask2
+            if not battle._last_request:
+                mask = np.zeros(2 * doubles_act_len, dtype=np.float32)
+            else:
+                action_space1 = Agent.get_action_space(battle, 0)
+                mask1 = [float(i not in action_space1) for i in range(doubles_act_len)]
+                action_space2 = Agent.get_action_space(battle, 1)
+                mask2 = [float(i not in action_space2) for i in range(doubles_act_len)]
+                mask = mask1 + mask2
             force_switch = [float(f) for f in battle.force_switch]
         else:
             raise TypeError()
@@ -364,13 +367,12 @@ class Agent(Player):
                 )
         elif isinstance(battle, DoubleBattle):
             assert pos is not None
-            if battle.finished:
+            if battle.finished or battle._wait:
                 return np.array([])
             switch_space = [
                 i + 1
                 for i, pokemon in enumerate(battle.team.values())
-                if not battle.maybe_trapped[pos]
-                and battle.force_switch != [[False, True], [True, False]][pos]
+                if battle.force_switch != [[False, True], [True, False]][pos]
                 and not (
                     len(battle.available_switches[0]) == 1
                     and battle.force_switch == [True, True]
