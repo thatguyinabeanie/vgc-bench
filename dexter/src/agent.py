@@ -1,4 +1,3 @@
-from copy import deepcopy
 from typing import Any, Deque
 
 import numpy as np
@@ -18,7 +17,8 @@ from poke_env.environment import (
     Status,
     Weather,
 )
-from poke_env.player import BattleOrder, DoubleBattleOrder, DoublesEnv, Player, SinglesEnv
+from poke_env.player import BattleOrder, DoublesEnv, Player, SinglesEnv
+from poke_env.player.gymnasium_api import _EnvPlayer
 from src.policy import MaskedActorCriticPolicy
 from src.utils import (
     abilities,
@@ -97,35 +97,11 @@ class Agent(Player):
             return self.random_teampreview(battle)
         elif isinstance(battle, DoubleBattle):
             order1 = self.choose_move(battle)
-            assert isinstance(order1, DoubleBattleOrder)
-            pokemon1 = None if order1.first_order is None else order1.first_order.order
-            pokemon2 = None if order1.second_order is None else order1.second_order.order
-            assert isinstance(pokemon1, Pokemon)
-            assert isinstance(pokemon2, Pokemon)
-            self.__teampreview_draft = [pokemon1.name, pokemon2.name]
-            action1 = [p.name for p in battle.team.values()].index(pokemon1.name) + 1
-            action2 = [p.name for p in battle.team.values()].index(pokemon2.name) + 1
-            battle2 = deepcopy(battle)
-            battle2.switch(
-                f"{battle2.player_role}a: {pokemon1.base_species.capitalize()}",
-                "",
-                f"{pokemon1.current_hp}/{pokemon1.max_hp}",
-            )
-            battle2.switch(
-                f"{battle2.player_role}b: {pokemon2.base_species.capitalize()}",
-                "",
-                f"{pokemon2.current_hp}/{pokemon2.max_hp}",
-            )
-            order2 = self.choose_move(battle2)
-            assert isinstance(order2, DoubleBattleOrder)
-            pokemon3 = None if order2.first_order is None else order2.first_order.order
-            pokemon4 = None if order2.second_order is None else order2.second_order.order
-            assert isinstance(pokemon3, Pokemon)
-            assert isinstance(pokemon4, Pokemon)
-            self.__teampreview_draft += [pokemon3.name, pokemon4.name]
-            action3 = [p.name for p in battle2.team.values()].index(pokemon3.name) + 1
-            action4 = [p.name for p in battle2.team.values()].index(pokemon4.name) + 1
-            return f"/team {action1}{action2}{action3}{action4}"
+            upd_battle = _EnvPlayer._simulate_teampreview_switchin(order1, battle)
+            order2 = self.choose_move(upd_battle)
+            action1 = self.order_to_action(order1, battle)  # type: ignore
+            action2 = self.order_to_action(order2, upd_battle)  # type: ignore
+            return f"/team {action1[0]}{action1[1]}{action2[0]}{action2[1]}"
         else:
             raise TypeError()
 
