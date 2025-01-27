@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+import supersuit as ss
 from gymnasium import Env
 from gymnasium.spaces import Box
 from pettingzoo.utils.env import ParallelEnv
@@ -20,7 +21,6 @@ from src.agent import Agent
 from src.teams import RandomTeamBuilder
 from src.utils import doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
-import supersuit as ss
 
 
 class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
