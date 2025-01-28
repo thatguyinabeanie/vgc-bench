@@ -99,8 +99,8 @@ class Agent(Player):
             order1 = self.choose_move(battle)
             upd_battle = _EnvPlayer._simulate_teampreview_switchin(order1, battle)
             order2 = self.choose_move(upd_battle)
-            action1 = self.order_to_action(order1, battle)  # type: ignore
-            action2 = self.order_to_action(order2, upd_battle)  # type: ignore
+            action1 = DoublesEnv.order_to_action(order1, battle)
+            action2 = DoublesEnv.order_to_action(order2, upd_battle)
             return f"/team {action1[0]}{action1[1]}{action2[0]}{action2[1]}"
         else:
             raise TypeError()
