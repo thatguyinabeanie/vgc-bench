@@ -35,7 +35,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 
 class Agent(Player):
     __policy: ActorCriticPolicy
-    frames: Deque[AbstractBattle]
+    frames: Deque[npt.NDArray[np.float32]]
     __teampreview_draft: list[str]
 
     def __init__(
@@ -69,19 +69,8 @@ class Agent(Player):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
-        self.frames.append(battle)
-        num_frames = self.frames.maxlen
-        assert num_frames is not None
-        obs = np.stack(
-            [
-                self.embed_battle(
-                    self.frames[max(0, i + len(self.frames) - num_frames)],
-                    self.__teampreview_draft,
-                    fake_ratings=True,
-                )
-                for i in range(num_frames)
-            ]
-        )
+        self.frames.appendleft(self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True))
+        obs = np.stack(self.frames)
         with torch.no_grad():
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
             action, _, _ = self.__policy.forward(obs_tensor)
@@ -96,6 +85,9 @@ class Agent(Player):
         if isinstance(battle, Battle):
             return self.random_teampreview(battle)
         elif isinstance(battle, DoubleBattle):
+            assert self.frames.maxlen is not None
+            for _ in range(self.frames.maxlen):
+                self.frames.appendleft(np.zeros([12, doubles_chunk_obs_len], dtype=np.float32))
             order1 = self.choose_move(battle)
             upd_battle = _EnvPlayer._simulate_teampreview_switchin(order1, battle)
             order2 = self.choose_move(upd_battle)
