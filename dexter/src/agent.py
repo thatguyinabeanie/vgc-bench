@@ -18,7 +18,7 @@ from poke_env.environment import (
     Weather,
 )
 from poke_env.player import BattleOrder, DoublesEnv, Player, SinglesEnv
-from poke_env.player.gymnasium_api import _EnvPlayer
+from poke_env.player.env import _EnvPlayer
 from src.policy import MaskedActorCriticPolicy
 from src.utils import (
     abilities,
