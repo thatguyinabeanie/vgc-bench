@@ -27,7 +27,7 @@ def train():
         cwd="pokemon-showdown",
     )
     time.sleep(10)
-    env = ShowdownEnv.create_env(0, battle_format, num_frames, port, teams, self_play)
+    env = ShowdownEnv.create_env(num_envs, battle_format, num_frames, port, teams, self_play)
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,

@@ -12,18 +12,9 @@ class RandomTeamBuilder(Teambuilder):
     def __init__(self, teams: list[int], battle_format: str):
         self.teams = []
         for team in [TEAMS[battle_format][t] for t in teams]:
-            result = run(
-                ["node", "pokemon-showdown", "validate-team", battle_format],
-                input=f'"{team[1:]}"'.encode(),
-                cwd="pokemon-showdown",
-                capture_output=True,
-            )
-            if result.returncode == 1:
-                print(f"team {TEAMS[battle_format].index(team)}: {result.stderr.decode()}")
-            else:
-                parsed_team = self.parse_showdown_team(team)
-                packed_team = self.join_team(parsed_team)
-                self.teams.append(packed_team)
+            parsed_team = self.parse_showdown_team(team)
+            packed_team = self.join_team(parsed_team)
+            self.teams.append(packed_team)
 
     def yield_team(self) -> str:
         return random.choice(self.teams)

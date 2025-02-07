@@ -8,15 +8,9 @@ import supersuit as ss
 from gymnasium import Env
 from gymnasium.spaces import Box
 from pettingzoo.utils.env import ParallelEnv
-from poke_env import AccountConfiguration, ServerConfiguration
+from poke_env import ServerConfiguration
 from poke_env.environment import AbstractBattle
-from poke_env.player import (
-    DoublesEnv,
-    MaxBasePowerPlayer,
-    RandomPlayer,
-    SimpleHeuristicsPlayer,
-    SingleAgentWrapper,
-)
+from poke_env.player import DoublesEnv, MaxBasePowerPlayer, SingleAgentWrapper
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
 from src.utils import doubles_chunk_obs_len, moves
@@ -38,7 +32,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
     @classmethod
     def create_env(
         cls,
-        i: int,
+        num_envs: int,
         battle_format: str,
         num_frames: int,
         port: int,
@@ -46,8 +40,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         self_play: bool,
     ) -> Env:
         env = cls(
-            account_configuration1=AccountConfiguration(f"Agent{port}-{i + 1}", None),
-            account_configuration2=AccountConfiguration(f"Opponent{port}-{i + 1}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -63,13 +55,9 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         assert isinstance(env, ParallelEnv)
         if self_play:
             env = ss.pettingzoo_env_to_vec_env_v1(env)
-            env = ss.concat_vec_envs_v1(env, 1, base_class="stable_baselines3")
-        elif "vgc" in battle_format:
-            opponent = MaxBasePowerPlayer(battle_format=battle_format, log_level=40)
-            env = SingleAgentWrapper(env, opponent)  # type: ignore
+            env = ss.concat_vec_envs_v1(env, num_envs, base_class="stable_baselines3")
         else:
-            opp_classes = [RandomPlayer, MaxBasePowerPlayer, SimpleHeuristicsPlayer]
-            opponent = opp_classes[i % 3](battle_format=battle_format, log_level=40)
+            opponent = MaxBasePowerPlayer(battle_format=battle_format, log_level=40)
             env = SingleAgentWrapper(env, opponent)  # type: ignore
         return env
 
