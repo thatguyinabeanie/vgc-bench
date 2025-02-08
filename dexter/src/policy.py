@@ -38,6 +38,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
+        assert isinstance(model.policy, MaskedActorCriticPolicy)
         new_policy = cls(
             model.observation_space,
             model.action_space,
@@ -158,8 +159,10 @@ class AttentionExtractor(BaseFeaturesExtractor):
             ),
             num_layers=3,
         )
+        self.frame_encoding: torch.Tensor
         self.register_buffer("frame_encoding", torch.eye(num_frames).unsqueeze(0))
         self.frame_proj = nn.Linear(self.proj_len + num_frames, self.proj_len)
+        self.mask: torch.Tensor
         self.register_buffer("mask", nn.Transformer.generate_square_subsequent_mask(num_frames))
         self.meta_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
