@@ -39,11 +39,18 @@ class Agent(Player):
     __teampreview_draft: list[str]
 
     def __init__(
-        self, policy: ActorCriticPolicy | None, num_frames: int, *args: Any, **kwargs: Any
+        self,
+        policy: ActorCriticPolicy | None,
+        num_frames: int,
+        device: torch.device | None = None,
+        *args: Any,
+        **kwargs: Any,
     ):
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         super().__init__(*args, **kwargs)
         if policy is not None:
-            self.__policy = policy
+            self.__policy = policy.to(device)
         elif self.format_is_doubles:
             self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(
@@ -52,7 +59,7 @@ class Agent(Player):
                 action_space=MultiDiscrete([doubles_act_len, doubles_act_len]),
                 lr_schedule=lambda _: 1e-5,
                 num_frames=num_frames,
-            )
+            ).to(device)
         else:
             self.__policy = MaskedActorCriticPolicy(
                 observation_space=Box(
@@ -61,7 +68,7 @@ class Agent(Player):
                 action_space=Discrete(singles_act_len),
                 lr_schedule=lambda _: 1e-5,
                 num_frames=num_frames,
-            )
+            ).to(device)
         self.frames = Deque(maxlen=num_frames)
         self.__teampreview_draft = []
 
@@ -69,17 +76,26 @@ class Agent(Player):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
-        self.frames.appendleft(
-            self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
+        new_obs = self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
+        avail_switches = (
+            battle.available_switches
+            if isinstance(battle, Battle)
+            else battle.available_switches[0] if isinstance(battle, DoubleBattle) else []
         )
+        if self.teampreview and len(avail_switches) == 6:
+            assert self.frames.maxlen is not None
+            for _ in range(self.frames.maxlen):
+                self.frames.append(new_obs)
+        self.frames.append(new_obs)
         obs = np.stack(self.frames)
         with torch.no_grad():
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
             action, _, _ = self.__policy.forward(obs_tensor)
+        waiting = battle._wait or False
         if isinstance(battle, Battle):
-            return SinglesEnv.action_to_order(action.cpu().numpy()[0], battle)
+            return SinglesEnv.action_to_order(action.cpu().numpy()[0], battle, strict=not waiting)
         elif isinstance(battle, DoubleBattle):
-            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle)
+            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle, strict=not waiting)
         else:
             raise TypeError()
 
@@ -87,9 +103,6 @@ class Agent(Player):
         if isinstance(battle, Battle):
             return self.random_teampreview(battle)
         elif isinstance(battle, DoubleBattle):
-            assert self.frames.maxlen is not None
-            for _ in range(self.frames.maxlen):
-                self.frames.appendleft(np.zeros([12, doubles_chunk_obs_len], dtype=np.float32))
             order1 = self.choose_move(battle)
             upd_battle = _EnvPlayer._simulate_teampreview_switchin(order1, battle)
             order2 = self.choose_move(upd_battle)
@@ -343,6 +356,7 @@ class Agent(Player):
                 i + 1
                 for i, pokemon in enumerate(battle.team.values())
                 if battle.force_switch != [[False, True], [True, False]][pos]
+                and not battle.maybe_trapped[pos]
                 and not (
                     len(battle.available_switches[0]) == 1
                     and battle.force_switch == [True, True]

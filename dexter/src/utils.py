@@ -15,7 +15,7 @@ from poke_env.environment import (
 # training params
 battle_format = "gen9vgc2024regh"
 device = "cuda:3"
-num_envs = 8
+num_envs = 32
 num_frames = 3
 num_teams = 16
 port = 8000
