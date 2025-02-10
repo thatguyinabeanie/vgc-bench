@@ -17,6 +17,7 @@ from poke_env.player import (
     SingleAgentWrapper,
 )
 from src.agent import Agent
+from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
 from src.utils import doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
@@ -100,6 +101,10 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 self.agent1._battles.pop(tag)
                 self.agent2._battles.pop(tag)
         return result
+
+    def set_opp_policy(self, policy: MaskedActorCriticPolicy):
+        assert isinstance(self.agent2, Agent)
+        self.agent2.set_policy(policy)
 
     def calc_reward(self, battle: AbstractBattle) -> float:
         if not battle.finished:
