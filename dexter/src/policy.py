@@ -129,7 +129,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
                 )
                 mask = torch.where(ally_mask, 1.0, mask)
                 mask = torch.cat([obs[:, -1, 0, :act_len], mask], dim=1)
-            mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
 
