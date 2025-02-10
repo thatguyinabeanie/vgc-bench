@@ -102,10 +102,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 self.agent2._battles.pop(tag)
         return result
 
-    def set_opp_policy(self, policy: MaskedActorCriticPolicy):
-        assert isinstance(self.agent2, Agent)
-        self.agent2.set_policy(policy)
-
     def calc_reward(self, battle: AbstractBattle) -> float:
         if not battle.finished:
             return 0

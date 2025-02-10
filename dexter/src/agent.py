@@ -72,7 +72,7 @@ class Agent(Player):
         self.frames = Deque(maxlen=num_frames)
         self.__teampreview_draft = []
 
-    def set_policy(self, policy: MaskedActorCriticPolicy):
+    def set_policy(self, policy: ActorCriticPolicy):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
