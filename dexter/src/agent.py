@@ -350,8 +350,10 @@ class Agent(Player):
                 )
         elif isinstance(battle, DoubleBattle):
             assert pos is not None
-            if battle.finished or battle._wait:
+            if battle.finished:
                 return np.array([])
+            if battle._wait:
+                return np.array([0])
             switch_space = [
                 i + 1
                 for i, pokemon in enumerate(battle.team.values())
