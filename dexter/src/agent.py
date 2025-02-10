@@ -91,11 +91,10 @@ class Agent(Player):
         with torch.no_grad():
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
             action, _, _ = self.__policy.forward(obs_tensor)
-        waiting = battle._wait or False
         if isinstance(battle, Battle):
-            return SinglesEnv.action_to_order(action.cpu().numpy()[0], battle, strict=not waiting)
+            return SinglesEnv.action_to_order(action.cpu().numpy()[0], battle)
         elif isinstance(battle, DoubleBattle):
-            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle, strict=not waiting)
+            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle)
         else:
             raise TypeError()
 
