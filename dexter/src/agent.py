@@ -351,7 +351,7 @@ class Agent(Player):
             assert pos is not None
             if battle.finished:
                 return np.array([])
-            if battle._wait:
+            elif battle._wait:
                 return np.array([0])
             switch_space = [
                 i + 1
