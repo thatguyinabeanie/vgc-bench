@@ -68,9 +68,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         self, obs: PyTorchObs, actions: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
         assert isinstance(obs, torch.Tensor)
-        if len(obs.size()) == 3:
-            obs = obs.unsqueeze(1)
-        obs = torch.flip(obs, dims=[1])
         if obs.device != actions.device:
             actions = actions.to(obs.device)
         action_logits, value_logits = self.get_logits(obs, self.actor_grad)
