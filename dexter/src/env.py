@@ -17,7 +17,6 @@ from poke_env.player import (
     SingleAgentWrapper,
 )
 from src.agent import Agent
-from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
 from src.utils import doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
