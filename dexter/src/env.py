@@ -86,7 +86,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             opp_classes = [RandomPlayer, MaxBasePowerPlayer, SimpleHeuristicsPlayer]
             opponent = opp_classes[i % 3](battle_format=battle_format, log_level=40)
         env = SingleAgentWrapper(env, opponent)
-        env = FrameStackObservation(env, num_frames)
+        env = FrameStackObservation(env, num_frames, padding_type="zero")
         env = Monitor(env)
         return env
 
