@@ -76,9 +76,7 @@ class Agent(Player):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
-        self.frames.append(
-            self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
-        )
+        self.frames.append(self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True))
         obs = np.stack(self.frames)
         with torch.no_grad():
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
