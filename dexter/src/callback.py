@@ -9,7 +9,7 @@ from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, num_frames, port, self_play, steps, teams
+from src.utils import battle_format, num_frames, port, run_name, self_play, steps, teams
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -19,15 +19,14 @@ warnings.filterwarnings("ignore", category=UserWarning)
 class Callback(BaseCallback):
     def __init__(self):
         super().__init__()
-        self.run_name = ",".join([str(t) for t in teams])
         if not os.path.exists("logs"):
             os.mkdir("logs")
-        if os.path.exists(f"logs/{self.run_name}-win-rates.json"):
-            with open(f"logs/{self.run_name}-win-rates.json") as f:
+        if os.path.exists(f"logs/{run_name}-win-rates.json"):
+            with open(f"logs/{run_name}-win-rates.json") as f:
                 self.win_rates = json.load(f)
         else:
             self.win_rates = []
-            with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
+            with open(f"logs/{run_name}-win-rates.json", "w") as f:
                 json.dump(self.win_rates, f)
         self.eval_agent = Agent(
             None,
@@ -72,9 +71,7 @@ class Callback(BaseCallback):
         if self_play:
             assert self.model.env is not None
             num_policies = (
-                len(os.listdir(f"saves/{self.run_name}"))
-                if os.path.exists(f"saves/{self.run_name}")
-                else 0
+                len(os.listdir(f"saves/{run_name}")) if os.path.exists(f"saves/{run_name}") else 0
             )
             if num_policies == 0:
                 policies = [
@@ -83,10 +80,10 @@ class Callback(BaseCallback):
                 ]
             else:
                 filenames = random.choices(
-                    os.listdir(f"saves/{self.run_name}"), k=self.model.env.num_envs
+                    os.listdir(f"saves/{run_name}"), k=self.model.env.num_envs
                 )
                 policies = [
-                    PPO.load(f"saves/{self.run_name}/{filename}").policy for filename in filenames
+                    PPO.load(f"saves/{run_name}/{filename}").policy for filename in filenames
                 ]
             for i in range(self.model.env.num_envs):
                 self.model.env.env_method("set_opp_policy", policies[i], indices=i)
@@ -95,9 +92,9 @@ class Callback(BaseCallback):
         if self.model.num_timesteps % steps == 0:
             win_rate = self.evaluate()
             self.win_rates.append(win_rate)
-            with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
+            with open(f"logs/{run_name}-win-rates.json", "w") as f:
                 json.dump(self.win_rates, f)
-            self.model.save(f"saves/{self.run_name}/{self.model.num_timesteps}")
+            self.model.save(f"saves/{run_name}/{self.model.num_timesteps}")
             self.model.logger.record("train/eval", win_rate)
 
     def evaluate(self) -> float:
