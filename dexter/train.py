@@ -53,8 +53,7 @@ def train():
         ppo.num_timesteps = num_saved_timesteps
         ppo.set_parameters(f"saves/{run_name}/{num_saved_timesteps}.zip", device=ppo.device)
     # ppo.policy.actor_grad = num_saved_timesteps > 0  # type: ignore
-    callback = Callback(steps, battle_format, num_frames, teams, port, self_play)
-    ppo.learn(steps, callback=callback, tb_log_name=run_name, reset_num_timesteps=False)
+    ppo.learn(steps, callback=Callback(), tb_log_name=run_name, reset_num_timesteps=False)
     server.terminate()
     server.wait()
 

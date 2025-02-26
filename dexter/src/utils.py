@@ -17,13 +17,13 @@ battle_format = "gen9vgc2025regg"
 device = "cuda:3"
 num_envs = 32
 num_frames = 2
-num_teams = 16
+num_teams = 32
 port = 8000
 self_play = True
 steps = 98_304
 
 teams = list(range(num_teams))
-run_name = ",".join([str(t) for t in teams])
+run_name = f"{num_teams}-teams"
 
 # observation length constants
 singles_act_len = 26

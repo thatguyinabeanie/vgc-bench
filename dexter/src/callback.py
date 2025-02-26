@@ -9,6 +9,7 @@ from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
+from src.utils import battle_format, num_frames, port, self_play, steps, teams
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -16,18 +17,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Callback(BaseCallback):
-    def __init__(
-        self,
-        save_interval: int,
-        battle_format: str,
-        num_frames: int,
-        teams: list[int],
-        port: int,
-        self_play: bool,
-    ):
+    def __init__(self):
         super().__init__()
-        self.save_interval = save_interval
-        self.self_play = self_play
         self.run_name = ",".join([str(t) for t in teams])
         if not os.path.exists("logs"):
             os.mkdir("logs")
@@ -38,15 +29,6 @@ class Callback(BaseCallback):
             self.win_rates = []
             with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
                 json.dump(self.win_rates, f)
-        if self_play:
-            self.policy_pool = (
-                []
-                if not os.path.exists(f"saves/{self.run_name}")
-                else [
-                    PPO.load(f"saves/{self.run_name}/{filename}").policy
-                    for filename in os.listdir(f"saves/{self.run_name}")
-                ]
-            )
         self.eval_agent = Agent(
             None,
             num_frames=num_frames,
@@ -87,26 +69,36 @@ class Callback(BaseCallback):
     #         self.model.logger.record("train/eval", win_rate)
 
     def _on_rollout_start(self):
-        if self.self_play:
+        if self_play:
             assert self.model.env is not None
-            policies = random.choices(
-                self.policy_pool + [MaskedActorCriticPolicy.clone(self.model)],
-                k=self.model.env.num_envs,
+            num_policies = (
+                len(os.listdir(f"saves/{self.run_name}"))
+                if os.path.exists(f"saves/{self.run_name}")
+                else 0
             )
+            if num_policies == 0:
+                policies = [
+                    MaskedActorCriticPolicy.clone(self.model)
+                    for _ in range(self.model.env.num_envs)
+                ]
+            else:
+                filenames = random.choices(
+                    os.listdir(f"saves/{self.run_name}"), k=self.model.env.num_envs
+                )
+                policies = [
+                    PPO.load(f"saves/{self.run_name}/{filename}").policy for filename in filenames
+                ]
             for i in range(self.model.env.num_envs):
                 self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
     def _on_rollout_end(self):
-        if self.model.num_timesteps % self.save_interval == 0:
+        if self.model.num_timesteps % steps == 0:
             win_rate = self.evaluate()
             self.win_rates.append(win_rate)
             with open(f"logs/{self.run_name}-win-rates.json", "w") as f:
                 json.dump(self.win_rates, f)
             self.model.save(f"saves/{self.run_name}/{self.model.num_timesteps}")
             self.model.logger.record("train/eval", win_rate)
-            if self.self_play:
-                policy = MaskedActorCriticPolicy.clone(self.model)
-                self.policy_pool.append(policy)
 
     def evaluate(self) -> float:
         policy = MaskedActorCriticPolicy.clone(self.model)
