@@ -1,6 +1,7 @@
 # teams from https://docs.google.com/spreadsheets/d/1axlwmzPA49rYkqXh7zHvAtSP-TKbM0ijGYBPRflLSWw/edit?gid=1168048410#gid=1168048410
 
 import random
+from subprocess import run
 
 from poke_env.teambuilder import Teambuilder
 
@@ -11,9 +12,18 @@ class RandomTeamBuilder(Teambuilder):
     def __init__(self, teams: list[int], battle_format: str):
         self.teams = []
         for team in [TEAMS[battle_format][t] for t in teams]:
-            parsed_team = self.parse_showdown_team(team)
-            packed_team = self.join_team(parsed_team)
-            self.teams.append(packed_team)
+            result = run(
+                ["node", "pokemon-showdown", "validate-team", battle_format],
+                input=f'"{team[1:]}"'.encode(),
+                cwd="pokemon-showdown",
+                capture_output=True,
+            )
+            if result.returncode == 1:
+                print(f"team {TEAMS[battle_format].index(team)}: {result.stderr.decode()}")
+            else:
+                parsed_team = self.parse_showdown_team(team)
+                packed_team = self.join_team(parsed_team)
+                self.teams.append(packed_team)
 
     def yield_team(self) -> str:
         return random.choice(self.teams)
@@ -1798,6 +1808,7 @@ Ability: Friend Guard
 Level: 50
 Tera Type: Ghost
 Rash Nature
+EVs: 1 HP
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpD / 0 Spe
 - Endure
 - Follow Me
@@ -2142,6 +2153,7 @@ Urshifu @ Focus Sash
 Ability: Unseen Fist
 Level: 50
 Tera Type: Dark
+EVs: 1 HP
 - Detect
 - Close Combat
 - Wicked Blow
