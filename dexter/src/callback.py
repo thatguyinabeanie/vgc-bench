@@ -28,6 +28,15 @@ class Callback(BaseCallback):
             self.win_rates = []
             with open(f"logs/{run_name}-win-rates.json", "w") as f:
                 json.dump(self.win_rates, f)
+        if self_play:
+            self.policy_pool = (
+                []
+                if not os.path.exists(f"saves/{run_name}")
+                else [
+                    PPO.load(f"saves/{run_name}/{filename}").policy
+                    for filename in os.listdir(f"saves/{run_name}")
+                ]
+            )
         self.eval_agent = Agent(
             None,
             num_frames=num_frames,
@@ -70,21 +79,10 @@ class Callback(BaseCallback):
     def _on_rollout_start(self):
         if self_play:
             assert self.model.env is not None
-            num_policies = (
-                len(os.listdir(f"saves/{run_name}")) if os.path.exists(f"saves/{run_name}") else 0
+            policies = random.choices(
+                self.policy_pool + [MaskedActorCriticPolicy.clone(self.model)],
+                k=self.model.env.num_envs,
             )
-            if num_policies == 0:
-                policies = [
-                    MaskedActorCriticPolicy.clone(self.model)
-                    for _ in range(self.model.env.num_envs)
-                ]
-            else:
-                filenames = random.choices(
-                    os.listdir(f"saves/{run_name}"), k=self.model.env.num_envs
-                )
-                policies = [
-                    PPO.load(f"saves/{run_name}/{filename}").policy for filename in filenames
-                ]
             for i in range(self.model.env.num_envs):
                 self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
@@ -96,6 +94,9 @@ class Callback(BaseCallback):
                 json.dump(self.win_rates, f)
             self.model.save(f"saves/{run_name}/{self.model.num_timesteps}")
             self.model.logger.record("train/eval", win_rate)
+            if self_play:
+                policy = MaskedActorCriticPolicy.clone(self.model)
+                self.policy_pool.append(policy)
 
     def evaluate(self) -> float:
         policy = MaskedActorCriticPolicy.clone(self.model)
