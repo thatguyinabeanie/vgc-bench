@@ -71,20 +71,8 @@ class Callback(BaseCallback):
         return True
 
     def _on_training_start(self):
-        if self_play and self.num_timesteps == 0:
-            if behavior_clone:
-                win_rate = self.evaluate()
-                self.win_rates.append(win_rate)
-                with open(f"logs/{self.num_teams}-teams-win-rates.json", "w") as f:
-                    json.dump(self.win_rates, f)
-                self.model.logger.record("train/eval", win_rate)
-            else:
-                assert self.model.env is not None
-                for i in range(self.model.env.num_envs):
-                    self.model.env.env_method(
-                        "set_opp_policy", MaskedActorCriticPolicy.clone(self.model), indices=i
-                    )
-                self.on_rollout_end()
+        if self_play and not self.policy_pool:
+            self.on_rollout_end()
 
     def _on_rollout_start(self):
         if self_play:
