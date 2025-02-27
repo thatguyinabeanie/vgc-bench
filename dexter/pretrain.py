@@ -1,3 +1,4 @@
+import argparse
 import os
 import pickle
 
@@ -11,15 +12,13 @@ from src.policy import MaskedActorCriticPolicy
 from src.utils import (
     battle_format,
     behavior_clone,
-    device,
     doubles_chunk_obs_len,
     num_frames,
-    run_name,
 )
 from stable_baselines3 import PPO
 
 
-def pretrain():
+def pretrain(num_teams: int, device: str):
     env = ShowdownEnv(
         battle_format=battle_format,
         log_level=40,
@@ -54,11 +53,10 @@ def pretrain():
         demonstrations=stacked_trajs,
         batch_size=1024,
         device=device,
-        custom_logger=configure(f"logs/{run_name}", ["tensorboard"]),
+        custom_logger=configure(f"logs/{num_teams}-teams", ["tensorboard"]),
     )
-    print("finished initing")
     bc.train(n_epochs=100)
-    ppo.save(f"saves/{run_name}/0")
+    ppo.save(f"saves/{num_teams}-teams/0")
 
 
 def frame_stack_traj(traj: Trajectory) -> Trajectory:
@@ -71,9 +69,13 @@ def frame_stack_traj(traj: Trajectory) -> Trajectory:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Pretrain a Pokémon AI model")
+    parser.add_argument("--num_teams", type=int, default=1, help="Number of teams to train with")
+    parser.add_argument("--device", type=str, default="cuda:0", choices=["cuda:0", "cuda:1", "cuda:2", "cuda:3"], help="CUDA device to use for training")
+    args = parser.parse_args()
     if not behavior_clone:
         print("behavior cloning toggled off - aborting")
-    elif os.path.exists(f"saves/{run_name}/0.zip"):
+    elif os.path.exists(f"saves/{args.num_teams}-teams/0.zip"):
         print("already have pretrained NN - aborting")
     else:
-        pretrain()
+        pretrain(args.num_teams, args.device)

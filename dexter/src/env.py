@@ -42,7 +42,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         battle_format: str,
         num_frames: int,
         port: int,
-        teams: list[int],
+        num_teams: int,
         self_play: bool,
         device: str,
     ) -> Monitor:
@@ -57,7 +57,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             log_level=40,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(teams, battle_format),
+            team=RandomTeamBuilder(list(range(num_teams)), battle_format),
             start_challenging=True,
         )
         if self_play:
@@ -78,7 +78,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 log_level=40,
                 accept_open_team_sheet=True,
                 open_timeout=None,
-                team=RandomTeamBuilder(teams, battle_format),
+                team=RandomTeamBuilder(list(range(num_teams)), battle_format),
             )
         elif "vgc" in battle_format:
             opponent = MaxBasePowerPlayer(battle_format=battle_format, log_level=40)

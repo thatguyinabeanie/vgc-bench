@@ -15,16 +15,10 @@ from poke_env.environment import (
 # training params
 battle_format = "gen9vgc2025regg"
 behavior_clone = False
-device = "cuda:3"
 num_envs = 16
 num_frames = 2
-num_teams = 32
-port = 8000
 self_play = True
 steps = 98_304
-
-teams = list(range(num_teams))
-run_name = f"{num_teams}-teams"
 
 # observation length constants
 singles_act_len = 26
