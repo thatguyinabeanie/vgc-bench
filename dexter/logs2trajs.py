@@ -7,13 +7,14 @@ import numpy.typing as npt
 from imitation.data.types import Trajectory
 from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
-from poke_env.player import BattleOrder, DoubleBattleOrder, Player
+from poke_env.player import BattleOrder, DoubleBattleOrder, DoublesEnv, Player
 from src.agent import Agent
+from src.utils import battle_format
 
 
 class LogReader(Player):
     states: list[npt.NDArray[np.float32]]
-    actions: list[npt.NDArray[np.int32]]
+    actions: list[npt.NDArray[np.int64]]
     next_msg: str | None
     teampreview_draft: list[str]
 
@@ -31,7 +32,7 @@ class LogReader(Player):
         order2 = self.get_order(battle, self.next_msg, True)
         order = DoubleBattleOrder(order1, order2)
         state = Agent.embed_battle(battle, self.teampreview_draft)
-        action = Agent.doubles_order_to_action(order, battle)
+        action = DoublesEnv.order_to_action(order, battle, fake=True)
         self.states += [state]
         self.actions += [action]
         return order
@@ -100,7 +101,7 @@ class LogReader(Player):
         order2 = BattleOrder(list(battle.team.values())[id2 - 1])
         order = DoubleBattleOrder(order1, order2)
         state = Agent.embed_battle(battle, self.teampreview_draft)
-        action = Agent.doubles_order_to_action(order, battle)
+        action = DoublesEnv.order_to_action(order, battle, fake=True)
         self.states += [state]
         self.actions += [action]
         self.teampreview_draft = [
@@ -124,7 +125,7 @@ class LogReader(Player):
 
     async def follow_log(
         self, tag: str, log: str, role: str
-    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int32]] | None:
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]] | None:
         self.states = []
         self.actions = []
         self.teampreview_draft = []
@@ -156,25 +157,37 @@ class LogReader(Player):
 def process_logs(log_jsons: dict[str, tuple[str, str]]) -> list[Trajectory]:
     trajs = []
     total = 0
+    num_errors = 0
     for i, (tag, (_, log)) in enumerate(log_jsons.items()):
         print(f"progress: {round(100 * i / len(log_jsons), ndigits=2)}%", end="\r")
-        player1 = LogReader(
-            battle_format="gen9vgc2024regh", log_level=51, accept_open_team_sheet=True
-        )
-        player2 = LogReader(
-            battle_format="gen9vgc2024regh", log_level=51, accept_open_team_sheet=True
-        )
-        result1 = asyncio.run(player1.follow_log(tag, log, "p1"))
-        result2 = asyncio.run(player2.follow_log(tag, log, "p2"))
-        if result1 is not None:
-            states1, actions1 = result1
-            total += len(states1)
-            trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
-        if result2 is not None:
-            states2, actions2 = result2
-            total += len(states2)
-            trajs += [Trajectory(obs=states2, acts=actions2, infos=None, terminal=True)]
-    print(f"prepared {len(trajs)} trajectories with {total} total state-action pairs")
+        try:
+            player1 = LogReader(
+                battle_format=battle_format, log_level=51, accept_open_team_sheet=True
+            )
+            player2 = LogReader(
+                battle_format=battle_format, log_level=51, accept_open_team_sheet=True
+            )
+            result1 = asyncio.run(player1.follow_log(tag, log, "p1"))
+            result2 = asyncio.run(player2.follow_log(tag, log, "p2"))
+            if result1 is not None:
+                states1, actions1 = result1
+                total += len(states1)
+                trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
+            if result2 is not None:
+                states2, actions2 = result2
+                total += len(states2)
+                trajs += [Trajectory(obs=states2, acts=actions2, infos=None, terminal=True)]
+        except KeyboardInterrupt:
+            raise
+        except SystemExit:
+            raise
+        except:
+            num_errors += 1
+    print(
+        f"prepared {len(trajs)} trajectories "
+        f"with {total} total state-action pairs "
+        f"(and {num_errors} games thrown away)"
+    )
     return trajs
 
 
