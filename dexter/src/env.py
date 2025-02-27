@@ -61,14 +61,10 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             start_challenging=True,
         )
         if self_play:
-            num_gpus = torch.cuda.device_count()
-            other_gpu_ids = [f"cuda:{i}" for i in range(num_gpus) if f"cuda:{i}" != device]
             opponent = Agent(
                 None,
                 num_frames=num_frames,
-                device=torch.device(
-                    other_gpu_ids[i % len(other_gpu_ids)] if num_gpus > 0 else "cpu"
-                ),
+                device=torch.device(device),
                 account_configuration=AccountConfiguration(f"Internal{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
