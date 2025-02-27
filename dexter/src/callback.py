@@ -9,7 +9,7 @@ from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, behavior_clone, num_frames, self_play, steps
+from src.utils import battle_format, num_frames, self_play, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -77,10 +77,9 @@ class Callback(BaseCallback):
     def _on_rollout_start(self):
         if self_play:
             assert self.model.env is not None
-            if self.policy_pool:
-                policies = random.choices(self.policy_pool, k=self.model.env.num_envs)
-                for i in range(self.model.env.num_envs):
-                    self.model.env.env_method("set_opp_policy", policies[i], indices=i)
+            policies = random.choices(self.policy_pool, k=self.model.env.num_envs)
+            for i in range(self.model.env.num_envs):
+                self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % steps == 0:
