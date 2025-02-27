@@ -9,12 +9,7 @@ from imitation.util.logger import configure
 from poke_env.player import RandomPlayer, SingleAgentWrapper
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
-from src.utils import (
-    battle_format,
-    behavior_clone,
-    doubles_chunk_obs_len,
-    num_frames,
-)
+from src.utils import battle_format, behavior_clone, doubles_chunk_obs_len, num_frames
 from stable_baselines3 import PPO
 
 
@@ -71,7 +66,13 @@ def frame_stack_traj(traj: Trajectory) -> Trajectory:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pretrain a Pokémon AI model")
     parser.add_argument("--num_teams", type=int, default=1, help="Number of teams to train with")
-    parser.add_argument("--device", type=str, default="cuda:0", choices=["cuda:0", "cuda:1", "cuda:2", "cuda:3"], help="CUDA device to use for training")
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda:0",
+        choices=["cuda:0", "cuda:1", "cuda:2", "cuda:3"],
+        help="CUDA device to use for training",
+    )
     args = parser.parse_args()
     if not behavior_clone:
         print("behavior cloning toggled off - aborting")

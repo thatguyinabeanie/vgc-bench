@@ -9,13 +9,7 @@ from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import (
-    battle_format,
-    behavior_clone,
-    num_frames,
-    self_play,
-    steps,
-)
+from src.utils import battle_format, behavior_clone, num_frames, self_play, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
