@@ -90,7 +90,16 @@ class Callback(BaseCallback):
                 assert self.model.env is not None
                 for i in range(self.model.env.num_envs):
                     opp = RandomPlayer(
-                        account_configuration=AccountConfiguration(f"RandomOpp{port}-{i}", None)
+                        account_configuration=AccountConfiguration(f"RandomOpp{port}-{i}", None),
+                        server_configuration=ServerConfiguration(
+                            f"ws://localhost:{port}/showdown/websocket",
+                            "https://play.pokemonshowdown.com/action.php?",
+                        ),
+                        battle_format=battle_format,
+                        log_level=40,
+                        accept_open_team_sheet=True,
+                        open_timeout=None,
+                        team=RandomTeamBuilder(teams, battle_format),
                     )
                     self.model.env.set_attr("opponent", opp, indices=i)
 
