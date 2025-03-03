@@ -1,4 +1,16 @@
-[submodule "pokemon-showdown"]
-	path = pokemon-showdown
+[submodule "pokemon-showdown-8000"]
+	path = pokemon-showdown-8000
+	url = https://github.com/cameronangliss/pokemon-showdown
+	branch = master
+[submodule "pokemon-showdown-8001"]
+	path = pokemon-showdown-8001
+	url = https://github.com/cameronangliss/pokemon-showdown
+	branch = master
+[submodule "pokemon-showdown-8002"]
+	path = pokemon-showdown-8002
+	url = https://github.com/cameronangliss/pokemon-showdown
+	branch = master
+[submodule "pokemon-showdown-8003"]
+	path = pokemon-showdown-8003
 	url = https://github.com/cameronangliss/pokemon-showdown
 	branch = master
