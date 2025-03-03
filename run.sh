@@ -11,15 +11,17 @@ for i in "${!teams[@]}"; do
     port=${ports[$i]}
     device=${devices[$i]}
     (
-        python dexter/pretrain.py --num_teams "$num_teams" --device "$device" > /dev/null 2> debug.log
-        while true; do
-            python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" > debug.log 2>&1
-            exit_code=$?
-            if [ $exit_code -ne 0 ]; then
-                echo "Run $i died"
-                break
-            fi
-        done
+        cd pokemon-showdown
+        node pokemon-showdown start "$port" --no-security > /dev/null 2>&1
+    ) &
+    (
+        python dexter/pretrain.py --num_teams "$num_teams" --device "$device" 2> debug"$port".log
+        python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" > debug"$port".log 2>&1
+        exit_code=$?
+        if [ $exit_code -ne 0 ]; then
+            echo "Run $i died"
+            break
+        fi
     ) &
 done
 wait

@@ -3,5 +3,5 @@ bin/
 data/
 logs*/
 saves*/
-debug.log
+debug*.log
 profile.prof

@@ -15,7 +15,7 @@ from poke_env.environment import (
 # training params
 battle_format = "gen9vgc2025regg"
 behavior_clone = False
-num_envs = 16
+num_envs = 8
 num_frames = 2
 self_play = True
 steps = 98_304

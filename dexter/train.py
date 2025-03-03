@@ -1,7 +1,5 @@
 import argparse
 import os
-import time
-from subprocess import PIPE, STDOUT, Popen
 
 from src.callback import Callback
 from src.env import ShowdownEnv
@@ -12,13 +10,6 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
 def train(num_teams: int, port: int, device: str):
-    server = Popen(
-        ["node", "pokemon-showdown", "start", str(port), "--no-security"],
-        stdout=PIPE,
-        stderr=STDOUT,
-        cwd="pokemon-showdown",
-    )
-    time.sleep(10)
     env = SubprocVecEnv(
         [
             lambda i=i: ShowdownEnv.create_env(
@@ -52,13 +43,11 @@ def train(num_teams: int, port: int, device: str):
     if behavior_clone:
         ppo.policy.actor_grad = num_saved_timesteps > 0  # type: ignore
     ppo.learn(
-        steps,
+        100_000_000_000_000_000,
         callback=Callback(num_teams, port),
         tb_log_name=f"{num_teams}-teams",
         reset_num_timesteps=False,
     )
-    server.terminate()
-    server.wait()
 
 
 if __name__ == "__main__":
