@@ -24,7 +24,7 @@ class Callback(BaseCallback):
         if not os.path.exists("logs"):
             os.mkdir("logs")
         self.win_rates: list[float]
-        if os.path.exists(f"logs/{num_teams}-teams--win-rates.json"):
+        if os.path.exists(f"logs/{num_teams}-teams-win-rates.json"):
             with open(f"logs/{num_teams}-teams-win-rates.json") as f:
                 self.win_rates = json.load(f)
         else:
