@@ -48,43 +48,32 @@ class LogReader(Player):
         if move_lines:
             active = battle.active_pokemon[int(is_right)]
             assert active is not None, battle.active_pokemon
-            move_msg_parts = move_lines[0].split("|")
-            if to_id_str(move_msg_parts[3]) == "struggle":
+            [_, _, identifier, move, target_identifier, *_] = move_lines[0].split("|")
+            if to_id_str(move) == "struggle":
                 move = list(active.moves.values())[0]
             else:
-                move_name = to_id_str(move_msg_parts[3])
                 move = (
-                    active.moves[move_name]
-                    if move_name in active.moves
+                    active.moves[to_id_str(move)]
+                    if to_id_str(move) in active.moves
                     else active.moves["metronome"]
                 )
-            labels = ["p1a", "p1b", "p2a", "p2b"]
+            target_lines = [l for l in msg.split("\n") if f"|switch|{target_identifier}" in l]
+            target_details = target_lines[0].split("|")[3] if target_lines else ""
             target = (
-                None
-                if move_msg_parts
-                else [
-                    p
-                    for i, p in enumerate(battle.active_pokemon + battle.opponent_active_pokemon)
-                    if p is not None
-                    and f"{labels[i]}: {p.base_species.capitalize()}" == move_msg_parts[4]
-                ][0]
+                battle.get_pokemon(target_identifier, details=target_details)
+                if ": " in target_identifier
+                else None
             )
-            did_tera = f"|-terastallize|{move_msg_parts[2]}|" in msg
+            did_tera = f"|-terastallize|{identifier}|" in msg
             return BattleOrder(
                 move, terastallize=did_tera, move_target=battle.to_showdown_target(move, target)
             )
         elif f"|switch|{battle.player_role}{pos}: " in msg:
             start = msg.index(f"|switch|{battle.player_role}{pos}: ")
             end = msg.index("\n", start) if "\n" in msg[start:] else len(msg)
-            switch_msg_parts = msg[start:end].split("|")
-            form = switch_msg_parts[3].split(", ")[0]
-            pokemon = [
-                p
-                for p in battle.team.values()
-                if to_id_str(form).startswith(to_id_str(p._last_details.split(", ")[0]))
-                or to_id_str(p._last_details.split(", ")[0]).startswith(to_id_str(form))
-            ][0]
-            return BattleOrder(pokemon)
+            [_, _, identifier, details, *_] = msg[start:end].split("|")
+            mon = battle.get_pokemon(identifier, details=details, request=battle.last_request)
+            return BattleOrder(mon)
         else:
             return None
 
@@ -114,13 +103,9 @@ class LogReader(Player):
         pos = "a" if is_left else "b"
         start = msg.index(f"|switch|{battle.player_role}{pos}: ")
         end = msg.index("\n", start)
-        switch_msg_parts = msg[start:end].split("|")
-        form = switch_msg_parts[3].split(", ")[0]
-        index = [
-            i
-            for i, p in enumerate(battle.team.values())
-            if to_id_str(form).startswith(to_id_str(p._last_details.split(", ")[0]))
-        ][0]
+        [_, _, identifier, details, *_] = msg[start:end].split("|")
+        mon = battle.get_pokemon(identifier, details=details, request=battle.last_request)
+        index = list(battle.team.values()).index(mon)
         return index + 1
 
     async def follow_log(
@@ -154,7 +139,7 @@ class LogReader(Player):
         return np.stack(self.states, axis=0), np.stack(self.actions, axis=0)
 
 
-def process_logs(log_jsons: dict[str, tuple[str, str]]) -> list[Trajectory]:
+def process_logs(log_jsons: dict[str, tuple[str, str]], strict: bool = False) -> list[Trajectory]:
     trajs = []
     total = 0
     num_errors = 0
@@ -181,8 +166,11 @@ def process_logs(log_jsons: dict[str, tuple[str, str]]) -> list[Trajectory]:
             raise
         except SystemExit:
             raise
-        except:
-            num_errors += 1
+        except Exception as e:
+            if strict:
+                raise e
+            else:
+                num_errors += 1
     print(
         f"prepared {len(trajs)} trajectories "
         f"with {total} total state-action pairs "
@@ -194,6 +182,6 @@ def process_logs(log_jsons: dict[str, tuple[str, str]]) -> list[Trajectory]:
 if __name__ == "__main__":
     with open("data/logs.json", "r") as f:
         logs = json.load(f)
-    trajs = process_logs(logs)
+    trajs = process_logs(logs, strict=False)
     with open("data/trajs.pkl", "wb") as f:
         pickle.dump(trajs, f)
