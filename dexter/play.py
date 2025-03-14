@@ -13,7 +13,10 @@ from stable_baselines3 import PPO
 
 async def play(num_teams, n_games: int, play_on_ladder: bool):
     print("Setting up...")
-    if os.path.exists(f"saves/{num_teams}-teams") and len(os.listdir(f"saves/{num_teams}-teams")) > 0:
+    if (
+        os.path.exists(f"saves/{num_teams}-teams")
+        and len(os.listdir(f"saves/{num_teams}-teams")) > 0
+    ):
         files = os.listdir(f"saves/{num_teams}-teams")
         with open(f"logs/{num_teams}-teams-win-rates.json") as f:
             win_rates = json.load(f)
