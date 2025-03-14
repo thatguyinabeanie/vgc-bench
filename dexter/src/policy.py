@@ -9,8 +9,10 @@ from src.utils import (
     abilities,
     doubles_chunk_obs_len,
     doubles_glob_obs_len,
+    frame_stack,
     items,
     moves,
+    num_frames,
     side_obs_len,
 )
 from stable_baselines3.common.base_class import BaseAlgorithm
@@ -22,8 +24,7 @@ from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
-        self.num_frames = num_frames
+    def __init__(self, *args: Any, **kwargs: Any):
         self.actor_grad = True
         super().__init__(
             *args,
@@ -31,7 +32,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
-            features_extractor_kwargs={"num_frames": num_frames},
             share_features_extractor=False,
             # optimizer_kwargs={"weight_decay": 1e-5},
         )
@@ -39,12 +39,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
         assert isinstance(model.policy, MaskedActorCriticPolicy)
-        new_policy = cls(
-            model.observation_space,
-            model.action_space,
-            model.lr_schedule,
-            num_frames=model.policy.num_frames,
-        )
+        new_policy = cls(model.observation_space, model.action_space, model.lr_schedule)
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
 
@@ -103,17 +98,18 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution
 
     def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:
+        chunk = obs[:, -1, 0, :] if frame_stack else obs[:, 0, :]
         if isinstance(self.action_space, Discrete):
-            mask = obs[:, -1, 0, : self.action_space.n]  # type: ignore
+            mask = chunk[:, : self.action_space.n]  # type: ignore
             mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
         else:
             act_len = self.action_space.nvec[0]  # type: ignore
             if ally_actions is None:
-                mask = obs[:, -1, 0, : 2 * act_len]
+                mask = chunk[:, : 2 * act_len]
             else:
-                mask = obs[:, -1, 0, act_len : 2 * act_len]
+                mask = chunk[:, act_len : 2 * act_len]
                 ally_switched = (1 <= ally_actions) & (ally_actions <= 6)
                 ally_terastallized = ally_actions >= 87
                 # creating a (batch_size, act_len) size array of 0..act_len - 1 ranges
@@ -125,7 +121,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
                     | ((indices == ally_actions) & ally_switched)
                 )
                 mask = torch.where(ally_mask, 1.0, mask)
-                mask = torch.cat([obs[:, -1, 0, :act_len], mask], dim=1)
+                mask = torch.cat([chunk[:, :act_len], mask], dim=1)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
 
@@ -133,9 +129,9 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class AttentionExtractor(BaseFeaturesExtractor):
     num_pokemon: int = 12
     embed_len: int = 32
-    proj_len: int = 128
+    proj_len: int = 512
 
-    def __init__(self, observation_space: Space[Any], num_frames: int):
+    def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.proj_len)
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
@@ -147,59 +143,80 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.frame_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
                 d_model=self.proj_len,
-                nhead=4,
+                nhead=8,
                 dim_feedforward=self.proj_len,
                 dropout=0,
                 batch_first=True,
                 norm_first=True,
             ),
-            num_layers=3,
+            num_layers=8,
         )
         self.frame_encoding: torch.Tensor
-        self.register_buffer("frame_encoding", torch.eye(num_frames).unsqueeze(0))
-        self.frame_proj = nn.Linear(self.proj_len + num_frames, self.proj_len)
-        self.mask: torch.Tensor
-        self.register_buffer("mask", nn.Transformer.generate_square_subsequent_mask(num_frames))
-        self.meta_encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(
-                d_model=self.proj_len,
-                nhead=4,
-                dim_feedforward=self.proj_len,
-                dropout=0,
-                batch_first=True,
-                norm_first=True,
-            ),
-            num_layers=3,
-        )
+        if frame_stack:
+            self.register_buffer("frame_encoding", torch.eye(num_frames).unsqueeze(0))
+            self.frame_proj = nn.Linear(self.proj_len + num_frames, self.proj_len)
+            self.mask: torch.Tensor
+            self.register_buffer("mask", nn.Transformer.generate_square_subsequent_mask(num_frames))
+            self.meta_encoder = nn.TransformerEncoder(
+                nn.TransformerEncoderLayer(
+                    d_model=self.proj_len,
+                    nhead=8,
+                    dim_feedforward=self.proj_len,
+                    dropout=0,
+                    batch_first=True,
+                    norm_first=True,
+                ),
+                num_layers=8,
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
-        num_frames = x.size(1)
-        # embedding
-        start = doubles_glob_obs_len + side_obs_len
-        x = torch.cat(
-            [
-                x[:, :, :, :start],
-                self.ability_embed.forward(x[:, :, :, start].long()),
-                self.item_embed.forward(x[:, :, :, start + 1].long()),
-                self.move_embed.forward(x[:, :, :, start + 2].long()),
-                self.move_embed.forward(x[:, :, :, start + 3].long()),
-                self.move_embed.forward(x[:, :, :, start + 4].long()),
-                self.move_embed.forward(x[:, :, :, start + 5].long()),
-                x[:, :, :, start + 6 :],
-            ],
-            dim=3,
-        )
-        # frame encoder
-        x = x.view(batch_size * num_frames, self.num_pokemon, -1)
-        x = self.feature_proj.forward(x)
-        token = self.cls_token.expand(batch_size * num_frames, -1, -1)
-        x = torch.cat([token, x], dim=1)
-        x = self.frame_encoder.forward(x)[:, 0, :]
-        x = x.view(batch_size, num_frames, -1)
-        # meta encoder
-        frame_encoding = self.frame_encoding[:, -num_frames:, :].expand(batch_size, -1, -1)
-        x = torch.cat([x, frame_encoding], dim=2)
-        x = self.frame_proj.forward(x)
-        mask = self.mask[-num_frames:, -num_frames:]
-        return self.meta_encoder.forward(x, mask=mask, is_causal=True)[:, -1, :]
+        if frame_stack:
+            # embedding
+            start = doubles_glob_obs_len + side_obs_len
+            x = torch.cat(
+                [
+                    x[:, :, :, :start],
+                    self.ability_embed.forward(x[:, :, :, start].long()),
+                    self.item_embed.forward(x[:, :, :, start + 1].long()),
+                    self.move_embed.forward(x[:, :, :, start + 2].long()),
+                    self.move_embed.forward(x[:, :, :, start + 3].long()),
+                    self.move_embed.forward(x[:, :, :, start + 4].long()),
+                    self.move_embed.forward(x[:, :, :, start + 5].long()),
+                    x[:, :, :, start + 6 :],
+                ],
+                dim=3,
+            )
+            # frame encoder
+            x = x.view(batch_size * num_frames, self.num_pokemon, -1)
+            x = self.feature_proj.forward(x)
+            token = self.cls_token.expand(batch_size * num_frames, -1, -1)
+            x = torch.cat([token, x], dim=1)
+            x = self.frame_encoder.forward(x)[:, 0, :]
+            x = x.view(batch_size, num_frames, -1)
+            # meta encoder
+            frame_encoding = self.frame_encoding.expand(batch_size, -1, -1)
+            x = torch.cat([x, frame_encoding], dim=2)
+            x = self.frame_proj.forward(x)
+            return self.meta_encoder.forward(x, mask=self.mask, is_causal=True)[:, -1, :]
+        else:
+            # embedding
+            start = doubles_glob_obs_len + side_obs_len
+            x = torch.cat(
+                [
+                    x[:, :, :start],
+                    self.ability_embed.forward(x[:, :, start].long()),
+                    self.item_embed.forward(x[:, :, start + 1].long()),
+                    self.move_embed.forward(x[:, :, start + 2].long()),
+                    self.move_embed.forward(x[:, :, start + 3].long()),
+                    self.move_embed.forward(x[:, :, start + 4].long()),
+                    self.move_embed.forward(x[:, :, start + 5].long()),
+                    x[:, :, start + 6 :],
+                ],
+                dim=2,
+            )
+            # frame encoder
+            x = self.feature_proj.forward(x)
+            token = self.cls_token.expand(batch_size, -1, -1)
+            x = torch.cat([token, x], dim=1)
+            return self.frame_encoder.forward(x)[:, 0, :]

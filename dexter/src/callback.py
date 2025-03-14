@@ -4,13 +4,15 @@ import os
 import random
 import warnings
 
-from poke_env import AccountConfiguration, ServerConfiguration
+import numpy as np
+import numpy.typing as npt
+from poke_env import ServerConfiguration
 from poke_env.concurrency import POKE_LOOP
 from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, num_frames, self_play, steps
+from src.utils import battle_format, behavior_clone, num_frames, self_play, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -43,7 +45,6 @@ class Callback(BaseCallback):
         self.eval_agent = Agent(
             None,
             num_frames=num_frames,
-            account_configuration=AccountConfiguration(f"EvalAgent{port}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -56,7 +57,6 @@ class Callback(BaseCallback):
         )
         opp_class = MaxBasePowerPlayer if "vgc" in battle_format else SimpleHeuristicsPlayer
         self.eval_opponent = opp_class(
-            account_configuration=AccountConfiguration(f"EvalOpponent{port}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -69,32 +69,38 @@ class Callback(BaseCallback):
         )
 
     def _on_step(self) -> bool:
+        assert self.model.env is not None
+        dones: npt.NDArray[np.bool] = self.locals.get("dones")  # type: ignore
+        for i, done in enumerate(dones):
+            if done:
+                policy = random.choice(self.policy_pool)
+                self.model.env.env_method("set_opp_policy", policy, indices=i)
         return True
 
     def _on_training_start(self):
-        if self_play and not self.policy_pool:
-            self.on_rollout_end()
-
-    def _on_rollout_start(self):
+        assert self.model.env is not None
         if self_play:
-            assert self.model.env is not None
+            if not self.policy_pool:
+                self.on_rollout_end()
+            elif behavior_clone and not self.win_rates:
+                self.evaluate()
             policies = random.choices(self.policy_pool, k=self.model.env.num_envs)
             for i in range(self.model.env.num_envs):
                 self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
+    def _on_rollout_start(self):
+        if behavior_clone:
+            self.model.policy.actor_grad = self.model.num_timesteps > 0  # type: ignore
+
     def _on_rollout_end(self):
         if self.model.num_timesteps % steps == 0:
-            win_rate = self.evaluate()
-            self.win_rates.append(win_rate)
-            with open(f"logs/{self.num_teams}-teams-win-rates.json", "w") as f:
-                json.dump(self.win_rates, f)
+            self.evaluate()
             self.model.save(f"saves/{self.num_teams}-teams/{self.model.num_timesteps}")
-            self.model.logger.record("train/eval", win_rate)
             if self_play:
                 policy = MaskedActorCriticPolicy.clone(self.model)
                 self.policy_pool.append(policy)
 
-    def evaluate(self) -> float:
+    def evaluate(self):
         policy = MaskedActorCriticPolicy.clone(self.model)
         self.eval_agent.set_policy(policy)
         asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
@@ -111,4 +117,7 @@ class Callback(BaseCallback):
             )
         self.eval_agent.reset_battles()
         self.eval_opponent.reset_battles()
-        return win_rate
+        self.win_rates.append(win_rate)
+        with open(f"logs/{self.num_teams}-teams-win-rates.json", "w") as f:
+            json.dump(self.win_rates, f)
+        self.model.logger.record("train/eval", win_rate)

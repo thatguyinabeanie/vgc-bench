@@ -8,14 +8,16 @@ from imitation.data.types import Trajectory
 from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
 from poke_env.player import BattleOrder, DoubleBattleOrder, DoublesEnv, Player
+from poke_env.ps_client import AccountConfiguration
+from scrape_logs import battle_formats
 from src.agent import Agent
-from src.utils import battle_format
+from src.utils import doubles_chunk_obs_len, frame_stack, num_frames
 
 
 class LogReader(Player):
     states: list[npt.NDArray[np.float32]]
     actions: list[npt.NDArray[np.int64]]
-    next_msg: str | None
+    msg: str | None
     teampreview_draft: list[str]
 
     def __init__(self, *args, **kwargs):
@@ -33,9 +35,15 @@ class LogReader(Player):
         order = DoubleBattleOrder(order1, order2)
         state = Agent.embed_battle(battle, self.teampreview_draft)
         action = DoublesEnv.order_to_action(order, battle, fake=True)
-        self.states += [state]
-        self.actions += [action]
+        if action[0] != 0 and action[1] != 0:
+            self.states += [state]
+            self.actions += [action]
         return order
+
+    async def _handle_battle_request(
+        self, battle: AbstractBattle, from_teampreview_request: bool = False
+    ):
+        pass
 
     @staticmethod
     def get_order(battle: DoubleBattle, msg: str, is_right: bool) -> BattleOrder | None:
@@ -80,8 +88,8 @@ class LogReader(Player):
     def teampreview(self, battle: AbstractBattle) -> str:
         assert self.next_msg is not None
         assert isinstance(battle, DoubleBattle)
-        id1 = self.get_teampreview_order(battle, self.next_msg, True)
-        id2 = self.get_teampreview_order(battle, self.next_msg, False)
+        id1 = self.get_teampreview_order(battle, self.next_msg, False)
+        id2 = self.get_teampreview_order(battle, self.next_msg, True)
         all_choices = [str(c) for c in range(1, 7)]
         all_choices.remove(str(id1))
         all_choices.remove(str(id2))
@@ -90,6 +98,7 @@ class LogReader(Player):
         order2 = BattleOrder(list(battle.team.values())[id2 - 1])
         order = DoubleBattleOrder(order1, order2)
         state = Agent.embed_battle(battle, self.teampreview_draft)
+        assert state.shape == (num_frames, 12, doubles_chunk_obs_len) if frame_stack else (12, doubles_chunk_obs_len)
         action = DoublesEnv.order_to_action(order, battle, fake=True)
         self.states += [state]
         self.actions += [action]
@@ -99,8 +108,8 @@ class LogReader(Player):
         return order_str
 
     @staticmethod
-    def get_teampreview_order(battle: AbstractBattle, msg: str, is_left: bool) -> int:
-        pos = "a" if is_left else "b"
+    def get_teampreview_order(battle: AbstractBattle, msg: str, is_right: bool) -> int:
+        pos = "b" if is_right else "a"
         start = msg.index(f"|switch|{battle.player_role}{pos}: ")
         end = msg.index("\n", start)
         [_, _, identifier, details, *_] = msg[start:end].split("|")
@@ -109,59 +118,58 @@ class LogReader(Player):
         return index + 1
 
     async def follow_log(
-        self, tag: str, log: str, role: str
+        self, tag: str, log: str
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]] | None:
         self.states = []
         self.actions = []
         self.teampreview_draft = []
         tag = f"battle-{tag}"
         messages = [f">{tag}\n" + m for m in log.split("\n|\n")]
-        if "|win|" in messages[1]:
-            return
-        for i in range(len(messages) - 1):
-            split_messages = [m.split("|") for m in messages[i].split("\n")]
-            self.next_msg = messages[i + 1]
-            if i == 0:
-                battle = await self._create_battle(f">{tag}".split("-"))
-                battle.logger = None
-                battle._player_role = role
-                battle._teampreview = True
-                await self._handle_battle_message(split_messages)
-            else:
-                battle = self.battles[tag]
-                battle._teampreview = False
-                await self._handle_battle_message(split_messages)
-                self.choose_move(battle)
-        split_messages = [m.split("|") for m in messages[-1].split("\n")]
-        await self._handle_battle_message(split_messages)
-        last_state = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
-        self.states += [last_state]
-        return np.stack(self.states, axis=0), np.stack(self.actions, axis=0)
+        if "|win|" not in messages[1]:
+            for i in range(len(messages) - 1):
+                split_messages = [m.split("|") for m in messages[i].split("\n")]
+                self.next_msg = messages[i + 1]
+                if i == 0:
+                    battle = await self._create_battle(f">{tag}".split("-"))
+                    battle.logger = None
+                    battle._teampreview = True
+                    await self._handle_battle_message(split_messages)
+                    self.teampreview(battle)
+                else:
+                    battle = self.battles[tag]
+                    battle._teampreview = False
+                    await self._handle_battle_message(split_messages)
+                    if "|switch|" in messages[i + 1] or "|move|" in messages[i + 1]:
+                        self.choose_move(battle)
+            split_messages = [m.split("|") for m in messages[-1].split("\n")]
+            await self._handle_battle_message(split_messages)
+            last_state = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
+            self.states += [last_state]
+            return np.stack(self.states, axis=0), np.stack(self.actions, axis=0)
 
 
-def process_logs(log_jsons: dict[str, tuple[str, str]], strict: bool = False) -> list[Trajectory]:
+def process_logs(
+    log_jsons: dict[str, tuple[str, str]], battle_format: str, strict: bool = False
+) -> list[Trajectory]:
     trajs = []
     total = 0
     num_errors = 0
     for i, (tag, (_, log)) in enumerate(log_jsons.items()):
-        print(f"progress: {round(100 * i / len(log_jsons), ndigits=2)}%", end="\r")
+        print(f"progress: {i}/{len(log_jsons)}", end="\r")
         try:
-            player1 = LogReader(
-                battle_format=battle_format, log_level=51, accept_open_team_sheet=True
+            start_index = log.find("|win|") + 5
+            username = log[start_index : log.find("\n", start_index)]
+            player = LogReader(
+                account_configuration=AccountConfiguration(username, None),
+                battle_format=battle_format,
+                log_level=51,
+                accept_open_team_sheet=True,
             )
-            player2 = LogReader(
-                battle_format=battle_format, log_level=51, accept_open_team_sheet=True
-            )
-            result1 = asyncio.run(player1.follow_log(tag, log, "p1"))
-            result2 = asyncio.run(player2.follow_log(tag, log, "p2"))
-            if result1 is not None:
-                states1, actions1 = result1
-                total += len(states1)
-                trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
-            if result2 is not None:
-                states2, actions2 = result2
-                total += len(states2)
-                trajs += [Trajectory(obs=states2, acts=actions2, infos=None, terminal=True)]
+            result = asyncio.run(player.follow_log(tag, log))
+            if result is not None:
+                states, actions = result
+                total += len(states)
+                trajs += [Trajectory(obs=states, acts=actions, infos=None, terminal=True)]
         except KeyboardInterrupt:
             raise
         except SystemExit:
@@ -180,8 +188,10 @@ def process_logs(log_jsons: dict[str, tuple[str, str]], strict: bool = False) ->
 
 
 if __name__ == "__main__":
-    with open("data/logs.json", "r") as f:
-        logs = json.load(f)
-    trajs = process_logs(logs, strict=False)
+    trajs = []
+    for f in battle_formats:
+        with open(f"data/logs-{f}.json", "r") as file:
+            logs = json.load(file)
+        trajs += process_logs(logs, f, strict=False)
     with open("data/trajs.pkl", "wb") as f:
         pickle.dump(trajs, f)

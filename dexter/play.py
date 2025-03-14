@@ -7,32 +7,32 @@ import numpy as np
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
-from src.utils import run_name, teams
+from src.utils import battle_format, num_frames
 from stable_baselines3 import PPO
 
 
-async def play(n_games: int, play_on_ladder: bool):
+async def play(num_teams, n_games: int, play_on_ladder: bool):
     print("Setting up...")
-    if os.path.exists(f"saves/{run_name}") and len(os.listdir(f"saves/{run_name}")) > 0:
-        files = os.listdir(f"saves/{run_name}")
-        with open(f"logs/{run_name}-win-rates.json") as f:
+    if os.path.exists(f"saves/{num_teams}-teams") and len(os.listdir(f"saves/{num_teams}-teams")) > 0:
+        files = os.listdir(f"saves/{num_teams}-teams")
+        with open(f"logs/{num_teams}-teams-win-rates.json") as f:
             win_rates = json.load(f)
         i = np.argmax(win_rates)
-        policy = PPO.load(f"saves/{run_name}/{files[i][:-4]}").policy
+        policy = PPO.load(f"saves/{num_teams}-teams/{files[i][:-4]}").policy
         print(f"Loaded {files[i]}.")
     else:
         raise FileNotFoundError()
     agent = Agent(
         policy,
-        num_frames=3,
+        num_frames=num_frames,
         account_configuration=AccountConfiguration("", ""),  # fill in
-        battle_format="gen9vgc2024regh",
+        battle_format=battle_format,
         log_level=40,
         max_concurrent_battles=10,
         server_configuration=ShowdownServerConfiguration,
         accept_open_team_sheet=True,
         start_timer_on_battle_start=play_on_ladder,
-        team=RandomTeamBuilder(teams, "gen9vgc2024regh"),
+        team=RandomTeamBuilder(list(range(num_teams)), battle_format),
     )
     if play_on_ladder:
         print("Entering ladder")
@@ -45,7 +45,8 @@ async def play(n_games: int, play_on_ladder: bool):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_teams", type=int, default=1, help="Number of teams to train with")
     parser.add_argument("-n", type=int, default=1, help="Number of games to play. Default is 1.")
     parser.add_argument("-l", action="store_true", help="Play ladder. Default accepts challenges.")
     args = parser.parse_args()
-    asyncio.run(play(args.n, args.l))
+    asyncio.run(play(args.num_teams, args.n, args.l))

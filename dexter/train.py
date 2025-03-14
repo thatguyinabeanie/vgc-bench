@@ -1,7 +1,6 @@
 import argparse
 import os
 
-import torch
 from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
@@ -11,7 +10,6 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
 def train(num_teams: int, port: int, device: str):
-    torch.cuda.empty_cache()
     env = SubprocVecEnv(
         [
             lambda i=i: ShowdownEnv.create_env(
@@ -29,7 +27,6 @@ def train(num_teams: int, port: int, device: str):
         gamma=1,
         ent_coef=0.02,
         tensorboard_log="logs",
-        policy_kwargs={"num_frames": num_frames},
         device=device,
     )
     num_saved_timesteps = 0
@@ -42,10 +39,8 @@ def train(num_teams: int, port: int, device: str):
         )
         ppo.num_timesteps = num_saved_timesteps
         ppo.set_parameters(f"saves/{num_teams}-teams/{num_saved_timesteps}.zip", device=ppo.device)
-    if behavior_clone:
-        ppo.policy.actor_grad = num_saved_timesteps > 0  # type: ignore
     ppo.learn(
-        steps,
+        100_000_000_000_000,
         callback=Callback(num_teams, port),
         tb_log_name=f"{num_teams}-teams",
         reset_num_timesteps=False,

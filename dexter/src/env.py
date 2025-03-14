@@ -8,7 +8,7 @@ import numpy.typing as npt
 import torch
 from gymnasium.spaces import Box
 from gymnasium.wrappers import FrameStackObservation
-from poke_env import AccountConfiguration, ServerConfiguration
+from poke_env import ServerConfiguration
 from poke_env.environment import AbstractBattle
 from poke_env.player import (
     DoublesEnv,
@@ -19,7 +19,7 @@ from poke_env.player import (
 )
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
-from src.utils import doubles_chunk_obs_len, moves
+from src.utils import doubles_chunk_obs_len, frame_stack, moves
 from stable_baselines3.common.monitor import Monitor
 
 
@@ -48,8 +48,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         device: str,
     ) -> Monitor:
         env = cls(
-            account_configuration1=AccountConfiguration(f"Agent{port}-{i + 1}", None),
-            account_configuration2=AccountConfiguration(f"Opponent{port}-{i + 1}", None),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -67,7 +65,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 None,
                 num_frames=num_frames,
                 device=torch.device(device),
-                account_configuration=AccountConfiguration(f"Internal{i + 1}", None),
                 server_configuration=ServerConfiguration(
                     f"ws://localhost:{port}/showdown/websocket",
                     "https://play.pokemonshowdown.com/action.php?",
@@ -84,7 +81,8 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             opp_classes = [RandomPlayer, MaxBasePowerPlayer, SimpleHeuristicsPlayer]
             opponent = opp_classes[i % 3](battle_format=battle_format, log_level=40)
         env = SingleAgentWrapper(env, opponent)
-        env = FrameStackObservation(env, num_frames, padding_type="zero")
+        if frame_stack:
+            env = FrameStackObservation(env, num_frames, padding_type="zero")
         env = Monitor(env)
         return env
 

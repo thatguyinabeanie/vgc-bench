@@ -23,23 +23,20 @@ start_training() {
     local port=${ports[$i]}
     local device=${devices[$i]}
 
-    python dexter/pretrain.py --num_teams "$num_teams" --device "$device" 2> debug"$port".log
-
-    while true; do
-        echo "Starting Showdown server for training process $i..."
-        showdown_pid=$(start_showdown "$port")
-        showdown_pids[$i]="$showdown_pid"
-        echo "Starting training process $i..."
-        timeout 3600 python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" > debug"$port".log 2>&1 &
-        train_pids[$i]=$!
-        wait "${train_pids[$i]}"
-        kill -9 "$showdown_pid" 2>/dev/null
-    done
+    echo "Starting Showdown server for training process $i..."
+    showdown_pid=$(start_showdown "$port")
+    echo "Starting training process $i..."
+    python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" > debug"$port".log 2>&1
+    exit_status=$?
+    if [ $exit_status -ne 0 ]; then
+        echo "Training process $i died with exit status $exit_status"
+    fi
 }
 
-# Run training processes in parallel
+python dexter/pretrain.py --num_teams "${teams[-1]}" --device "${devices[-1]}"
+trap "echo 'Terminating all processes...'; kill 0" SIGINT SIGTERM
 for i in "${!teams[@]}"; do
     start_training "$i" &
+    sleep 1
 done
-
 wait

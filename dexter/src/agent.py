@@ -24,6 +24,7 @@ from src.utils import (
     abilities,
     doubles_act_len,
     doubles_chunk_obs_len,
+    frame_stack,
     items,
     moves,
     pokemon_obs_len,
@@ -58,7 +59,6 @@ class Agent(Player):
                 ),
                 action_space=MultiDiscrete([doubles_act_len, doubles_act_len]),
                 lr_schedule=lambda _: 1e-5,
-                num_frames=num_frames,
             ).to(device)
         else:
             self.__policy = MaskedActorCriticPolicy(
@@ -67,7 +67,6 @@ class Agent(Player):
                 ),
                 action_space=Discrete(singles_act_len),
                 lr_schedule=lambda _: 1e-5,
-                num_frames=num_frames,
             ).to(device)
         self.frames = Deque(maxlen=num_frames)
         self.__teampreview_draft = []
@@ -76,8 +75,10 @@ class Agent(Player):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
-        self.frames.append(self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True))
-        obs = np.stack(self.frames)
+        obs = self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
+        if frame_stack:
+            self.frames.append(obs)
+            obs = np.stack(self.frames)
         with torch.no_grad():
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
             action, _, _ = self.__policy.forward(obs_tensor)
@@ -342,9 +343,7 @@ class Agent(Player):
                 )
         elif isinstance(battle, DoubleBattle):
             assert pos is not None
-            if battle.finished:
-                return np.array([])
-            elif battle._wait:
+            if battle.finished or battle._wait:
                 return np.array([0])
             switch_space = [
                 i + 1
