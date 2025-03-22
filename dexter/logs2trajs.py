@@ -27,6 +27,11 @@ class LogReader(Player):
         self.next_msg = None
         self.teampreview_draft = []
 
+    async def _handle_battle_request(
+        self, battle: AbstractBattle, from_teampreview_request: bool = False
+    ):
+        pass
+
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         assert self.next_msg is not None
         assert isinstance(battle, DoubleBattle)
@@ -39,51 +44,6 @@ class LogReader(Player):
             self.states += [state]
             self.actions += [action]
         return order
-
-    async def _handle_battle_request(
-        self, battle: AbstractBattle, from_teampreview_request: bool = False
-    ):
-        pass
-
-    @staticmethod
-    def get_order(battle: DoubleBattle, msg: str, is_right: bool) -> BattleOrder | None:
-        pos = "b" if is_right else "a"
-        move_lines = [
-            l
-            for l in msg.split("\n")
-            if f"|move|{battle.player_role}{pos}: " in l and "[from]" not in l
-        ]
-        if move_lines:
-            active = battle.active_pokemon[int(is_right)]
-            assert active is not None, battle.active_pokemon
-            [_, _, identifier, move, target_identifier, *_] = move_lines[0].split("|")
-            if to_id_str(move) == "struggle":
-                move = list(active.moves.values())[0]
-            else:
-                move = (
-                    active.moves[to_id_str(move)]
-                    if to_id_str(move) in active.moves
-                    else active.moves["metronome"]
-                )
-            target_lines = [l for l in msg.split("\n") if f"|switch|{target_identifier}" in l]
-            target_details = target_lines[0].split("|")[3] if target_lines else ""
-            target = (
-                battle.get_pokemon(target_identifier, details=target_details)
-                if ": " in target_identifier
-                else None
-            )
-            did_tera = f"|-terastallize|{identifier}|" in msg
-            return BattleOrder(
-                move, terastallize=did_tera, move_target=battle.to_showdown_target(move, target)
-            )
-        elif f"|switch|{battle.player_role}{pos}: " in msg:
-            start = msg.index(f"|switch|{battle.player_role}{pos}: ")
-            end = msg.index("\n", start) if "\n" in msg[start:] else len(msg)
-            [_, _, identifier, details, *_] = msg[start:end].split("|")
-            mon = battle.get_pokemon(identifier, details=details, request=battle.last_request)
-            return BattleOrder(mon)
-        else:
-            return None
 
     def teampreview(self, battle: AbstractBattle) -> str:
         assert self.next_msg is not None
@@ -101,7 +61,7 @@ class LogReader(Player):
         assert (
             state.shape == (num_frames, 12, doubles_chunk_obs_len)
             if frame_stack
-            else (12, doubles_chunk_obs_len)
+            else state.shape == (12, doubles_chunk_obs_len)
         )
         action = DoublesEnv.order_to_action(order, battle, fake=True)
         self.states += [state]
@@ -110,6 +70,44 @@ class LogReader(Player):
             p.name for i, p in enumerate(battle.team.values()) if i + 1 in [id1, id2]
         ]
         return order_str
+
+    @staticmethod
+    def get_order(battle: DoubleBattle, msg: str, is_right: bool) -> BattleOrder | None:
+        pos = "b" if is_right else "a"
+        lines = msg.split("\n")
+        order = None
+        for line in lines:
+            if line.startswith(f"|move|{battle.player_role}{pos}: ") and "[from]" not in line:
+                [_, _, identifier, move, target_identifier, *_] = line.split("|")
+                active = battle.active_pokemon[int(is_right)]
+                assert active is not None, battle.active_pokemon
+                if to_id_str(move) in active.moves:
+                    move = active.moves[to_id_str(move)]
+                elif to_id_str(move) == "struggle":
+                    move = list(active.moves.values())[0]
+                else:
+                    continue
+                target_lines = [l for l in msg.split("\n") if f"|switch|{target_identifier}" in l]
+                target_details = target_lines[0].split("|")[3] if target_lines else ""
+                target = (
+                    battle.get_pokemon(target_identifier, details=target_details)
+                    if ": " in target_identifier
+                    else None
+                )
+                did_tera = f"|-terastallize|{identifier}|" in msg
+                order = BattleOrder(
+                    move, terastallize=did_tera, move_target=battle.to_showdown_target(move, target)
+                )
+            elif line.startswith(f"|switch|{battle.player_role}{pos}: ") or line.startswith(
+                f"|drag|{battle.player_role}{pos}: "
+            ):
+                [_, _, identifier, details, *_] = line.split("|")
+                mon = battle.get_pokemon(identifier, details=details, request=battle.last_request)
+                order = BattleOrder(mon)
+            elif line.startswith("|switch|") or line.startswith("|drag|"):
+                [_, _, identifier, details, *_] = line.split("|")
+                battle.get_pokemon(identifier, details=details)
+        return order
 
     @staticmethod
     def get_teampreview_order(battle: AbstractBattle, msg: str, is_right: bool) -> int:
@@ -123,57 +121,53 @@ class LogReader(Player):
 
     async def follow_log(
         self, tag: str, log: str
-    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]] | None:
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         self.states = []
         self.actions = []
         self.teampreview_draft = []
         tag = f"battle-{tag}"
         messages = [f">{tag}\n" + m for m in log.split("\n|\n")]
-        if "|win|" not in messages[1]:
-            for i in range(len(messages) - 1):
-                split_messages = [m.split("|") for m in messages[i].split("\n")]
-                self.next_msg = messages[i + 1]
-                if i == 0:
-                    battle = await self._create_battle(f">{tag}".split("-"))
-                    battle.logger = None
-                    battle._teampreview = True
-                    await self._handle_battle_message(split_messages)
-                    self.teampreview(battle)
-                else:
-                    battle = self.battles[tag]
-                    battle._teampreview = False
-                    await self._handle_battle_message(split_messages)
-                    if "|switch|" in messages[i + 1] or "|move|" in messages[i + 1]:
-                        self.choose_move(battle)
-            split_messages = [m.split("|") for m in messages[-1].split("\n")]
-            await self._handle_battle_message(split_messages)
-            last_state = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
-            self.states += [last_state]
-            return np.stack(self.states, axis=0), np.stack(self.actions, axis=0)
+        assert "|win|" not in messages[1]
+        for i in range(len(messages) - 1):
+            split_messages = [m.split("|") for m in messages[i].split("\n")]
+            self.next_msg = messages[i + 1]
+            if i == 0:
+                battle = await self._create_battle(f">{tag}".split("-"))
+                battle.logger = None
+                battle._teampreview = True
+                await self._handle_battle_message(split_messages)
+                self.teampreview(battle)
+            else:
+                battle = self.battles[tag]
+                battle._teampreview = False
+                await self._handle_battle_message(split_messages)
+                if "|switch|" in messages[i + 1] or "|move|" in messages[i + 1]:
+                    self.choose_move(battle)
+        split_messages = [m.split("|") for m in messages[-1].split("\n")]
+        await self._handle_battle_message(split_messages)
+        last_state = Agent.embed_battle(self.battles[tag], self.teampreview_draft)
+        self.states += [last_state]
+        return np.stack(self.states, axis=0), np.stack(self.actions, axis=0)
 
 
-def process_logs(
-    log_jsons: dict[str, tuple[str, str]], battle_format: str, strict: bool = False
-) -> list[Trajectory]:
+def process_logs(log_jsons: dict[str, tuple[str, str]], strict: bool = False) -> list[Trajectory]:
     trajs = []
     total = 0
     num_errors = 0
     for i, (tag, (_, log)) in enumerate(log_jsons.items()):
-        print(f"progress: {i}/{len(log_jsons)}", end="\r")
+        print(f"Progress: {i}/{len(log_jsons)}", end="\r")
         try:
-            start_index = log.find("|win|") + 5
-            username = log[start_index : log.find("\n", start_index)]
+            start_index = log.index(f"|win|")
+            username = log[start_index : log.index("\n", start_index)].split("|")[2]
             player = LogReader(
                 account_configuration=AccountConfiguration(username, None),
-                battle_format=battle_format,
+                battle_format=tag.split("-")[0],
                 log_level=51,
                 accept_open_team_sheet=True,
             )
-            result = asyncio.run(player.follow_log(tag, log))
-            if result is not None:
-                states, actions = result
-                total += len(states)
-                trajs += [Trajectory(obs=states, acts=actions, infos=None, terminal=True)]
+            states1, actions1 = asyncio.run(player.follow_log(tag, log))
+            total += len(states1)
+            trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
         except KeyboardInterrupt:
             raise
         except SystemExit:
@@ -192,10 +186,10 @@ def process_logs(
 
 
 if __name__ == "__main__":
-    trajs = []
+    logs = {}
     for f in battle_formats:
         with open(f"data/logs-{f}.json", "r") as file:
-            logs = json.load(file)
-        trajs += process_logs(logs, f, strict=False)
+            logs = {**logs, **json.load(file)}
+    trajs = process_logs(logs, strict=False)
     with open("data/trajs.pkl", "wb") as f:
         pickle.dump(trajs, f)

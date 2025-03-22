@@ -4,7 +4,7 @@ import os
 from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
-from src.utils import battle_format, behavior_clone, num_envs, num_frames, self_play, steps
+from src.utils import battle_format, num_envs, num_frames, self_play, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
@@ -12,10 +12,10 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 def train(num_teams: int, port: int, device: str):
     env = SubprocVecEnv(
         [
-            lambda i=i: ShowdownEnv.create_env(
-                i, battle_format, num_frames, port, num_teams, self_play, device
+            lambda: ShowdownEnv.create_env(
+                battle_format, num_frames, port, num_teams, self_play, device
             )
-            for i in range(num_envs)
+            for _ in range(num_envs)
         ]
     )
     ppo = PPO(
@@ -37,8 +37,10 @@ def train(num_teams: int, port: int, device: str):
         num_saved_timesteps = max(
             [int(file[:-4]) for file in os.listdir(f"saves/{num_teams}-teams")]
         )
-        ppo.num_timesteps = num_saved_timesteps
         ppo.set_parameters(f"saves/{num_teams}-teams/{num_saved_timesteps}.zip", device=ppo.device)
+        if num_saved_timesteps < steps:
+            num_saved_timesteps = 0
+        ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
         100_000_000_000_000,
         callback=Callback(num_teams, port),

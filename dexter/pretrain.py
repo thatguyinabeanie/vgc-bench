@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import os
 import pickle
 
@@ -8,13 +7,14 @@ import torch
 from imitation.algorithms.bc import BC
 from imitation.data.types import Trajectory
 from imitation.util.logger import configure
-from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SingleAgentWrapper
+from poke_env.player import RandomPlayer, SimpleHeuristicsPlayer, SingleAgentWrapper
 from poke_env.ps_client import ServerConfiguration
 from src.agent import Agent
+from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, behavior_clone, doubles_chunk_obs_len, frame_stack, num_frames
+from src.utils import battle_format, doubles_chunk_obs_len, frame_stack, num_frames
 from stable_baselines3 import PPO
 
 
@@ -50,7 +50,7 @@ def pretrain(num_teams: int, port: int, device: str):
         demonstrations=trajs,
         batch_size=1024,
         device=device,
-        custom_logger=configure(f"logs/{num_teams}-teams", ["tensorboard"]),
+        custom_logger=configure(f"logs/bc", ["tensorboard"]),
     )
     eval_agent = Agent(
         policy=None,
@@ -65,7 +65,7 @@ def pretrain(num_teams: int, port: int, device: str):
         accept_open_team_sheet=True,
         team=RandomTeamBuilder(list(range(num_teams)), battle_format),
     )
-    eval_opponent = MaxBasePowerPlayer(
+    eval_opponent = SimpleHeuristicsPlayer(
         server_configuration=ServerConfiguration(
             f"ws://localhost:{port}/showdown/websocket",
             "https://play.pokemonshowdown.com/action.php?",
@@ -75,14 +75,16 @@ def pretrain(num_teams: int, port: int, device: str):
         accept_open_team_sheet=True,
         team=RandomTeamBuilder(list(range(num_teams)), battle_format),
     )
-    for i in range(10):
-        bc.train(n_epochs=100)
-        eval_agent.__policy = bc.policy
-        asyncio.run(eval_agent.battle_against(eval_opponent, n_battles=100))
-        bc.logger.record("bc/eval", eval_agent.win_rate)
-        eval_agent.reset_battles()
-        eval_opponent.reset_battles()
-        ppo.save(f"saves/{num_teams}-teams/{i}")
+    win_rate = Callback.compare(eval_agent, eval_opponent, 100)
+    bc.logger.record("bc/eval", win_rate)
+    ppo.save(f"saves/bc/0")
+    for i in range(100):
+        bc.train(n_epochs=10)
+        policy = MaskedActorCriticPolicy.clone(ppo)
+        eval_agent.set_policy(policy)
+        win_rate = Callback.compare(eval_agent, eval_opponent, 100)
+        bc.logger.record("bc/eval", win_rate)
+        ppo.save(f"saves/bc/{i + 1}")
 
 
 def frame_stack_traj(traj: Trajectory) -> Trajectory:
@@ -106,9 +108,4 @@ if __name__ == "__main__":
         help="CUDA device to use for training",
     )
     args = parser.parse_args()
-    if not behavior_clone:
-        print("behavior cloning toggled off - aborting")
-    elif os.path.exists(f"saves/{args.num_teams}-teams/0.zip"):
-        print("already have pretrained NN - aborting")
-    else:
-        pretrain(args.num_teams, args.port, args.device)
+    pretrain(args.num_teams, args.port, args.device)

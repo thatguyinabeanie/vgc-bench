@@ -3,16 +3,18 @@ import json
 import os
 import random
 import warnings
+from copy import deepcopy
 
 import numpy as np
 import numpy.typing as npt
+from nashpy import Game
 from poke_env import ServerConfiguration
 from poke_env.concurrency import POKE_LOOP
-from poke_env.player import MaxBasePowerPlayer, SimpleHeuristicsPlayer
+from poke_env.player import Player, SimpleHeuristicsPlayer
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, behavior_clone, num_frames, self_play, steps
+from src.utils import battle_format, behavior_clone, double_oracle, num_frames, self_play, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -25,14 +27,18 @@ class Callback(BaseCallback):
         self.num_teams = num_teams
         if not os.path.exists("logs"):
             os.mkdir("logs")
-        self.win_rates: list[float]
-        if os.path.exists(f"logs/{num_teams}-teams-win-rates.json"):
-            with open(f"logs/{num_teams}-teams-win-rates.json") as f:
-                self.win_rates = json.load(f)
-        else:
-            self.win_rates = []
-            with open(f"logs/{num_teams}-teams-win-rates.json", "w") as f:
-                json.dump(self.win_rates, f)
+        self.payoff_matrix: npt.NDArray[np.float32]
+        self.prob_dist: list[float]
+        if double_oracle:
+            if os.path.exists(f"logs/{num_teams}-teams-payoff-matrix.json"):
+                with open(f"logs/{num_teams}-teams-payoff-matrix.json") as f:
+                    self.payoff_matrix = np.array(json.load(f))
+            else:
+                self.payoff_matrix = np.array([[0]])
+                with open(f"logs/{num_teams}-teams-payoff-matrix.json", "w") as f:
+                    json.dump(self.payoff_matrix.tolist(), f)
+            g = Game(self.payoff_matrix)
+            self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         if self_play:
             self.policy_pool = (
                 []
@@ -55,8 +61,20 @@ class Callback(BaseCallback):
             open_timeout=None,
             team=RandomTeamBuilder(list(range(num_teams)), battle_format),
         )
-        opp_class = MaxBasePowerPlayer if "vgc" in battle_format else SimpleHeuristicsPlayer
-        self.eval_opponent = opp_class(
+        self.eval_agent2 = Agent(
+            None,
+            num_frames=num_frames,
+            server_configuration=ServerConfiguration(
+                f"ws://localhost:{port}/showdown/websocket",
+                "https://play.pokemonshowdown.com/action.php?",
+            ),
+            battle_format=battle_format,
+            log_level=40,
+            accept_open_team_sheet=True,
+            open_timeout=None,
+            team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+        )
+        self.eval_opponent = SimpleHeuristicsPlayer(
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -73,28 +91,41 @@ class Callback(BaseCallback):
         dones: npt.NDArray[np.bool] = self.locals.get("dones")  # type: ignore
         for i, done in enumerate(dones):
             if done:
-                policy = random.choice(self.policy_pool)
+                policy = random.choices(
+                    self.policy_pool, weights=self.prob_dist if double_oracle else None, k=1
+                )[0]
                 self.model.env.env_method("set_opp_policy", policy, indices=i)
         return True
 
     def _on_training_start(self):
         assert self.model.env is not None
         if self_play:
-            if not self.policy_pool:
-                self.on_rollout_end()
-            elif behavior_clone and not self.win_rates:
+            if self.model.num_timesteps < steps:
                 self.evaluate()
-            policies = random.choices(self.policy_pool, k=self.model.env.num_envs)
+            if not self.policy_pool:
+                self.model.save(f"saves/{self.num_teams}-teams/{self.model.num_timesteps}")
+                if self_play:
+                    policy = MaskedActorCriticPolicy.clone(self.model)
+                    self.policy_pool.append(policy)
+            policies = random.choices(
+                self.policy_pool,
+                weights=self.prob_dist if double_oracle else None,
+                k=self.model.env.num_envs,
+            )
             for i in range(self.model.env.num_envs):
                 self.model.env.env_method("set_opp_policy", policies[i], indices=i)
 
     def _on_rollout_start(self):
         if behavior_clone:
-            self.model.policy.actor_grad = self.model.num_timesteps > 0  # type: ignore
+            self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % steps == 0:
             self.evaluate()
+            if double_oracle:
+                self.update_payoff_matrix()
+                g = Game(self.payoff_matrix)
+                self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
             self.model.save(f"saves/{self.num_teams}-teams/{self.model.num_timesteps}")
             if self_play:
                 policy = MaskedActorCriticPolicy.clone(self.model)
@@ -103,21 +134,37 @@ class Callback(BaseCallback):
     def evaluate(self):
         policy = MaskedActorCriticPolicy.clone(self.model)
         self.eval_agent.set_policy(policy)
-        asyncio.run(self.eval_agent.battle_against(self.eval_opponent, n_battles=100))
-        win_rate = self.eval_agent.win_rate
-        dead_tags = [k for k, b in self.eval_agent.battles.items() if b.finished]
-        for tag in dead_tags:
-            self.eval_agent._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                self.eval_agent.ps_client.send_message(f"/leave {tag}"), POKE_LOOP
-            )
-            self.eval_opponent._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                self.eval_opponent.ps_client.send_message(f"/leave {tag}"), POKE_LOOP
-            )
-        self.eval_agent.reset_battles()
-        self.eval_opponent.reset_battles()
-        self.win_rates.append(win_rate)
-        with open(f"logs/{self.num_teams}-teams-win-rates.json", "w") as f:
-            json.dump(self.win_rates, f)
+        win_rate = self.compare(self.eval_agent, self.eval_opponent, 100)
         self.model.logger.record("train/eval", win_rate)
+
+    def update_payoff_matrix(self):
+        policy = MaskedActorCriticPolicy.clone(self.model)
+        self.eval_agent.set_policy(policy)
+        win_rates = np.array([])
+        for p in self.policy_pool:
+            self.eval_agent2.set_policy(deepcopy(p))
+            win_rate = self.compare(self.eval_agent, self.eval_agent2, 100)
+            win_rates = np.append(win_rates, round(2 * win_rate - 1, ndigits=2))
+        self.payoff_matrix = np.concat([self.payoff_matrix, -win_rates.reshape(-1, 1)], axis=1)
+        win_rates = np.append(win_rates, 0)
+        self.payoff_matrix = np.concat([self.payoff_matrix, win_rates.reshape(1, -1)], axis=0)
+        with open(f"logs/{self.num_teams}-teams-payoff-matrix.json", "w") as f:
+            json.dump(self.payoff_matrix.tolist(), f)
+
+    @staticmethod
+    def compare(player1: Player, player2: Player, n_battles: int) -> float:
+        asyncio.run(player1.battle_against(player2, n_battles=n_battles))
+        win_rate = player1.win_rate
+        dead_tags = [k for k, b in player1.battles.items() if b.finished]
+        for tag in dead_tags:
+            player1._battles.pop(tag)
+            asyncio.run_coroutine_threadsafe(
+                player1.ps_client.send_message(f"/leave {tag}"), POKE_LOOP
+            )
+            player2._battles.pop(tag)
+            asyncio.run_coroutine_threadsafe(
+                player2.ps_client.send_message(f"/leave {tag}"), POKE_LOOP
+            )
+        player1.reset_battles()
+        player2.reset_battles()
+        return win_rate

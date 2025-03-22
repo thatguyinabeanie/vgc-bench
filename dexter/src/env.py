@@ -10,13 +10,7 @@ from gymnasium.spaces import Box
 from gymnasium.wrappers import FrameStackObservation
 from poke_env import ServerConfiguration
 from poke_env.environment import AbstractBattle
-from poke_env.player import (
-    DoublesEnv,
-    MaxBasePowerPlayer,
-    RandomPlayer,
-    SimpleHeuristicsPlayer,
-    SingleAgentWrapper,
-)
+from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
 from src.utils import doubles_chunk_obs_len, frame_stack, moves
@@ -39,7 +33,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
     @classmethod
     def create_env(
         cls,
-        i: int,
         battle_format: str,
         num_frames: int,
         port: int,
@@ -75,11 +68,8 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 open_timeout=None,
                 team=RandomTeamBuilder(list(range(num_teams)), battle_format),
             )
-        elif "vgc" in battle_format:
-            opponent = MaxBasePowerPlayer(battle_format=battle_format, log_level=40)
         else:
-            opp_classes = [RandomPlayer, MaxBasePowerPlayer, SimpleHeuristicsPlayer]
-            opponent = opp_classes[i % 3](battle_format=battle_format, log_level=40)
+            opponent = SimpleHeuristicsPlayer(battle_format=battle_format, log_level=40)
         env = SingleAgentWrapper(env, opponent)
         if frame_stack:
             env = FrameStackObservation(env, num_frames, padding_type="zero")

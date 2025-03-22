@@ -31,12 +31,17 @@ start_training() {
     if [ $exit_status -ne 0 ]; then
         echo "Training process $i died with exit status $exit_status"
     fi
+    kill $showdown_pid
 }
 
-python dexter/pretrain.py --num_teams "${teams[-1]}" --device "${devices[-1]}"
-trap "echo 'Terminating all processes...'; kill 0" SIGINT SIGTERM
+child_pids=()
+# trap 'echo "Terminating all processes..."; kill ${child_pids[@]}' SIGINT SIGTERM
 for i in "${!teams[@]}"; do
+    # while true; do
     start_training "$i" &
+    #     sleep 10
+    # done &
+    # child_pids+=($!)
     sleep 1
 done
 wait

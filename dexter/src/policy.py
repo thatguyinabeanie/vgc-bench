@@ -143,7 +143,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
         self.frame_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
                 d_model=self.proj_len,
-                nhead=8,
+                nhead=self.proj_len // 64,
                 dim_feedforward=self.proj_len,
                 dropout=0,
                 batch_first=True,
@@ -160,7 +160,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
             self.meta_encoder = nn.TransformerEncoder(
                 nn.TransformerEncoderLayer(
                     d_model=self.proj_len,
-                    nhead=8,
+                    nhead=self.proj_len // 64,
                     dim_feedforward=self.proj_len,
                     dropout=0,
                     batch_first=True,

@@ -85,13 +85,40 @@ def get_log_json(ident: str) -> dict[str, Any] | None:
         return json.loads(response.text)
 
 
+def get_rating(log: str, role: str) -> int | None:
+    start_index = log.index(f"|player|{role}|")
+    rating_str = log[start_index : log.index("\n", start_index)].split("|")[5]
+    rating = int(rating_str) if rating_str else None
+    return rating
+
+
 if __name__ == "__main__":
 
     def run(f: str):
         done = False
         while not done:
             done = scrape_logs(4000, f)
-        print(f"{f} finished")
+        with open(f"data/logs-{f}.json", "r") as file:
+            log_dict = json.load(file)
+            logs = [log for _, log in log_dict.values()]
+        print(
+            f"""
+{f} stats:
+most recent log date = {max([t for t, _ in log_dict.values()])}
+total logs = {len(logs)}
+# of unrated games = {len([log for log in logs if get_rating(log, "p1") is None])}
+# of games w/ rating (on both sides)...
+    1000+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1000 and (get_rating(log, "p2") or 0) >= 1000])}
+    1100+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1100 and (get_rating(log, "p2") or 0) >= 1100])}
+    1200+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1200 and (get_rating(log, "p2") or 0) >= 1200])}
+    1300+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1300 and (get_rating(log, "p2") or 0) >= 1300])}
+    1400+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1400 and (get_rating(log, "p2") or 0) >= 1400])}
+    1500+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1500 and (get_rating(log, "p2") or 0) >= 1500])}
+    1600+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1600 and (get_rating(log, "p2") or 0) >= 1600])}
+    1700+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1700 and (get_rating(log, "p2") or 0) >= 1700])}
+    1800+ = {len([log for log in logs if get_rating(log, "p1") if (get_rating(log, "p1") or 0) >= 1800 and (get_rating(log, "p2") or 0) >= 1800])}
+"""
+        )
 
     with ThreadPoolExecutor(max_workers=len(battle_formats)) as executor:
         executor.map(run, battle_formats)

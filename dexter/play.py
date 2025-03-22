@@ -4,23 +4,29 @@ import json
 import os
 
 import numpy as np
+from nashpy import Game
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, num_frames
+from src.utils import battle_format, double_oracle, num_frames
 from stable_baselines3 import PPO
 
 
-async def play(num_teams, n_games: int, play_on_ladder: bool):
+async def play(num_teams: int, n_games: int, play_on_ladder: bool):
     print("Setting up...")
     if (
         os.path.exists(f"saves/{num_teams}-teams")
         and len(os.listdir(f"saves/{num_teams}-teams")) > 0
     ):
         files = os.listdir(f"saves/{num_teams}-teams")
-        with open(f"logs/{num_teams}-teams-win-rates.json") as f:
-            win_rates = json.load(f)
-        i = np.argmax(win_rates)
+        if double_oracle:
+            with open(f"logs/{num_teams}-teams-payoff-matrix.json") as f:
+                payoff_matrix = np.array(json.load(f))
+            g = Game(payoff_matrix)
+            prob_dist = g.lemke_howson(0)[0]
+            i = np.argmax(prob_dist)
+        else:
+            i = len(files) - 1
         policy = PPO.load(f"saves/{num_teams}-teams/{files[i][:-4]}").policy
         print(f"Loaded {files[i]}.")
     else:
