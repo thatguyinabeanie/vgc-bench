@@ -23,13 +23,20 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class Callback(BaseCallback):
     def __init__(
-        self, num_teams: int, port: int, learning_style: LearningStyle, behavior_clone: bool
+        self,
+        num_teams: int,
+        port: int,
+        device: str,
+        learning_style: LearningStyle,
+        behavior_clone: bool,
     ):
         super().__init__()
         self.learning_style = learning_style
         self.behavior_clone = behavior_clone
         self.num_teams = num_teams
-        if not os.path.exists(f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}"):
+        if not os.path.exists(
+            f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}"
+        ):
             os.mkdir(f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}")
         self.payoff_matrix: npt.NDArray[np.float32]
         self.prob_dist: list[float] | None = None
@@ -58,7 +65,8 @@ class Callback(BaseCallback):
                 )
                 else [
                     PPO.load(
-                        f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{filename}"
+                        f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{filename}",
+                        device=device,
                     ).policy
                     for filename in os.listdir(
                         f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"

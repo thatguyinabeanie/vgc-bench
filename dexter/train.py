@@ -62,7 +62,7 @@ def train(
         ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
         100_000_000_000_000,
-        callback=Callback(num_teams, port, learning_style, behavior_clone),
+        callback=Callback(num_teams, port, device, learning_style, behavior_clone),
         tb_log_name=f"{num_teams}-teams",
         reset_num_timesteps=False,
     )
@@ -83,7 +83,9 @@ if __name__ == "__main__":
     parser.add_argument("--self_play", action="store_true", help="do pure self-play")
     parser.add_argument("--fictitious_play", action="store_true", help="do fictitious play")
     parser.add_argument("--double_oracle", action="store_true", help="do double oracle")
-    parser.add_argument("--behavior_clone", action="store_true", help="Warm up with behavior cloning")
+    parser.add_argument(
+        "--behavior_clone", action="store_true", help="Warm up with behavior cloning"
+    )
     args = parser.parse_args()
     assert (
         int(args.exploiter)
