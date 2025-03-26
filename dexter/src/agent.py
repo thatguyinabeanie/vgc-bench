@@ -85,7 +85,7 @@ class Agent(Player):
         if isinstance(battle, Battle):
             return SinglesEnv.action_to_order(action.cpu().numpy()[0], battle)
         elif isinstance(battle, DoubleBattle):
-            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle)
+            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle, strict=False)
         else:
             raise TypeError()
 
@@ -101,6 +101,8 @@ class Agent(Player):
             order2 = self.choose_move(upd_battle)
             action1 = DoublesEnv.order_to_action(order1, battle)
             action2 = DoublesEnv.order_to_action(order2, upd_battle)
+            assert all(1 <= action1) and all(action1 <= 6)
+            assert all(1 <= action2) and all(action2 <= 6)
             return f"/team {action1[0]}{action1[1]}{action2[0]}{action2[1]}"
         else:
             raise TypeError()
@@ -313,7 +315,7 @@ class Agent(Player):
             switch_space = [
                 i
                 for i, pokemon in enumerate(battle.team.values())
-                if not battle.maybe_trapped
+                if not battle.trapped
                 and pokemon.species in [p.species for p in battle.available_switches]
             ]
             if battle.active_pokemon is None:
@@ -343,8 +345,6 @@ class Agent(Player):
                 )
         elif isinstance(battle, DoubleBattle):
             assert pos is not None
-            if battle.finished or battle._wait:
-                return np.array([0])
             switch_space = [
                 i + 1
                 for i, pokemon in enumerate(battle.team.values())
@@ -361,6 +361,8 @@ class Agent(Player):
             active_mon = battle.active_pokemon[pos]
             if battle.teampreview:
                 return np.array(switch_space)
+            elif battle.finished or battle._wait:
+                return np.array([0])
             elif active_mon is None:
                 return np.array(switch_space or [0])
             else:

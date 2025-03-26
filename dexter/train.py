@@ -4,19 +4,23 @@ import os
 from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
-from src.utils import battle_format, num_envs, num_frames, self_play, steps
+from src.utils import LearningStyle, num_envs, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
-def train(num_teams: int, port: int, device: str):
-    env = SubprocVecEnv(
-        [
-            lambda: ShowdownEnv.create_env(
-                battle_format, num_frames, port, num_teams, self_play, device
-            )
-            for _ in range(num_envs)
-        ]
+def train(
+    num_teams: int, port: int, device: str, learning_style: LearningStyle, behavior_clone: bool
+):
+    env = (
+        ShowdownEnv.create_env(num_teams, port, device, learning_style)
+        if learning_style == LearningStyle.PURE_SELF_PLAY
+        else SubprocVecEnv(
+            [
+                lambda: ShowdownEnv.create_env(num_teams, port, device, learning_style)
+                for _ in range(num_envs)
+            ]
+        )
     )
     ppo = PPO(
         MaskedActorCriticPolicy,
@@ -26,24 +30,39 @@ def train(num_teams: int, port: int, device: str):
         batch_size=64,
         gamma=1,
         ent_coef=0.02,
-        tensorboard_log="logs",
+        tensorboard_log=f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}",
         device=device,
     )
     num_saved_timesteps = 0
     if (
-        os.path.exists(f"saves/{num_teams}-teams")
-        and len(os.listdir(f"saves/{num_teams}-teams")) > 0
+        os.path.exists(
+            f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+        )
+        and len(
+            os.listdir(
+                f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+            )
+        )
+        > 0
     ):
         num_saved_timesteps = max(
-            [int(file[:-4]) for file in os.listdir(f"saves/{num_teams}-teams")]
+            [
+                int(file[:-4])
+                for file in os.listdir(
+                    f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+                )
+            ]
         )
-        ppo.set_parameters(f"saves/{num_teams}-teams/{num_saved_timesteps}.zip", device=ppo.device)
+        ppo.set_parameters(
+            f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{num_saved_timesteps}.zip",
+            device=ppo.device,
+        )
         if num_saved_timesteps < steps:
             num_saved_timesteps = 0
         ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
         100_000_000_000_000,
-        callback=Callback(num_teams, port),
+        callback=Callback(num_teams, port, learning_style, behavior_clone),
         tb_log_name=f"{num_teams}-teams",
         reset_num_timesteps=False,
     )
@@ -60,5 +79,27 @@ if __name__ == "__main__":
         choices=["cuda:0", "cuda:1", "cuda:2", "cuda:3"],
         help="CUDA device to use for training",
     )
+    parser.add_argument("--exploiter", action="store_true", help="play against fixed bot")
+    parser.add_argument("--self_play", action="store_true", help="do pure self-play")
+    parser.add_argument("--fictitious_play", action="store_true", help="do fictitious play")
+    parser.add_argument("--double_oracle", action="store_true", help="do double oracle")
+    parser.add_argument("--behavior_clone", action="store_true", help="Warm up with behavior cloning")
     args = parser.parse_args()
-    train(args.num_teams, args.port, args.device)
+    assert (
+        int(args.exploiter)
+        + int(args.self_play)
+        + int(args.fictitious_play)
+        + int(args.double_oracle)
+        == 1
+    )
+    if args.exploiter:
+        style = LearningStyle.EXPLOITER
+    elif args.self_play:
+        style = LearningStyle.PURE_SELF_PLAY
+    elif args.fictitious_play:
+        style = LearningStyle.FICTITIOUS_PLAY
+    elif args.double_oracle:
+        style = LearningStyle.DOUBLE_ORACLE
+    else:
+        raise TypeError()
+    train(args.num_teams, args.port, args.device, style, args.behavior_clone)

@@ -1,4 +1,5 @@
 import json
+from enum import Enum, auto, unique
 
 import numpy as np
 import numpy.typing as npt
@@ -12,14 +13,40 @@ from poke_env.environment import (
     Weather,
 )
 
+
+@unique
+class LearningStyle(Enum):
+    EXPLOITER = auto()
+    PURE_SELF_PLAY = auto()
+    FICTITIOUS_PLAY = auto()
+    DOUBLE_ORACLE = auto()
+
+    @property
+    def is_self_play(self) -> bool:
+        return self in {
+            LearningStyle.PURE_SELF_PLAY,
+            LearningStyle.FICTITIOUS_PLAY,
+            LearningStyle.DOUBLE_ORACLE,
+        }
+
+    @property
+    def abbrev(self) -> str:
+        match self:
+            case LearningStyle.EXPLOITER:
+                return "ex"
+            case LearningStyle.PURE_SELF_PLAY:
+                return "sp"
+            case LearningStyle.FICTITIOUS_PLAY:
+                return "fp"
+            case LearningStyle.DOUBLE_ORACLE:
+                return "do"
+
+
 # training params
 battle_format = "gen9vgc2025regg"
-behavior_clone = True
-double_oracle = False
 num_envs = 8
 frame_stack = False
 num_frames = 2
-self_play = True
 steps = 98_304
 
 # observation length constants

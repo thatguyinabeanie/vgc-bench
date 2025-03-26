@@ -1,7 +1,7 @@
 import argparse
 
 import torch
-from poke_env.player import SimpleHeuristicsPlayer
+from poke_env.player import MaxBasePowerPlayer
 from poke_env.ps_client import ServerConfiguration
 from src.agent import Agent
 from src.callback import Callback
@@ -25,7 +25,7 @@ def eval(filepath: str, port: int):
         open_timeout=None,
         team=RandomTeamBuilder(list(range(1)), battle_format),
     )
-    eval_opponent = SimpleHeuristicsPlayer(
+    eval_opponent = MaxBasePowerPlayer(
         server_configuration=ServerConfiguration(
             f"ws://localhost:{port}/showdown/websocket",
             "https://play.pokemonshowdown.com/action.php?",

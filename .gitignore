@@ -1,7 +1,6 @@
 __pycache__
 bin/
 data/
-logs*/
-saves*/
+results/
 debug*.log
 profile.prof

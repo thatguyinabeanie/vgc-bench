@@ -50,7 +50,7 @@ def pretrain(num_teams: int, port: int, device: str):
         demonstrations=trajs,
         batch_size=1024,
         device=device,
-        custom_logger=configure(f"logs/bc", ["tensorboard"]),
+        custom_logger=configure(f"results/logs-bc", ["tensorboard"]),
     )
     eval_agent = Agent(
         policy=None,
@@ -77,14 +77,14 @@ def pretrain(num_teams: int, port: int, device: str):
     )
     win_rate = Callback.compare(eval_agent, eval_opponent, 100)
     bc.logger.record("bc/eval", win_rate)
-    ppo.save(f"saves/bc/0")
+    ppo.save(f"results/saves-bc/0")
     for i in range(100):
         bc.train(n_epochs=10)
         policy = MaskedActorCriticPolicy.clone(ppo)
         eval_agent.set_policy(policy)
         win_rate = Callback.compare(eval_agent, eval_opponent, 100)
         bc.logger.record("bc/eval", win_rate)
-        ppo.save(f"saves/bc/{i + 1}")
+        ppo.save(f"results/saves-bc/{i + 1}")
 
 
 def frame_stack_traj(traj: Trajectory) -> Trajectory:

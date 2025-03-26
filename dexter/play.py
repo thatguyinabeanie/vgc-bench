@@ -15,19 +15,32 @@ from stable_baselines3 import PPO
 async def play(num_teams: int, n_games: int, play_on_ladder: bool):
     print("Setting up...")
     if (
-        os.path.exists(f"saves/{num_teams}-teams")
-        and len(os.listdir(f"saves/{num_teams}-teams")) > 0
+        os.path.exists(
+            f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+        )
+        and len(
+            os.listdir(
+                f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+            )
+        )
+        > 0
     ):
-        files = os.listdir(f"saves/{num_teams}-teams")
+        files = os.listdir(
+            f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+        )
         if double_oracle:
-            with open(f"logs/{num_teams}-teams-payoff-matrix.json") as f:
+            with open(
+                f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json"
+            ) as f:
                 payoff_matrix = np.array(json.load(f))
             g = Game(payoff_matrix)
             prob_dist = g.lemke_howson(0)[0]
             i = np.argmax(prob_dist)
         else:
             i = len(files) - 1
-        policy = PPO.load(f"saves/{num_teams}-teams/{files[i][:-4]}").policy
+        policy = PPO.load(
+            f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{files[i][:-4]}"
+        ).policy
         print(f"Loaded {files[i]}.")
     else:
         raise FileNotFoundError()
