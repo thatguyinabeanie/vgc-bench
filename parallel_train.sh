@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [[ $PATH != "/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:"* ]]; then
-    export PATH="/scratch/cluster/cangliss/repos/UT-masters-thesis/bin:$PATH"
+if [[ $PATH != "/scratch/cluster/cangliss/bin:"* ]]; then
+    export PATH="/scratch/cluster/cangliss/bin:$PATH"
 fi
 
 teams=(1 3 10 30)
