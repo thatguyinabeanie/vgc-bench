@@ -29,8 +29,8 @@ class Callback(BaseCallback):
         self.learning_style = learning_style
         self.behavior_clone = behavior_clone
         self.num_teams = num_teams
-        if not os.path.exists("results/logs"):
-            os.mkdir("results/logs")
+        if not os.path.exists(f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}"):
+            os.mkdir(f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}")
         self.payoff_matrix: npt.NDArray[np.float32]
         self.prob_dist: list[float] | None = None
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
