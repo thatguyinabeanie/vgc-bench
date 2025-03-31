@@ -192,4 +192,5 @@ if __name__ == "__main__":
             logs = {**logs, **json.load(file)}
     trajs = process_logs(logs, strict=False)
     with open("data/trajs.pkl", "wb") as f:
-        pickle.dump(trajs, f)
+        for traj in trajs:
+            pickle.dump(traj, f)

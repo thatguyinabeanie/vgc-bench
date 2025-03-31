@@ -14,7 +14,7 @@ from poke_env.player import Player, SimpleHeuristicsPlayer
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import LearningStyle, battle_format, num_frames, steps
+from src.utils import LearningStyle, battle_format, frame_stack, num_frames, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -35,23 +35,25 @@ class Callback(BaseCallback):
         self.behavior_clone = behavior_clone
         self.num_teams = num_teams
         if not os.path.exists(
-            f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}"
+            f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}"
         ):
-            os.mkdir(f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}")
+            os.mkdir(
+                f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}"
+            )
         self.payoff_matrix: npt.NDArray[np.float32]
         self.prob_dist: list[float] | None = None
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
             if os.path.exists(
-                f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json"
+                f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json"
             ):
                 with open(
-                    f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json"
+                    f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json"
                 ) as f:
                     self.payoff_matrix = np.array(json.load(f))
             else:
                 self.payoff_matrix = np.array([[0]])
                 with open(
-                    f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json",
+                    f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json",
                     "w",
                 ) as f:
                     json.dump(self.payoff_matrix.tolist(), f)
@@ -61,21 +63,20 @@ class Callback(BaseCallback):
             self.policy_pool = (
                 []
                 if not os.path.exists(
-                    f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+                    f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
                 )
                 else [
                     PPO.load(
-                        f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{filename}",
+                        f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{filename}",
                         device=device,
                     ).policy
                     for filename in os.listdir(
-                        f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+                        f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
                     )
                 ]
             )
         self.eval_agent = Agent(
             None,
-            num_frames=num_frames,
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -88,7 +89,6 @@ class Callback(BaseCallback):
         )
         self.eval_agent2 = Agent(
             None,
-            num_frames=num_frames,
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -127,7 +127,7 @@ class Callback(BaseCallback):
                 self.evaluate()
             if not self.policy_pool:
                 self.model.save(
-                    f"results/saves{'-bc' if self.behavior_clone else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams/{self.model.num_timesteps}"
+                    f"results/saves{'-bc' if self.behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams/{self.model.num_timesteps}"
                 )
                 policy = MaskedActorCriticPolicy.clone(self.model)
                 self.policy_pool.append(policy)
@@ -149,7 +149,7 @@ class Callback(BaseCallback):
                 g = Game(self.payoff_matrix)
                 self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
             self.model.save(
-                f"results/saves{'-bc' if self.behavior_clone else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams/{self.model.num_timesteps}"
+                f"results/saves{'-bc' if self.behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams/{self.model.num_timesteps}"
             )
             if self.learning_style.is_self_play:
                 policy = MaskedActorCriticPolicy.clone(self.model)
@@ -173,7 +173,7 @@ class Callback(BaseCallback):
         win_rates = np.append(win_rates, 0)
         self.payoff_matrix = np.concat([self.payoff_matrix, win_rates.reshape(1, -1)], axis=0)
         with open(
-            f"results/logs{'-bc' if self.behavior_clone else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams-payoff-matrix.json",
+            f"results/logs{'-bc' if self.behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams-payoff-matrix.json",
             "w",
         ) as f:
             json.dump(self.payoff_matrix.tolist(), f)

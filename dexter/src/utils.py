@@ -45,7 +45,7 @@ class LearningStyle(Enum):
 # training params
 battle_format = "gen9vgc2025regg"
 num_envs = 8
-frame_stack = False
+frame_stack = True
 num_frames = 2
 steps = 98_304
 

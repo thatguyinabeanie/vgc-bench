@@ -4,7 +4,7 @@ import os
 from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
-from src.utils import LearningStyle, num_envs, steps
+from src.utils import LearningStyle, frame_stack, num_envs, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
@@ -30,17 +30,17 @@ def train(
         batch_size=64,
         gamma=1,
         ent_coef=0.02,
-        tensorboard_log=f"results/logs{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}",
+        tensorboard_log=f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}",
         device=device,
     )
     num_saved_timesteps = 0
     if (
         os.path.exists(
-            f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+            f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
         )
         and len(
             os.listdir(
-                f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+                f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
             )
         )
         > 0
@@ -49,12 +49,12 @@ def train(
             [
                 int(file[:-4])
                 for file in os.listdir(
-                    f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
+                    f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
                 )
             ]
         )
         ppo.set_parameters(
-            f"results/saves{'-bc' if behavior_clone else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{num_saved_timesteps}.zip",
+            f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{num_saved_timesteps}.zip",
             device=ppo.device,
         )
         if num_saved_timesteps < steps:

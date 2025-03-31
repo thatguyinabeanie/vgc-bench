@@ -67,7 +67,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             opponent = (
                 Agent(
                     None,
-                    num_frames=num_frames,
                     device=torch.device(device),
                     server_configuration=ServerConfiguration(
                         f"ws://localhost:{port}/showdown/websocket",

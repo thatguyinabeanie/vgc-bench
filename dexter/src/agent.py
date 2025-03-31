@@ -27,6 +27,7 @@ from src.utils import (
     frame_stack,
     items,
     moves,
+    num_frames,
     pokemon_obs_len,
     singles_act_len,
     singles_chunk_obs_len,
@@ -42,7 +43,6 @@ class Agent(Player):
     def __init__(
         self,
         policy: ActorCriticPolicy | None,
-        num_frames: int,
         device: torch.device | None = None,
         *args: Any,
         **kwargs: Any,
@@ -76,6 +76,12 @@ class Agent(Player):
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         obs = self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
+        if battle.turn == 0 and not (
+            battle.teampreview and len([p for p in battle.team.values() if p.active]) > 0
+        ):
+            assert self.frames.maxlen is not None
+            for _ in range(self.frames.maxlen):
+                self.frames.append(np.zeros([12, doubles_chunk_obs_len], dtype=np.float32))
         if frame_stack:
             self.frames.append(obs)
             obs = np.stack(self.frames)
@@ -93,9 +99,6 @@ class Agent(Player):
         if isinstance(battle, Battle):
             return self.random_teampreview(battle)
         elif isinstance(battle, DoubleBattle):
-            assert self.frames.maxlen is not None
-            for _ in range(self.frames.maxlen):
-                self.frames.append(np.zeros([12, doubles_chunk_obs_len], dtype=np.float32))
             order1 = self.choose_move(battle)
             upd_battle = _EnvPlayer._simulate_teampreview_switchin(order1, battle)
             order2 = self.choose_move(upd_battle)

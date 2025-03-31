@@ -1,5 +1,4 @@
 import argparse
-import os
 import pickle
 
 import numpy as np
@@ -14,7 +13,7 @@ from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, doubles_chunk_obs_len, frame_stack, num_frames
+from src.utils import battle_format, frame_stack, num_frames
 from stable_baselines3 import PPO
 
 
@@ -33,15 +32,9 @@ def pretrain(num_teams: int, port: int, device: str):
     )
     single_agent_env = SingleAgentWrapper(env, opponent)
     ppo = PPO(MaskedActorCriticPolicy, single_agent_env, device=device)
-    with open("data/trajs.pkl", "rb") as f:
-        trajs: list[Trajectory] = pickle.load(f)
-    stacked_trajs = []
+    trajs = load_trajs("data/trajs.pkl")
     if frame_stack:
-        for i in range(len(trajs)):
-            print(f"progress: {round(100 * i / len(trajs), ndigits=2)}%", end="\r")
-            stacked_trajs += [frame_stack_traj(trajs[i])]
-        trajs = stacked_trajs
-    print(f"finished loading {len(trajs)} trajectories")
+        trajs = (frame_stack_traj(traj) for traj in trajs)
     bc = BC(
         observation_space=ppo.observation_space,  # type: ignore
         action_space=ppo.action_space,  # type: ignore
@@ -50,11 +43,10 @@ def pretrain(num_teams: int, port: int, device: str):
         demonstrations=trajs,
         batch_size=1024,
         device=device,
-        custom_logger=configure(f"results/logs-bc", ["tensorboard"]),
+        custom_logger=configure(f"results/logs-bc{'-fs' if frame_stack else ''}", ["tensorboard"]),
     )
     eval_agent = Agent(
         policy=None,
-        num_frames=num_frames,
         device=torch.device(device),
         server_configuration=ServerConfiguration(
             f"ws://localhost:{port}/showdown/websocket",
@@ -77,23 +69,37 @@ def pretrain(num_teams: int, port: int, device: str):
     )
     win_rate = Callback.compare(eval_agent, eval_opponent, 100)
     bc.logger.record("bc/eval", win_rate)
-    ppo.save(f"results/saves-bc/0")
+    ppo.save(f"results/saves-bc{'-fs' if frame_stack else ''}/0")
     for i in range(100):
         bc.train(n_epochs=10)
         policy = MaskedActorCriticPolicy.clone(ppo)
         eval_agent.set_policy(policy)
         win_rate = Callback.compare(eval_agent, eval_opponent, 100)
         bc.logger.record("bc/eval", win_rate)
-        ppo.save(f"results/saves-bc/{i + 1}")
+        ppo.save(f"results/saves-bc{'-fs' if frame_stack else ''}/{i + 1}")
+
+
+def load_trajs(filepath: str):
+    with open(filepath, "rb") as f:
+        while True:
+            try:
+                yield pickle.load(f)
+            except EOFError:
+                break
 
 
 def frame_stack_traj(traj: Trajectory) -> Trajectory:
-    zero_obs = np.zeros([12, doubles_chunk_obs_len])
-    obs_list = [
-        np.stack([traj.obs[i - j] if i - j >= 0 else zero_obs for j in range(num_frames)], axis=0)
-        for i in range(len(traj.obs))
-    ]
-    return Trajectory(obs=np.stack(obs_list, axis=0), acts=traj.acts, infos=None, terminal=True)
+    traj_len, *obs_shape = traj.obs.shape
+    stacked_obs = np.empty((traj_len, num_frames, *obs_shape), dtype=traj.obs.dtype)
+    zero_obs = np.zeros(obs_shape, dtype=traj.obs[0].dtype)
+    for i in range(traj_len):
+        for j in range(num_frames):
+            idx = i - j
+            if idx >= 0:
+                stacked_obs[i, num_frames - 1 - j] = traj.obs[idx]
+            else:
+                stacked_obs[i, num_frames - 1 - j] = zero_obs
+    return Trajectory(obs=stacked_obs, acts=traj.acts, infos=None, terminal=True)
 
 
 if __name__ == "__main__":
