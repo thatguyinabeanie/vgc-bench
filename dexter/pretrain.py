@@ -1,4 +1,5 @@
 import argparse
+import os
 import pickle
 
 import numpy as np
@@ -15,6 +16,46 @@ from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
 from src.utils import battle_format, frame_stack, num_frames
 from stable_baselines3 import PPO
+from torch.utils.data import DataLoader, Dataset
+
+
+class TrajectoryDataset(Dataset):
+    def __init__(self):
+        directory = "data/trajs"
+        self.files = [
+            os.path.join(directory, file) for file in os.listdir(directory) if file.endswith(".pkl")
+        ]
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, idx):
+        file_path = self.files[idx]
+        with open(file_path, "rb") as f:
+            traj = pickle.load(f)
+        if frame_stack and num_frames > 1:
+            traj = self._frame_stack_traj(traj)
+        return traj
+
+    @staticmethod
+    def _frame_stack_traj(traj: Trajectory) -> Trajectory:
+        traj_len, *obs_shape = traj.obs.shape
+        stacked_obs = np.empty((traj_len, num_frames, *obs_shape), dtype=traj.obs.dtype)
+        zero_obs = np.zeros(obs_shape, dtype=traj.obs[0].dtype)
+        for i in range(traj_len):
+            for j in range(num_frames):
+                idx = i - j
+                if idx >= 0:
+                    stacked_obs[i, num_frames - 1 - j] = traj.obs[idx]
+                else:
+                    stacked_obs[i, num_frames - 1 - j] = zero_obs
+        return Trajectory(obs=stacked_obs, acts=traj.acts, infos=None, terminal=True)
+
+
+def demo_generator(dataloader):
+    while True:
+        for batch in dataloader:
+            yield batch
 
 
 def pretrain(num_teams: int, port: int, device: str):
@@ -32,15 +73,15 @@ def pretrain(num_teams: int, port: int, device: str):
     )
     single_agent_env = SingleAgentWrapper(env, opponent)
     ppo = PPO(MaskedActorCriticPolicy, single_agent_env, device=device)
-    trajs = load_trajs("data/trajs.pkl")
-    if frame_stack:
-        trajs = (frame_stack_traj(traj) for traj in trajs)
+    dataloader = DataLoader(
+        TrajectoryDataset(), batch_size=1024, shuffle=True, num_workers=8, pin_memory=True
+    )
     bc = BC(
         observation_space=ppo.observation_space,  # type: ignore
         action_space=ppo.action_space,  # type: ignore
         rng=np.random.default_rng(0),
         policy=ppo.policy,
-        demonstrations=trajs,
+        demonstrations=demo_generator(dataloader),
         batch_size=1024,
         device=device,
         custom_logger=configure(f"results/logs-bc{'-fs' if frame_stack else ''}", ["tensorboard"]),
@@ -77,29 +118,6 @@ def pretrain(num_teams: int, port: int, device: str):
         win_rate = Callback.compare(eval_agent, eval_opponent, 100)
         bc.logger.record("bc/eval", win_rate)
         ppo.save(f"results/saves-bc{'-fs' if frame_stack else ''}/{i + 1}")
-
-
-def load_trajs(filepath: str):
-    with open(filepath, "rb") as f:
-        while True:
-            try:
-                yield pickle.load(f)
-            except EOFError:
-                break
-
-
-def frame_stack_traj(traj: Trajectory) -> Trajectory:
-    traj_len, *obs_shape = traj.obs.shape
-    stacked_obs = np.empty((traj_len, num_frames, *obs_shape), dtype=traj.obs.dtype)
-    zero_obs = np.zeros(obs_shape, dtype=traj.obs[0].dtype)
-    for i in range(traj_len):
-        for j in range(num_frames):
-            idx = i - j
-            if idx >= 0:
-                stacked_obs[i, num_frames - 1 - j] = traj.obs[idx]
-            else:
-                stacked_obs[i, num_frames - 1 - j] = zero_obs
-    return Trajectory(obs=stacked_obs, acts=traj.acts, infos=None, terminal=True)
 
 
 if __name__ == "__main__":

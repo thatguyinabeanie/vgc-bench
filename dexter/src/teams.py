@@ -15,7 +15,7 @@ class RandomTeamBuilder(Teambuilder):
             result = run(
                 ["node", "pokemon-showdown", "validate-team", battle_format],
                 input=f'"{team[1:]}"'.encode(),
-                cwd="pokemon-showdown-8000",
+                cwd="pokemon-showdown",
                 capture_output=True,
             )
             if result.returncode == 1:

@@ -6,7 +6,7 @@ fi
 
 num_teams=1
 port=8000
-device="cuda:1"
+device="cuda:0"
 
 start_showdown() {
     local port=$1

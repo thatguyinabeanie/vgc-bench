@@ -11,7 +11,7 @@ devices=("cuda:0" "cuda:1" "cuda:2" "cuda:3")
 start_showdown() {
     local port=$1
     (
-        cd pokemon-showdown-"$port"
+        cd pokemon-showdown
         node pokemon-showdown start "$port" --no-security > /dev/null 2>&1 &
         echo $!
     )
@@ -26,7 +26,7 @@ start_training() {
     echo "Starting Showdown server for training process $i..."
     showdown_pid=$(start_showdown "$port")
     echo "Starting training process $i..."
-    python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" --behavior_clone --fictitious_play > debug"$port".log 2>&1
+    python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" --fictitious_play > debug"$port".log 2>&1
     exit_status=$?
     if [ $exit_status -ne 0 ]; then
         echo "Training process $i died with exit status $exit_status"
@@ -34,14 +34,11 @@ start_training() {
     kill $showdown_pid
 }
 
-child_pids=()
-# trap 'echo "Terminating all processes..."; kill ${child_pids[@]}' SIGINT SIGTERM
-for i in "${!teams[@]}"; do
-    # while true; do
-    start_training "$i" &
-    #     sleep 10
-    # done &
-    # child_pids+=($!)
-    sleep 1
+while true; do
+    for i in "${!teams[@]}"; do
+        start_training "$i" &
+        sleep 1
+    done
+    wait
+    sleep 10
 done
-wait

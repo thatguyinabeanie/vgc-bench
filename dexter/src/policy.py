@@ -129,7 +129,8 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class AttentionExtractor(BaseFeaturesExtractor):
     num_pokemon: int = 12
     embed_len: int = 32
-    proj_len: int = 512
+    proj_len: int = 128
+    embed_layers: int = 3
 
     def __init__(self, observation_space: Space[Any]):
         super().__init__(observation_space, features_dim=self.proj_len)
@@ -149,7 +150,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
                 batch_first=True,
                 norm_first=True,
             ),
-            num_layers=8,
+            num_layers=self.embed_layers,
         )
         self.frame_encoding: torch.Tensor
         if frame_stack:
@@ -166,7 +167,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
                     batch_first=True,
                     norm_first=True,
                 ),
-                num_layers=8,
+                num_layers=self.embed_layers,
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

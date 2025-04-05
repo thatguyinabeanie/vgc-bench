@@ -22,6 +22,9 @@ def train(
             ]
         )
     )
+    run_ident = "".join(
+        ["-bc" if behavior_clone else "", "-fs" if frame_stack else "", "-" + learning_style.abbrev]
+    )[1:]
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
@@ -30,38 +33,26 @@ def train(
         batch_size=64,
         gamma=1,
         ent_coef=0.02,
-        tensorboard_log=f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}",
+        tensorboard_log=f"results/logs-{run_ident}",
         device=device,
     )
     num_saved_timesteps = 0
     if (
-        os.path.exists(
-            f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
-        )
-        and len(
-            os.listdir(
-                f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
-            )
-        )
-        > 0
+        os.path.exists(f"results/saves-{run_ident}/{num_teams}-teams")
+        and len(os.listdir(f"results/saves-{run_ident}/{num_teams}-teams")) > 0
     ):
         num_saved_timesteps = max(
-            [
-                int(file[:-4])
-                for file in os.listdir(
-                    f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
-                )
-            ]
+            [int(file[:-4]) for file in os.listdir(f"results/saves-{run_ident}/{num_teams}-teams")]
         )
         ppo.set_parameters(
-            f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{num_saved_timesteps}.zip",
+            f"results/saves-{run_ident}/{num_teams}-teams/{num_saved_timesteps}.zip",
             device=ppo.device,
         )
         if num_saved_timesteps < steps:
             num_saved_timesteps = 0
         ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
-        100_000_000_000_000,
+        steps,
         callback=Callback(num_teams, port, device, learning_style, behavior_clone),
         tb_log_name=f"{num_teams}-teams",
         reset_num_timesteps=False,

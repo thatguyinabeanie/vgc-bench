@@ -10,11 +10,14 @@ from poke_env.environment import (
     DoubleBattle,
     Effect,
     Field,
+    Move,
+    MoveCategory,
     Pokemon,
     PokemonGender,
     PokemonType,
     SideCondition,
     Status,
+    Target,
     Weather,
 )
 from poke_env.player import BattleOrder, DoublesEnv, Player, SinglesEnv
@@ -27,6 +30,7 @@ from src.utils import (
     frame_stack,
     items,
     moves,
+    move_obs_len,
     num_frames,
     pokemon_obs_len,
     singles_act_len,
@@ -104,8 +108,6 @@ class Agent(Player):
             order2 = self.choose_move(upd_battle)
             action1 = DoublesEnv.order_to_action(order1, battle)
             action2 = DoublesEnv.order_to_action(order2, upd_battle)
-            assert all(1 <= action1) and all(action1 <= 6)
-            assert all(1 <= action2) and all(action2 <= 6)
             return f"/team {action1[0]}{action1[1]}{action2[0]}{action2[1]}"
         else:
             raise TypeError()
@@ -177,11 +179,16 @@ class Agent(Player):
         else:
             raise TypeError()
         weather = [
-            min(battle.turn - battle.weather[w], 8) / 8 if w in battle.weather else 0
+            (
+                min(battle.turn - battle.weather.get(w, battle.turn), 8) / 8
+                if w in battle.weather
+                else 0
+            )
             for w in Weather
         ]
         fields = [
-            min(battle.turn - battle.fields[f], 8) / 8 if f in battle.fields else 0 for f in Field
+            min(battle.turn - battle.fields.get(f, battle.turn), 8) / 8 if f in battle.fields else 0
+            for f in Field
         ]
         if battle.teampreview:
             if not battle.active_pokemon:
@@ -239,7 +246,7 @@ class Agent(Player):
                         else (
                             side_conds[s] / 3
                             if s == SideCondition.SPIKES
-                            else min(battle.turn - side_conds[s], 8) / 8
+                            else min(battle.turn - side_conds.get(s, battle.turn), 8) / 8
                         )
                     )
                 )
@@ -264,6 +271,9 @@ class Agent(Player):
             for move in pokemon.moves.values()
         ]
         move_ids += [0] * (4 - len(move_ids))
+        move_embeds = [Agent.embed_move(move) for move in pokemon.moves.values()]
+        move_embeds += [np.zeros(move_obs_len, dtype=np.float32)] * (4 - len(move_embeds))
+        move_embeds = np.concatenate(move_embeds)
         types = [float(t in pokemon.types) for t in PokemonType]
         tera_type = [float(t == pokemon.tera_type) for t in PokemonType]
         stats = [(s or 0) / 1000 for s in pokemon.stats.values()]
@@ -271,12 +281,12 @@ class Agent(Player):
         weight = pokemon.weight / 1000
         # volatile fields
         hp_frac = pokemon.current_hp_fraction
-        pp_fracs = [m.current_pp / m.max_pp for m in pokemon.moves.values()]
-        pp_fracs += [0] * (4 - len(pp_fracs))
         status = [float(s == pokemon.status) for s in Status]
         status_counter = pokemon.status_counter / 16
         boosts = [b / 6 for b in pokemon.boosts.values()]
-        effects = [(min(pokemon.effects[e], 8) / 8 if e in pokemon.effects else 0) for e in Effect]
+        effects = [
+            (min(pokemon.effects.get(e, 0), 8) / 8 if e in pokemon.effects else 0) for e in Effect
+        ]
         first_turn = float(pokemon.first_turn)
         protect_counter = pokemon.protect_counter / 5
         must_recharge = float(pokemon.must_recharge)
@@ -288,13 +298,13 @@ class Agent(Player):
                 ability_id,
                 item_id,
                 *move_ids,
+                *move_embeds,
                 *types,
                 *tera_type,
                 *stats,
                 *gender,
                 weight,
                 hp_frac,
-                *pp_fracs,
                 *status,
                 status_counter,
                 *boosts,
@@ -310,6 +320,41 @@ class Agent(Player):
                 float(from_opponent),
             ],
             dtype=np.float32,
+        )
+
+    @staticmethod
+    def embed_move(move: Move) -> npt.NDArray[np.float32]:
+        power = move.base_power / 250
+        acc = move.accuracy / 100
+        category = [float(c == move.category) for c in MoveCategory]
+        target = [float(t == move.target) for t in Target]
+        priority = (move.priority + 7) / 12
+        crit_ratio = move.crit_ratio
+        drain = move.drain
+        force_switch = float(move.force_switch)
+        recoil = move.recoil
+        self_destruct = float(move.self_destruct is not None)
+        self_switch = float(move.self_switch is not False)
+        pp = move.max_pp / 64
+        pp_frac = move.current_pp / move.max_pp
+        move_type = [float(t == move.type) for t in PokemonType]
+        return np.array(
+            [
+                power,
+                acc,
+                *category,
+                *target,
+                priority,
+                crit_ratio,
+                drain,
+                force_switch,
+                recoil,
+                self_destruct,
+                self_switch,
+                pp,
+                pp_frac,
+                *move_type,
+            ]
         )
 
     @staticmethod
@@ -352,7 +397,7 @@ class Agent(Player):
                 i + 1
                 for i, pokemon in enumerate(battle.team.values())
                 if battle.force_switch != [[False, True], [True, False]][pos]
-                and not battle.maybe_trapped[pos]
+                and not battle.trapped[pos]
                 and not (
                     len(battle.available_switches[0]) == 1
                     and battle.force_switch == [True, True]

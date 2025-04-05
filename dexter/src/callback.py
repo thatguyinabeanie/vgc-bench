@@ -10,11 +10,11 @@ import numpy.typing as npt
 from nashpy import Game
 from poke_env import ServerConfiguration
 from poke_env.concurrency import POKE_LOOP
-from poke_env.player import Player, SimpleHeuristicsPlayer
+from poke_env.player import MaxBasePowerPlayer, Player
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import LearningStyle, battle_format, frame_stack, num_frames, steps
+from src.utils import LearningStyle, battle_format, frame_stack, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -34,27 +34,30 @@ class Callback(BaseCallback):
         self.learning_style = learning_style
         self.behavior_clone = behavior_clone
         self.num_teams = num_teams
-        if not os.path.exists(
-            f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}"
-        ):
-            os.mkdir(
-                f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}"
-            )
+        self.run_ident = "".join(
+            [
+                "-bc" if behavior_clone else "",
+                "-fs" if frame_stack else "",
+                "-" + learning_style.abbrev,
+            ]
+        )[1:]
+        self.device = device
+        if not os.path.exists(f"results/logs-{self.run_ident}"):
+            os.mkdir(f"results/logs-{self.run_ident}")
         self.payoff_matrix: npt.NDArray[np.float32]
         self.prob_dist: list[float] | None = None
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
             if os.path.exists(
-                f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json"
+                f"results/logs-{self.run_ident}/{num_teams}-teams-payoff-matrix.json"
             ):
                 with open(
-                    f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json"
+                    f"results/logs-{self.run_ident}/{num_teams}-teams-payoff-matrix.json"
                 ) as f:
                     self.payoff_matrix = np.array(json.load(f))
             else:
                 self.payoff_matrix = np.array([[0]])
                 with open(
-                    f"results/logs{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams-payoff-matrix.json",
-                    "w",
+                    f"results/logs-{self.run_ident}/{num_teams}-teams-payoff-matrix.json", "w"
                 ) as f:
                     json.dump(self.payoff_matrix.tolist(), f)
             g = Game(self.payoff_matrix)
@@ -62,17 +65,13 @@ class Callback(BaseCallback):
         if self.learning_style.is_self_play:
             self.policy_pool = (
                 []
-                if not os.path.exists(
-                    f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
-                )
+                if not os.path.exists(f"results/saves-{self.run_ident}/{num_teams}-teams")
                 else [
                     PPO.load(
-                        f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams/{filename}",
+                        f"results/saves-{self.run_ident}/{num_teams}-teams/{filename}",
                         device=device,
                     ).policy
-                    for filename in os.listdir(
-                        f"results/saves{'-bc' if behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + learning_style.abbrev}/{num_teams}-teams"
-                    )
+                    for filename in os.listdir(f"results/saves-{self.run_ident}/{num_teams}-teams")
                 ]
             )
         self.eval_agent = Agent(
@@ -99,7 +98,7 @@ class Callback(BaseCallback):
             open_timeout=None,
             team=RandomTeamBuilder(list(range(num_teams)), battle_format),
         )
-        self.eval_opponent = SimpleHeuristicsPlayer(
+        self.eval_opponent = MaxBasePowerPlayer(
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -112,34 +111,29 @@ class Callback(BaseCallback):
         )
 
     def _on_step(self) -> bool:
-        assert self.model.env is not None
-        dones: npt.NDArray[np.bool] = self.locals.get("dones")  # type: ignore
-        for i, done in enumerate(dones):
-            if done:
-                policy = random.choices(self.policy_pool, weights=self.prob_dist, k=1)[0]
-                self.model.env.env_method("set_opp_policy", policy, indices=i)
         return True
 
     def _on_training_start(self):
-        assert self.model.env is not None
         if self.learning_style.is_self_play:
             if self.model.num_timesteps < steps:
                 self.evaluate()
             if not self.policy_pool:
                 self.model.save(
-                    f"results/saves{'-bc' if self.behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams/{self.model.num_timesteps}"
+                    f"results/saves-{self.run_ident}/{self.num_teams}-teams/{self.model.num_timesteps}"
                 )
-                policy = MaskedActorCriticPolicy.clone(self.model)
+                policy = MaskedActorCriticPolicy.clone(self.model).to(self.device)
                 self.policy_pool.append(policy)
+
+    def _on_rollout_start(self):
+        if self.behavior_clone:
+            self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
+        if self.learning_style.is_self_play:
+            assert self.model.env is not None
             policies = random.choices(
                 self.policy_pool, weights=self.prob_dist, k=self.model.env.num_envs
             )
             for i in range(self.model.env.num_envs):
                 self.model.env.env_method("set_opp_policy", policies[i], indices=i)
-
-    def _on_rollout_start(self):
-        if self.behavior_clone:
-            self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % steps == 0:
@@ -149,10 +143,10 @@ class Callback(BaseCallback):
                 g = Game(self.payoff_matrix)
                 self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
             self.model.save(
-                f"results/saves{'-bc' if self.behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams/{self.model.num_timesteps}"
+                f"results/saves-{self.run_ident}/{self.num_teams}-teams/{self.model.num_timesteps}"
             )
             if self.learning_style.is_self_play:
-                policy = MaskedActorCriticPolicy.clone(self.model)
+                policy = MaskedActorCriticPolicy.clone(self.model).to(self.device)
                 self.policy_pool.append(policy)
 
     def evaluate(self):
@@ -173,8 +167,7 @@ class Callback(BaseCallback):
         win_rates = np.append(win_rates, 0)
         self.payoff_matrix = np.concat([self.payoff_matrix, win_rates.reshape(1, -1)], axis=0)
         with open(
-            f"results/logs{'-bc' if self.behavior_clone else ''}{'-fs' if frame_stack else ''}{'-' + self.learning_style.abbrev}/{self.num_teams}-teams-payoff-matrix.json",
-            "w",
+            f"results/logs-{self.run_ident}/{self.num_teams}-teams-payoff-matrix.json", "w"
         ) as f:
             json.dump(self.payoff_matrix.tolist(), f)
 

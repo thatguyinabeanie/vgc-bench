@@ -191,6 +191,7 @@ if __name__ == "__main__":
         with open(f"data/logs-{f}.json", "r") as file:
             logs = {**logs, **json.load(file)}
     trajs = process_logs(logs, strict=False)
-    with open("data/trajs.pkl", "wb") as f:
-        for traj in trajs:
+    for i, traj in enumerate(trajs):
+        width = len(str(len(trajs)))
+        with open(f"data/trajs/{i:0{width}d}.pkl", "wb") as f:
             pickle.dump(traj, f)
