@@ -81,7 +81,7 @@ def pretrain(num_teams: int, port: int, device: str):
         action_space=ppo.action_space,  # type: ignore
         rng=np.random.default_rng(0),
         policy=ppo.policy,
-        batch_size=128,
+        batch_size=512,
         device=device,
         custom_logger=configure(
             f"results/logs-bc{f'-fs{num_frames}' if num_frames > 1 else ''}", ["tensorboard"]
@@ -112,17 +112,18 @@ def pretrain(num_teams: int, port: int, device: str):
     win_rate = Callback.compare(eval_agent, eval_opponent, 100)
     bc.logger.record("bc/eval", win_rate)
     ppo.save(f"results/saves-bc{f'-fs{num_frames}' if num_frames > 1 else ''}/0")
-    for i in range(100):
+    for i in range(1000):
         data = iter(dataloader)
         for _ in range(100):
             demos = next(data)
             bc.set_demonstrations(demos)
             bc.train(n_epochs=1)
-        policy = MaskedActorCriticPolicy.clone(ppo)
-        eval_agent.set_policy(policy)
-        win_rate = Callback.compare(eval_agent, eval_opponent, 100)
-        bc.logger.record("bc/eval", win_rate)
-        ppo.save(f"results/saves-bc{f'-fs{num_frames}' if num_frames > 1 else ''}/{i + 1}")
+        if i > 0 and i % 10 == 0:
+            policy = MaskedActorCriticPolicy.clone(ppo)
+            eval_agent.set_policy(policy)
+            win_rate = Callback.compare(eval_agent, eval_opponent, 100)
+            bc.logger.record("bc/eval", win_rate)
+            ppo.save(f"results/saves-bc{f'-fs{num_frames}' if num_frames > 1 else ''}/{i + 1}")
 
 
 if __name__ == "__main__":
