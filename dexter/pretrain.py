@@ -1,5 +1,4 @@
 import argparse
-import itertools
 import os
 import pickle
 
@@ -68,11 +67,12 @@ def pretrain(num_teams: int, port: int, device: str):
     )
     single_agent_env = SingleAgentWrapper(env, opponent)
     ppo = PPO(MaskedActorCriticPolicy, single_agent_env, device=device)
+    dataset = TrajectoryDataset()
     dataloader = DataLoader(
-        TrajectoryDataset(),
-        batch_size=1024,
+        dataset,
+        batch_size=len(dataset) // 100,
         shuffle=True,
-        num_workers=4,
+        num_workers=8,
         collate_fn=lambda batch: batch,
         pin_memory=True,
     )
@@ -81,8 +81,7 @@ def pretrain(num_teams: int, port: int, device: str):
         action_space=ppo.action_space,  # type: ignore
         rng=np.random.default_rng(0),
         policy=ppo.policy,
-        demonstrations=itertools.chain.from_iterable(dataloader),
-        batch_size=1024,
+        batch_size=128,
         device=device,
         custom_logger=configure(
             f"results/logs-bc{f'-fs{num_frames}' if num_frames > 1 else ''}", ["tensorboard"]
@@ -114,7 +113,11 @@ def pretrain(num_teams: int, port: int, device: str):
     bc.logger.record("bc/eval", win_rate)
     ppo.save(f"results/saves-bc{f'-fs{num_frames}' if num_frames > 1 else ''}/0")
     for i in range(100):
-        bc.train(n_epochs=10)
+        data = iter(dataloader)
+        for _ in range(100):
+            demos = next(data)
+            bc.set_demonstrations(demos)
+            bc.train(n_epochs=1)
         policy = MaskedActorCriticPolicy.clone(ppo)
         eval_agent.set_policy(policy)
         win_rate = Callback.compare(eval_agent, eval_opponent, 100)
