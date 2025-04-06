@@ -15,14 +15,7 @@ from poke_env.environment import AbstractBattle
 from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
-from src.utils import (
-    LearningStyle,
-    battle_format,
-    doubles_chunk_obs_len,
-    frame_stack,
-    moves,
-    num_frames,
-)
+from src.utils import LearningStyle, battle_format, doubles_chunk_obs_len, moves, num_frames
 from stable_baselines3.common.monitor import Monitor
 
 
@@ -56,7 +49,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             strict=False,
         )
         if learning_style == LearningStyle.PURE_SELF_PLAY:
-            if frame_stack:
+            if num_frames > 1:
                 env = ss.frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
             env = ss.pettingzoo_env_to_vec_env_v1(env)
             env = ss.concat_vec_envs_v1(
@@ -92,7 +85,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 )
             )
             env = SingleAgentWrapper(env, opponent)
-            if frame_stack:
+            if num_frames > 1:
                 env = FrameStackObservation(env, num_frames, padding_type="zero")
             env = Monitor(env)
             return env

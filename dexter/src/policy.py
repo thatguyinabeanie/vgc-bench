@@ -9,7 +9,6 @@ from src.utils import (
     abilities,
     doubles_chunk_obs_len,
     doubles_glob_obs_len,
-    frame_stack,
     items,
     moves,
     num_frames,
@@ -98,7 +97,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution
 
     def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:
-        chunk = obs[:, -1, 0, :] if frame_stack else obs[:, 0, :]
+        chunk = obs[:, -1, 0, :] if num_frames > 1 else obs[:, 0, :]
         if isinstance(self.action_space, Discrete):
             mask = chunk[:, : self.action_space.n]  # type: ignore
             mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
@@ -153,7 +152,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
             num_layers=self.embed_layers,
         )
         self.frame_encoding: torch.Tensor
-        if frame_stack:
+        if num_frames > 1:
             self.register_buffer("frame_encoding", torch.eye(num_frames).unsqueeze(0))
             self.frame_proj = nn.Linear(self.proj_len + num_frames, self.proj_len)
             self.mask: torch.Tensor
@@ -172,7 +171,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
-        if frame_stack:
+        if num_frames > 1:
             # embedding
             start = doubles_glob_obs_len + side_obs_len
             x = torch.cat(

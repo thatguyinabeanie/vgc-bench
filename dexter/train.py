@@ -4,7 +4,7 @@ import os
 from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
-from src.utils import LearningStyle, frame_stack, num_envs, steps
+from src.utils import LearningStyle, num_envs, num_frames, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
@@ -23,13 +23,17 @@ def train(
         )
     )
     run_ident = "".join(
-        ["-bc" if behavior_clone else "", "-fs" if frame_stack else "", "-" + learning_style.abbrev]
+        [
+            "-bc" if behavior_clone else "",
+            f"-fs{num_frames}" if num_frames > 1 else "",
+            "-" + learning_style.abbrev,
+        ]
     )[1:]
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
         learning_rate=1e-5,
-        n_steps=2048 // num_envs,
+        n_steps=3072 // num_envs,
         batch_size=64,
         gamma=1,
         ent_coef=0.02,

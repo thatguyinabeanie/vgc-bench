@@ -27,10 +27,9 @@ from src.utils import (
     abilities,
     doubles_act_len,
     doubles_chunk_obs_len,
-    frame_stack,
     items,
-    moves,
     move_obs_len,
+    moves,
     num_frames,
     pokemon_obs_len,
     singles_act_len,
@@ -86,7 +85,7 @@ class Agent(Player):
             assert self.frames.maxlen is not None
             for _ in range(self.frames.maxlen):
                 self.frames.append(np.zeros([12, doubles_chunk_obs_len], dtype=np.float32))
-        if frame_stack:
+        if num_frames > 1:
             self.frames.append(obs)
             obs = np.stack(self.frames)
         with torch.no_grad():

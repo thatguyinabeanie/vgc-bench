@@ -11,7 +11,7 @@ port=8000
 start_showdown() {
     local port=$1
     (
-        cd pokemon-showdown-"$port"
+        cd pokemon-showdown
         node pokemon-showdown start "$port" --no-security > /dev/null 2>&1 &
         echo $!
     )

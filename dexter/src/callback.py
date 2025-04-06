@@ -14,7 +14,7 @@ from poke_env.player import MaxBasePowerPlayer, Player
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import LearningStyle, battle_format, frame_stack, steps
+from src.utils import LearningStyle, battle_format, num_frames, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -37,7 +37,7 @@ class Callback(BaseCallback):
         self.run_ident = "".join(
             [
                 "-bc" if behavior_clone else "",
-                "-fs" if frame_stack else "",
+                f"-fs{num_frames}" if num_frames > 1 else "",
                 "-" + learning_style.abbrev,
             ]
         )[1:]
