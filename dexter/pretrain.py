@@ -116,7 +116,7 @@ def pretrain(num_teams: int, port: int, device: str):
         for _ in range(10):
             demos = next(data)
             bc.set_demonstrations(demos)
-            bc.train(n_epochs=1)
+            bc.train(n_epochs=10)
         policy = MaskedActorCriticPolicy.clone(ppo)
         eval_agent.set_policy(policy)
         win_rate = Callback.compare(eval_agent, eval_opponent, 100)
