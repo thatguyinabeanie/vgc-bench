@@ -72,7 +72,7 @@ def pretrain(num_teams: int, port: int, device: str):
         dataset,
         batch_size=len(dataset) // 10,
         shuffle=True,
-        num_workers=4,
+        num_workers=1,
         collate_fn=lambda batch: batch,
     )
     bc = BC(
