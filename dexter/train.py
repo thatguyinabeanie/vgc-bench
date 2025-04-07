@@ -57,7 +57,7 @@ def train(
         ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
         steps,
-        callback=Callback(num_teams, port, device, learning_style, behavior_clone),
+        callback=Callback(num_teams, port, learning_style, behavior_clone),
         tb_log_name=f"{num_teams}-teams",
         reset_num_timesteps=False,
     )

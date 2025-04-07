@@ -3,7 +3,6 @@ import json
 import os
 import random
 import warnings
-from copy import deepcopy
 
 import numpy as np
 import numpy.typing as npt
@@ -23,12 +22,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class Callback(BaseCallback):
     def __init__(
-        self,
-        num_teams: int,
-        port: int,
-        device: str,
-        learning_style: LearningStyle,
-        behavior_clone: bool,
+        self, num_teams: int, port: int, learning_style: LearningStyle, behavior_clone: bool
     ):
         super().__init__()
         self.learning_style = learning_style
@@ -41,7 +35,6 @@ class Callback(BaseCallback):
                 "-" + learning_style.abbrev,
             ]
         )[1:]
-        self.device = device
         if not os.path.exists(f"results/logs-{self.run_ident}"):
             os.mkdir(f"results/logs-{self.run_ident}")
         self.payoff_matrix: npt.NDArray[np.float32]
@@ -62,18 +55,6 @@ class Callback(BaseCallback):
                     json.dump(self.payoff_matrix.tolist(), f)
             g = Game(self.payoff_matrix)
             self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
-        if self.learning_style.is_self_play:
-            self.policy_pool = (
-                []
-                if not os.path.exists(f"results/saves-{self.run_ident}/{num_teams}-teams")
-                else [
-                    PPO.load(
-                        f"results/saves-{self.run_ident}/{num_teams}-teams/{filename}",
-                        device=device,
-                    ).policy
-                    for filename in os.listdir(f"results/saves-{self.run_ident}/{num_teams}-teams")
-                ]
-            )
         self.eval_agent = Agent(
             None,
             server_configuration=ServerConfiguration(
@@ -117,12 +98,13 @@ class Callback(BaseCallback):
         if self.learning_style.is_self_play:
             if self.model.num_timesteps < steps:
                 self.evaluate()
-            if not self.policy_pool:
+            if not (
+                os.path.exists(f"results/saves-{self.run_ident}/{self.num_teams}-teams")
+                and os.listdir(f"results/saves-{self.run_ident}/{self.num_teams}-teams")
+            ):
                 self.model.save(
                     f"results/saves-{self.run_ident}/{self.num_teams}-teams/{self.model.num_timesteps}"
                 )
-                policy = MaskedActorCriticPolicy.clone(self.model).to(self.device)
-                self.policy_pool.append(policy)
 
     def _on_rollout_start(self):
         if self.behavior_clone:
@@ -130,10 +112,16 @@ class Callback(BaseCallback):
         if self.learning_style.is_self_play:
             assert self.model.env is not None
             policies = random.choices(
-                self.policy_pool, weights=self.prob_dist, k=self.model.env.num_envs
+                os.listdir(f"results/saves-{self.run_ident}/{self.num_teams}-teams"),
+                weights=self.prob_dist,
+                k=self.model.env.num_envs,
             )
             for i in range(self.model.env.num_envs):
-                self.model.env.env_method("set_opp_policy", policies[i], indices=i)
+                policy = PPO.load(
+                    f"results/saves-{self.run_ident}/{self.num_teams}-teams/{policies[i]}",
+                    device=self.model.device,
+                ).policy
+                self.model.env.env_method("set_opp_policy", policy, indices=i)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % steps == 0:
@@ -145,9 +133,6 @@ class Callback(BaseCallback):
             self.model.save(
                 f"results/saves-{self.run_ident}/{self.num_teams}-teams/{self.model.num_timesteps}"
             )
-            if self.learning_style.is_self_play:
-                policy = MaskedActorCriticPolicy.clone(self.model).to(self.device)
-                self.policy_pool.append(policy)
 
     def evaluate(self):
         policy = MaskedActorCriticPolicy.clone(self.model)
@@ -159,8 +144,12 @@ class Callback(BaseCallback):
         policy = MaskedActorCriticPolicy.clone(self.model)
         self.eval_agent.set_policy(policy)
         win_rates = np.array([])
-        for p in self.policy_pool:
-            self.eval_agent2.set_policy(deepcopy(p))
+        for p in os.listdir(f"results/saves-{self.run_ident}/{self.num_teams}-teams"):
+            policy2 = PPO.load(
+                f"results/saves-{self.run_ident}/{self.num_teams}-teams/{p}",
+                device=self.model.device,
+            ).policy
+            self.eval_agent2.set_policy(policy2)
             win_rate = self.compare(self.eval_agent, self.eval_agent2, 100)
             win_rates = np.append(win_rates, round(2 * win_rate - 1, ndigits=2))
         self.payoff_matrix = np.concat([self.payoff_matrix, -win_rates.reshape(-1, 1)], axis=1)
