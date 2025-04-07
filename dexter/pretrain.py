@@ -72,9 +72,8 @@ def pretrain(num_teams: int, port: int, device: str):
         dataset,
         batch_size=len(dataset) // 10,
         shuffle=True,
-        num_workers=8,
+        num_workers=4,
         collate_fn=lambda batch: batch,
-        pin_memory=True,
     )
     bc = BC(
         observation_space=ppo.observation_space,  # type: ignore
