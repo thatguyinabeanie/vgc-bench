@@ -178,16 +178,11 @@ class Agent(Player):
         else:
             raise TypeError()
         weather = [
-            (
-                min(battle.turn - battle.weather.get(w, battle.turn), 8) / 8
-                if w in battle.weather
-                else 0
-            )
+            (min(battle.turn - battle.weather[w], 8) / 8 if w in battle.weather else 0)
             for w in Weather
         ]
         fields = [
-            min(battle.turn - battle.fields.get(f, battle.turn), 8) / 8 if f in battle.fields else 0
-            for f in Field
+            min(battle.turn - battle.fields[f], 8) / 8 if f in battle.fields else 0 for f in Field
         ]
         if battle.teampreview:
             if not battle.active_pokemon:
@@ -245,7 +240,7 @@ class Agent(Player):
                         else (
                             side_conds[s] / 3
                             if s == SideCondition.SPIKES
-                            else min(battle.turn - side_conds.get(s, battle.turn), 8) / 8
+                            else min(battle.turn - side_conds[s], 8) / 8
                         )
                     )
                 )
@@ -283,9 +278,7 @@ class Agent(Player):
         status = [float(s == pokemon.status) for s in Status]
         status_counter = pokemon.status_counter / 16
         boosts = [b / 6 for b in pokemon.boosts.values()]
-        effects = [
-            (min(pokemon.effects.get(e, 0), 8) / 8 if e in pokemon.effects else 0) for e in Effect
-        ]
+        effects = [(min(pokemon.effects[e], 8) / 8 if e in pokemon.effects else 0) for e in Effect]
         first_turn = float(pokemon.first_turn)
         protect_counter = pokemon.protect_counter / 5
         must_recharge = float(pokemon.must_recharge)
