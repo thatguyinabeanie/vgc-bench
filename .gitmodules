@@ -1,4 +1,4 @@
 [submodule "pokemon-showdown"]
 	path = pokemon-showdown
-	url = https://github.com/cameronangliss/pokemon-showdown
-	branch = master
+	url = git@github.com:cameronangliss/pokemon-showdown.git
+	branch = thesis
