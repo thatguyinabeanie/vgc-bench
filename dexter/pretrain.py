@@ -66,7 +66,12 @@ def pretrain(num_teams: int, port: int, device: str, num_frames: int):
         start_listening=False,
     )
     single_agent_env = SingleAgentWrapper(env, opponent)
-    ppo = PPO(MaskedActorCriticPolicy, single_agent_env, device=device)
+    ppo = PPO(
+        MaskedActorCriticPolicy,
+        single_agent_env,
+        policy_kwargs={"num_frames": num_frames},
+        device=device,
+    )
     dataset = TrajectoryDataset(num_frames)
     div_count = 10
     dataloader = DataLoader(

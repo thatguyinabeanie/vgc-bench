@@ -152,7 +152,7 @@ Ogerpon-Cornerstone (F) @ Cornerstone Mask
 Ability: Sturdy
 Level: 50
 Tera Type: Rock
-EVs: 4 HP / 252 Atk / 4 Def / 252 Spe
+EVs: 252 Atk / 4 Def / 252 Spe
 Jolly Nature
 - Ivy Cudgel
 - Power Whip
@@ -243,7 +243,7 @@ IVs: 0 Atk
 Groudon @ Clear Amulet
 Ability: Drought
 Tera Type: Fire
-EVs: 252 HP/76 Atk/44 Def/108 SpD/28 Spe
+EVs: 252 HP / 76 Atk / 44 Def / 108 SpD / 28 Spe
 Adamant Nature
 - Precipice Blades
 - Heat Crash
@@ -254,7 +254,7 @@ Lunala @ Power Herb
 Ability: Shadow Shield
 Shiny: Yes
 Tera Type: Water
-EVs: 228 HP/12 Def/100 SpA/116 SpD/52 Spe
+EVs: 228 HP / 12 Def / 100 SpA / 116 SpD / 52 Spe
 Modest Nature
 IVs: 0 Atk
 - Moongeist Beam
@@ -265,7 +265,7 @@ IVs: 0 Atk
 Raging Bolt @ Assault Vest
 Ability: Protosynthesis
 Tera Type: Fairy
-EVs: 148 HP/148 Def/100 SpA/52 SpD/60 Spe
+EVs: 148 HP / 148 Def / 100 SpA / 52 SpD / 60 Spe
 Modest Nature
 IVs: 20 Atk
 - Volt Switch
@@ -276,7 +276,7 @@ IVs: 20 Atk
 Incineroar @ Rocky Helmet
 Ability: Intimidate
 Tera Type: Bug
-EVs: 252 HP/188 Def/68 SpD
+EVs: 252 HP / 188 Def / 68 SpD
 Relaxed Nature
 IVs: 24 Spe
 - Fake Out
@@ -288,7 +288,7 @@ Iron Valiant @ Booster Energy
 Ability: Quark Drive
 Shiny: Yes
 Tera Type: Ground
-EVs: 124 HP/4 Atk/4 Def/204 SpD/172 Spe
+EVs: 124 HP / 4 Atk / 4 Def / 204 SpD / 172 Spe
 Jolly Nature
 - Spirit Break
 - Wide Guard
@@ -299,7 +299,7 @@ Ogerpon-Hearthflame @ Hearthflame Mask
 Ability: Mold Breaker
 Level: 50
 Tera Type: Fire
-EVs: 228 HP/12 Atk/244 Def/4 SpD/20 Spe
+EVs: 228 HP / 12 Atk / 244 Def / 4 SpD / 20 Spe
 Impish Nature
 - Ivy Cudgel
 - Horn Leech
@@ -448,7 +448,8 @@ IVs: 0 Atk
 - Tailwind
 - Taunt
 - Rain Dance""",
-        """Miraidon @ Choice Specs
+        """
+Miraidon @ Choice Specs
 Ability: Hadron Engine
 Level: 50
 Tera Type: Fairy
