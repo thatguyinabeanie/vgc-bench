@@ -15,7 +15,7 @@ from poke_env.environment import AbstractBattle
 from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
-from src.utils import LearningStyle, battle_format, doubles_chunk_obs_len, moves, num_frames
+from src.utils import LearningStyle, battle_format, doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
 
 
@@ -34,7 +34,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
 
     @classmethod
     def create_env(
-        cls, num_teams: int, port: int, device: str, learning_style: LearningStyle
+        cls, num_teams: int, port: int, device: str, learning_style: LearningStyle, num_frames: int
     ) -> Env:
         env = cls(
             server_configuration=ServerConfiguration(
@@ -60,6 +60,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             opponent = (
                 Agent(
                     None,
+                    num_frames,
                     device=torch.device(device),
                     server_configuration=ServerConfiguration(
                         f"ws://localhost:{port}/showdown/websocket",

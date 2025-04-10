@@ -1,14 +1,10 @@
 import argparse
 import asyncio
-import json
-import os
 
-import numpy as np
-from nashpy import Game
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format, num_frames
+from src.utils import battle_format
 from stable_baselines3 import PPO
 
 
@@ -18,7 +14,8 @@ async def play(filepath: str, num_teams: int, n_games: int, play_on_ladder: bool
     print(f"Loaded {filepath}.")
     agent = Agent(
         policy,
-        account_configuration=AccountConfiguration("DexterAI", "7291120315182"),  # fill in
+        num_frames=1,
+        account_configuration=AccountConfiguration("", ""),  # fill in
         battle_format=battle_format,
         log_level=40,
         max_concurrent_battles=10,

@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 import numpy.typing as npt
+import torch
 from nashpy import Game
 from poke_env import ServerConfiguration
 from poke_env.concurrency import POKE_LOOP
@@ -13,7 +14,7 @@ from poke_env.player import MaxBasePowerPlayer, Player
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import LearningStyle, battle_format, num_frames, steps
+from src.utils import LearningStyle, battle_format, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -22,7 +23,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class Callback(BaseCallback):
     def __init__(
-        self, num_teams: int, port: int, learning_style: LearningStyle, behavior_clone: bool
+        self,
+        num_teams: int,
+        port: int,
+        device: str,
+        learning_style: LearningStyle,
+        behavior_clone: bool,
+        num_frames: int,
     ):
         super().__init__()
         self.learning_style = learning_style
@@ -57,6 +64,8 @@ class Callback(BaseCallback):
             self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         self.eval_agent = Agent(
             None,
+            num_frames,
+            device=torch.device(device),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -69,6 +78,8 @@ class Callback(BaseCallback):
         )
         self.eval_agent2 = Agent(
             None,
+            num_frames,
+            device=torch.device(device),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",

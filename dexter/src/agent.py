@@ -30,7 +30,6 @@ from src.utils import (
     items,
     move_obs_len,
     moves,
-    num_frames,
     pokemon_obs_len,
     singles_act_len,
     singles_chunk_obs_len,
@@ -46,6 +45,7 @@ class Agent(Player):
     def __init__(
         self,
         policy: ActorCriticPolicy | None,
+        num_frames: int,
         device: torch.device | None = None,
         *args: Any,
         **kwargs: Any,
@@ -57,6 +57,7 @@ class Agent(Player):
             self.__policy = policy.to(device)
         elif self.format_is_doubles:
             self.__policy = MaskedActorCriticPolicy(
+                num_frames=num_frames,
                 observation_space=Box(
                     -1, len(moves), shape=(12, doubles_chunk_obs_len), dtype=np.float32
                 ),
@@ -65,6 +66,7 @@ class Agent(Player):
             ).to(device)
         else:
             self.__policy = MaskedActorCriticPolicy(
+                num_frames=num_frames,
                 observation_space=Box(
                     -1, len(moves), shape=(12, singles_chunk_obs_len), dtype=np.float32
                 ),
@@ -78,14 +80,14 @@ class Agent(Player):
         self.__policy = policy.to(self.__policy.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
+        assert self.frames.maxlen is not None
         obs = self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
         if battle.turn == 0 and not (
             battle.teampreview and len([p for p in battle.team.values() if p.active]) > 0
         ):
-            assert self.frames.maxlen is not None
             for _ in range(self.frames.maxlen):
                 self.frames.append(np.zeros([12, doubles_chunk_obs_len], dtype=np.float32))
-        if num_frames > 1:
+        if self.frames.maxlen > 1:
             self.frames.append(obs)
             obs = np.stack(self.frames)
         with torch.no_grad():

@@ -4,20 +4,25 @@ import os
 from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
-from src.utils import LearningStyle, num_envs, num_frames, steps
+from src.utils import LearningStyle, num_envs, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
 def train(
-    num_teams: int, port: int, device: str, learning_style: LearningStyle, behavior_clone: bool
+    num_teams: int,
+    port: int,
+    device: str,
+    learning_style: LearningStyle,
+    behavior_clone: bool,
+    num_frames: int,
 ):
     env = (
-        ShowdownEnv.create_env(num_teams, port, device, learning_style)
+        ShowdownEnv.create_env(num_teams, port, device, learning_style, num_frames)
         if learning_style == LearningStyle.PURE_SELF_PLAY
         else SubprocVecEnv(
             [
-                lambda: ShowdownEnv.create_env(num_teams, port, device, learning_style)
+                lambda: ShowdownEnv.create_env(num_teams, port, device, learning_style, num_frames)
                 for _ in range(num_envs)
             ]
         )
@@ -38,6 +43,7 @@ def train(
         gamma=1,
         ent_coef=0.02,
         tensorboard_log=f"results/logs-{run_ident}",
+        policy_kwargs={"num_frames": num_frames},
         device=device,
     )
     num_saved_timesteps = 0
@@ -57,7 +63,7 @@ def train(
         ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
         steps,
-        callback=Callback(num_teams, port, learning_style, behavior_clone),
+        callback=Callback(num_teams, port, device, learning_style, behavior_clone, num_frames),
         tb_log_name=f"{num_teams}-teams",
         reset_num_timesteps=False,
     )
@@ -81,6 +87,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--behavior_clone", action="store_true", help="Warm up with behavior cloning"
     )
+    parser.add_argument(
+        "--num_frames",
+        type=int,
+        default=1,
+        help="number of frames to use for frame stacking. default is 1",
+    )
     args = parser.parse_args()
     assert (
         int(args.exploiter)
@@ -99,4 +111,4 @@ if __name__ == "__main__":
         style = LearningStyle.DOUBLE_ORACLE
     else:
         raise TypeError()
-    train(args.num_teams, args.port, args.device, style, args.behavior_clone)
+    train(args.num_teams, args.port, args.device, style, args.behavior_clone, args.num_frames)

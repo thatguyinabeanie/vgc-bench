@@ -11,7 +11,7 @@ from poke_env.player import BattleOrder, DoubleBattleOrder, DoublesEnv, Player
 from poke_env.ps_client import AccountConfiguration
 from scrape_logs import battle_formats
 from src.agent import Agent
-from src.utils import doubles_chunk_obs_len, num_frames
+from src.utils import doubles_chunk_obs_len
 
 
 class LogReader(Player):
@@ -28,10 +28,7 @@ class LogReader(Player):
         self.teampreview_draft = []
 
     async def _handle_battle_request(
-        self,
-        battle: AbstractBattle,
-        from_teampreview_request: bool = False,
-        maybe_default_order: bool = False,
+        self, battle: AbstractBattle, maybe_default_order: bool = False
     ):
         pass
 
@@ -61,11 +58,7 @@ class LogReader(Player):
         order2 = BattleOrder(list(battle.team.values())[id2 - 1])
         order = DoubleBattleOrder(order1, order2)
         state = Agent.embed_battle(battle, self.teampreview_draft)
-        assert (
-            state.shape == (num_frames, 12, doubles_chunk_obs_len)
-            if num_frames > 1
-            else state.shape == (12, doubles_chunk_obs_len)
-        )
+        assert state.shape == (12, doubles_chunk_obs_len)
         action = DoublesEnv.order_to_action(order, battle, fake=True)
         self.states += [state]
         self.actions += [action]

@@ -11,7 +11,6 @@ from src.utils import (
     doubles_glob_obs_len,
     items,
     moves,
-    num_frames,
     side_obs_len,
 )
 from stable_baselines3.common.base_class import BaseAlgorithm
@@ -23,7 +22,8 @@ from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
+        self.num_frames = num_frames
         self.actor_grad = True
         super().__init__(
             *args,
@@ -31,6 +31,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
+            features_extractor_kwargs={"num_frames": num_frames},
             share_features_extractor=False,
             # optimizer_kwargs={"weight_decay": 1e-5},
         )
@@ -38,7 +39,12 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     @classmethod
     def clone(cls, model: BaseAlgorithm) -> MaskedActorCriticPolicy:
         assert isinstance(model.policy, MaskedActorCriticPolicy)
-        new_policy = cls(model.observation_space, model.action_space, model.lr_schedule)
+        new_policy = cls(
+            model.observation_space,
+            model.action_space,
+            model.lr_schedule,
+            num_frames=model.policy.num_frames,
+        )
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
 
@@ -97,7 +103,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         return distribution
 
     def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:
-        chunk = obs[:, -1, 0, :] if num_frames > 1 else obs[:, 0, :]
+        chunk = obs[:, -1, 0, :] if self.num_frames > 1 else obs[:, 0, :]
         if isinstance(self.action_space, Discrete):
             mask = chunk[:, : self.action_space.n]  # type: ignore
             mask = torch.where(mask.sum(dim=1, keepdim=True) == mask.size(1), 0.0, mask)
@@ -131,8 +137,9 @@ class AttentionExtractor(BaseFeaturesExtractor):
     proj_len: int = 128
     embed_layers: int = 3
 
-    def __init__(self, observation_space: Space[Any]):
+    def __init__(self, observation_space: Space[Any], num_frames: int):
         super().__init__(observation_space, features_dim=self.proj_len)
+        self.num_frames = num_frames
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)
@@ -171,7 +178,7 @@ class AttentionExtractor(BaseFeaturesExtractor):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
-        if num_frames > 1:
+        if self.num_frames > 1:
             # embedding
             start = doubles_glob_obs_len + side_obs_len
             x = torch.cat(
@@ -188,12 +195,12 @@ class AttentionExtractor(BaseFeaturesExtractor):
                 dim=3,
             )
             # frame encoder
-            x = x.view(batch_size * num_frames, self.num_pokemon, -1)
+            x = x.view(batch_size * self.num_frames, self.num_pokemon, -1)
             x = self.feature_proj.forward(x)
-            token = self.cls_token.expand(batch_size * num_frames, -1, -1)
+            token = self.cls_token.expand(batch_size * self.num_frames, -1, -1)
             x = torch.cat([token, x], dim=1)
             x = self.frame_encoder.forward(x)[:, 0, :]
-            x = x.view(batch_size, num_frames, -1)
+            x = x.view(batch_size, self.num_frames, -1)
             # meta encoder
             frame_encoding = self.frame_encoding.expand(batch_size, -1, -1)
             x = torch.cat([x, frame_encoding], dim=2)

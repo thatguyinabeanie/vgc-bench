@@ -4,7 +4,7 @@ if [[ $PATH != "/scratch/cluster/cangliss/bin:"* ]]; then
     export PATH="/scratch/cluster/cangliss/bin:$PATH"
 fi
 
-teams=(1 3 10 30)
+teams=(1 2 5 10)
 ports=(8000 8001 8002 8003)
 devices=("cuda:0" "cuda:1" "cuda:2" "cuda:3")
 
@@ -26,7 +26,7 @@ start_training() {
     echo "Starting Showdown server for training process $i..."
     showdown_pid=$(start_showdown "$port")
     echo "Starting training process $i..."
-    python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" --fictitious_play > debug"$port".log 2>&1
+    python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" --behavior_clone --fictitious_play > debug"$port".log 2>&1
     exit_status=$?
     if [ $exit_status -ne 0 ]; then
         echo "Training process $i died with exit status $exit_status"
