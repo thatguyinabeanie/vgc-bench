@@ -101,7 +101,7 @@ IVs: 0 Spe
 - Fake Out
 """,
         """
-Groudon (Koraidon) @ Life Orb
+Koraidon @ Life Orb
 Ability: Orichalcum Pulse
 Level: 50
 Tera Type: Fire
