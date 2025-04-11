@@ -118,12 +118,13 @@ def pretrain(num_teams: int, port: int, device: str, num_frames: int):
     win_rate = Callback.compare(eval_agent, eval_opponent, 100)
     bc.logger.record("bc/eval", win_rate)
     ppo.save(f"results/saves-bc{f'-fs{num_frames}' if num_frames > 1 else ''}/0")
+    data = iter(dataloader)
     for i in range(1000):
-        data = iter(dataloader)
-        for _ in range(div_count):
-            demos = next(data)
-            bc.set_demonstrations(demos)
-            bc.train(n_epochs=10)
+        if i > 0 and i % div_count == 0:
+            data = iter(dataloader)
+        demos = next(data)
+        bc.set_demonstrations(demos)
+        bc.train(n_epochs=10)
         policy = MaskedActorCriticPolicy.clone(ppo)
         eval_agent.set_policy(policy)
         win_rate = Callback.compare(eval_agent, eval_opponent, 100)
