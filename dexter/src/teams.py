@@ -28,7 +28,6 @@ class RandomTeamBuilder(Teambuilder):
     def __init__(self, teams: list[int], battle_format: str, toggle: TeamToggle | None = None):
         self.teams = []
         self.toggle = toggle
-        print(len(TEAMS[battle_format]), flush=True)
         for team in [TEAMS[battle_format][t] for t in teams]:
             result = run(
                 ["node", "pokemon-showdown", "validate-team", battle_format],
