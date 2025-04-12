@@ -13,7 +13,7 @@ from poke_env.concurrency import POKE_LOOP
 from poke_env.player import MaxBasePowerPlayer, Player
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
-from src.teams import RandomTeamBuilder
+from src.teams import RandomTeamBuilder, TeamToggle
 from src.utils import LearningStyle, battle_format, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 class Callback(BaseCallback):
     def __init__(
         self,
-        num_teams: int,
+        teams: list[int],
         port: int,
         device: str,
         learning_style: LearningStyle,
@@ -34,7 +34,7 @@ class Callback(BaseCallback):
         super().__init__()
         self.learning_style = learning_style
         self.behavior_clone = behavior_clone
-        self.num_teams = num_teams
+        self.teams = teams
         self.run_ident = "".join(
             [
                 "-bc" if behavior_clone else "",
@@ -48,20 +48,22 @@ class Callback(BaseCallback):
         self.prob_dist: list[float] | None = None
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
             if os.path.exists(
-                f"results/logs-{self.run_ident}/{num_teams}-teams-payoff-matrix.json"
+                f"results/logs-{self.run_ident}/{','.join([str(t) for t in teams])}-teams-payoff-matrix.json"
             ):
                 with open(
-                    f"results/logs-{self.run_ident}/{num_teams}-teams-payoff-matrix.json"
+                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in teams])}-teams-payoff-matrix.json"
                 ) as f:
                     self.payoff_matrix = np.array(json.load(f))
             else:
                 self.payoff_matrix = np.array([[0]])
                 with open(
-                    f"results/logs-{self.run_ident}/{num_teams}-teams-payoff-matrix.json", "w"
+                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in teams])}-teams-payoff-matrix.json",
+                    "w",
                 ) as f:
                     json.dump(self.payoff_matrix.tolist(), f)
             g = Game(self.payoff_matrix)
             self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
+        toggle = TeamToggle(len(teams))
         self.eval_agent = Agent(
             None,
             num_frames,
@@ -74,7 +76,7 @@ class Callback(BaseCallback):
             log_level=25,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+            team=RandomTeamBuilder(teams, battle_format, toggle),
         )
         self.eval_agent2 = Agent(
             None,
@@ -88,7 +90,7 @@ class Callback(BaseCallback):
             log_level=25,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+            team=RandomTeamBuilder(teams, battle_format, toggle),
         )
         self.eval_opponent = MaxBasePowerPlayer(
             server_configuration=ServerConfiguration(
@@ -99,7 +101,7 @@ class Callback(BaseCallback):
             log_level=25,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+            team=RandomTeamBuilder(teams, battle_format, toggle),
         )
 
     def _on_step(self) -> bool:
@@ -110,11 +112,15 @@ class Callback(BaseCallback):
             if self.model.num_timesteps < steps:
                 self.evaluate()
             if not (
-                os.path.exists(f"results/saves-{self.run_ident}/{self.num_teams}-teams")
-                and os.listdir(f"results/saves-{self.run_ident}/{self.num_teams}-teams")
+                os.path.exists(
+                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+                )
+                and os.listdir(
+                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+                )
             ):
                 self.model.save(
-                    f"results/saves-{self.run_ident}/{self.num_teams}-teams/{self.model.num_timesteps}"
+                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
                 )
 
     def _on_rollout_start(self):
@@ -123,13 +129,15 @@ class Callback(BaseCallback):
         if self.learning_style.is_self_play:
             assert self.model.env is not None
             policies = random.choices(
-                os.listdir(f"results/saves-{self.run_ident}/{self.num_teams}-teams"),
+                os.listdir(
+                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+                ),
                 weights=self.prob_dist,
                 k=self.model.env.num_envs,
             )
             for i in range(self.model.env.num_envs):
                 policy = PPO.load(
-                    f"results/saves-{self.run_ident}/{self.num_teams}-teams/{policies[i]}",
+                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policies[i]}",
                     device=self.model.device,
                 ).policy
                 self.model.env.env_method("set_opp_policy", policy, indices=i)
@@ -142,7 +150,7 @@ class Callback(BaseCallback):
                 g = Game(self.payoff_matrix)
                 self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
             self.model.save(
-                f"results/saves-{self.run_ident}/{self.num_teams}-teams/{self.model.num_timesteps}"
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
             )
 
     def evaluate(self):
@@ -155,9 +163,11 @@ class Callback(BaseCallback):
         policy = MaskedActorCriticPolicy.clone(self.model)
         self.eval_agent.set_policy(policy)
         win_rates = np.array([])
-        for p in os.listdir(f"results/saves-{self.run_ident}/{self.num_teams}-teams"):
+        for p in os.listdir(
+            f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+        ):
             policy2 = PPO.load(
-                f"results/saves-{self.run_ident}/{self.num_teams}-teams/{p}",
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{p}",
                 device=self.model.device,
             ).policy
             self.eval_agent2.set_policy(policy2)
@@ -167,7 +177,8 @@ class Callback(BaseCallback):
         win_rates = np.append(win_rates, 0)
         self.payoff_matrix = np.concat([self.payoff_matrix, win_rates.reshape(1, -1)], axis=0)
         with open(
-            f"results/logs-{self.run_ident}/{self.num_teams}-teams-payoff-matrix.json", "w"
+            f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json",
+            "w",
         ) as f:
             json.dump(self.payoff_matrix.tolist(), f)
 

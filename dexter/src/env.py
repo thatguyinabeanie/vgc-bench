@@ -14,7 +14,7 @@ from poke_env import ServerConfiguration
 from poke_env.environment import AbstractBattle
 from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
 from src.agent import Agent
-from src.teams import RandomTeamBuilder
+from src.teams import RandomTeamBuilder, TeamToggle
 from src.utils import LearningStyle, battle_format, doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
 
@@ -34,8 +34,14 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
 
     @classmethod
     def create_env(
-        cls, num_teams: int, port: int, device: str, learning_style: LearningStyle, num_frames: int
+        cls,
+        teams: list[int],
+        port: int,
+        device: str,
+        learning_style: LearningStyle,
+        num_frames: int,
     ) -> Env:
+        toggle = TeamToggle(len(teams))
         env = cls(
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
@@ -45,7 +51,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             log_level=25,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+            team=RandomTeamBuilder(teams, battle_format, toggle),
             strict=False,
         )
         if learning_style == LearningStyle.PURE_SELF_PLAY:
@@ -70,7 +76,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                     log_level=25,
                     accept_open_team_sheet=True,
                     open_timeout=None,
-                    team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+                    team=RandomTeamBuilder(teams, battle_format, toggle),
                 )
                 if learning_style.is_self_play
                 else SimpleHeuristicsPlayer(
@@ -82,7 +88,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                     log_level=25,
                     accept_open_team_sheet=True,
                     open_timeout=None,
-                    team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+                    team=RandomTeamBuilder(teams, battle_format, toggle),
                 )
             )
             env = SingleAgentWrapper(env, opponent)

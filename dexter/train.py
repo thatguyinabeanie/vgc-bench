@@ -10,7 +10,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 
 
 def train(
-    num_teams: int,
+    teams: list[int],
     port: int,
     device: str,
     learning_style: LearningStyle,
@@ -18,11 +18,11 @@ def train(
     num_frames: int,
 ):
     env = (
-        ShowdownEnv.create_env(num_teams, port, device, learning_style, num_frames)
+        ShowdownEnv.create_env(teams, port, device, learning_style, num_frames)
         if learning_style == LearningStyle.PURE_SELF_PLAY
         else SubprocVecEnv(
             [
-                lambda: ShowdownEnv.create_env(num_teams, port, device, learning_style, num_frames)
+                lambda: ShowdownEnv.create_env(teams, port, device, learning_style, num_frames)
                 for _ in range(num_envs)
             ]
         )
@@ -48,14 +48,20 @@ def train(
     )
     num_saved_timesteps = 0
     if (
-        os.path.exists(f"results/saves-{run_ident}/{num_teams}-teams")
-        and len(os.listdir(f"results/saves-{run_ident}/{num_teams}-teams")) > 0
+        os.path.exists(f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams")
+        and len(os.listdir(f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams"))
+        > 0
     ):
         num_saved_timesteps = max(
-            [int(file[:-4]) for file in os.listdir(f"results/saves-{run_ident}/{num_teams}-teams")]
+            [
+                int(file[:-4])
+                for file in os.listdir(
+                    f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams"
+                )
+            ]
         )
         ppo.set_parameters(
-            f"results/saves-{run_ident}/{num_teams}-teams/{num_saved_timesteps}.zip",
+            f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams/{num_saved_timesteps}.zip",
             device=ppo.device,
         )
         if num_saved_timesteps < steps:
@@ -63,15 +69,15 @@ def train(
         ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
         steps,
-        callback=Callback(num_teams, port, device, learning_style, behavior_clone, num_frames),
-        tb_log_name=f"{num_teams}-teams",
+        callback=Callback(teams, port, device, learning_style, behavior_clone, num_frames),
+        tb_log_name=f"{','.join([str(t) for t in teams])}-teams",
         reset_num_timesteps=False,
     )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a Pokémon AI model")
-    parser.add_argument("--num_teams", type=int, default=1, help="Number of teams to train with")
+    parser.add_argument("--teams", nargs="*", type=int, help="Indices of teams to train with")
     parser.add_argument("--port", type=int, default=8000, help="Port to run showdown server on")
     parser.add_argument(
         "--device",
@@ -111,4 +117,4 @@ if __name__ == "__main__":
         style = LearningStyle.DOUBLE_ORACLE
     else:
         raise TypeError()
-    train(args.num_teams, args.port, args.device, style, args.behavior_clone, args.num_frames)
+    train(args.teams, args.port, args.device, style, args.behavior_clone, args.num_frames)
