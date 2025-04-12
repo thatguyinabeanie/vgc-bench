@@ -4,7 +4,7 @@ if [[ $PATH != "/scratch/cluster/cangliss/bin:"* ]]; then
     export PATH="/scratch/cluster/cangliss/bin:$PATH"
 fi
 
-matchups=("0 1" "2 3" "0 2" "1 3")
+matchups=("30 31" "32 33" "30 32" "31 33")
 ports=(8000 8001 8002 8003)
 devices=("cuda:0" "cuda:1" "cuda:2" "cuda:3")
 

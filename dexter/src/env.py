@@ -15,7 +15,7 @@ from poke_env.environment import AbstractBattle
 from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
 from src.agent import Agent
 from src.teams import RandomTeamBuilder, TeamToggle
-from src.utils import LearningStyle, battle_format, doubles_chunk_obs_len, moves
+from src.utils import LearningStyle, allow_mirror_match, battle_format, doubles_chunk_obs_len, moves
 from stable_baselines3.common.monitor import Monitor
 
 
@@ -41,7 +41,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         learning_style: LearningStyle,
         num_frames: int,
     ) -> Env:
-        toggle = TeamToggle(len(teams))
+        toggle = None if allow_mirror_match else TeamToggle(len(teams))
         env = cls(
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",

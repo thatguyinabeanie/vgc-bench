@@ -747,289 +747,6 @@ Adamant Nature
     ],
     "gen9vgc2025regg": [
         """
-Flutter Mane @ Focus Sash
-Ability: Protosynthesis
-Level: 50
-Tera Type: Normal
-EVs: 4 HP / 252 SpA / 252 Spe
-Timid Nature
-IVs: 0 Atk
-- Protect
-- Icy Wind
-- Moonblast
-- Shadow Ball
-
-Koraidon @ Life Orb
-Ability: Orichalcum Pulse
-Level: 50
-Tera Type: Fire
-EVs: 4 HP / 252 Atk / 252 Spe
-Jolly Nature
-- Protect
-- Flame Charge
-- Close Combat
-- Flare Blitz
-
-Amoonguss @ Mental Herb
-Ability: Regenerator
-Level: 50
-Tera Type: Dark
-EVs: 236 HP / 76 Def / 196 SpD
-Sassy Nature
-IVs: 0 Atk / 0 Spe
-- Protect
-- Rage Powder
-- Sludge Bomb
-- Spore
-
-Incineroar @ Safety Goggles
-Ability: Intimidate
-Level: 50
-Tera Type: Bug
-EVs: 252 HP / 124 Def / 132 SpD
-Careful Nature
-IVs: 29 Spe
-- Protect
-- Flare Blitz
-- Fake Out
-- Parting Shot
-
-Gothitelle @ Leftovers
-Ability: Shadow Tag
-Level: 50
-Tera Type: Water
-EVs: 252 HP / 196 Def / 4 SpA / 52 SpD / 4 Spe
-Bold Nature
-IVs: 0 Atk
-- Protect
-- Psychic
-- Fake Out
-- Taunt
-
-Scream Tail @ Booster Energy
-Ability: Protosynthesis
-Level: 50
-Tera Type: Dark
-EVs: 252 HP / 84 Def / 68 SpD / 100 Spe
-Timid Nature
-IVs: 0 Atk
-- Protect
-- Encore
-- Disable
-- Perish Song""",
-        """
-megabeast:3 (Miraidon) @ Choice Specs
-Ability: Hadron Engine
-Level: 50
-Tera Type: Fairy
-EVs: 172 HP / 4 Def / 124 SpA / 4 SpD / 204 Spe
-Modest Nature
-- Electro Drift
-- Volt Switch
-- Draco Meteor
-- Dazzling Gleam
-
-hellofreak (Incineroar) (F) @ Rocky Helmet
-Ability: Intimidate
-Level: 50
-Tera Type: Ghost
-EVs: 252 HP / 140 Def / 116 SpD
-Careful Nature
-IVs: 11 Spe
-- Flare Blitz
-- Knock Off
-- U-turn
-- Fake Out
-
-radicalqueen (Urshifu) (F) @ Focus Sash
-Ability: Unseen Fist
-Level: 50
-Tera Type: Dark
-EVs: 4 HP / 236 Atk / 20 Def / 4 SpD / 244 Spe
-Adamant Nature
-- Wicked Blow
-- Sucker Punch
-- Close Combat
-- Detect
-
-partypirate (Iron Hands) @ Assault Vest
-Ability: Quark Drive
-Level: 50
-Tera Type: Poison
-EVs: 76 HP / 164 Atk / 12 Def / 252 SpD
-Brave Nature
-IVs: 0 Spe
-- Drain Punch
-- Low Kick
-- Heavy Slam
-- Fake Out
-
-crimsonracer (Iron Treads) @ Choice Band
-Ability: Quark Drive
-Level: 50
-Shiny: Yes
-Tera Type: Ghost
-EVs: 252 Atk / 36 SpD / 220 Spe
-Jolly Nature
-- High Horsepower
-- Iron Head
-- Steel Roller
-- Rock Slide
-
-mythicdreamr (Farigiraf) (M) @ Electric Seed
-Ability: Armor Tail
-Level: 50
-Shiny: Yes
-Tera Type: Water
-EVs: 228 HP / 164 Def / 116 SpD
-Bold Nature
-IVs: 20 Atk / 13 Spe
-- Psychic
-- Roar
-- Trick Room
-- Helping Hand""",
-        """
-Miraidon @ Choice Specs
-Ability: Hadron Engine
-Level: 50
-Tera Type: Fairy
-EVs: 44 HP / 4 Def / 244 SpA / 12 SpD / 204 Spe
-Modest Nature
-- Electro Drift
-- Draco Meteor
-- Volt Switch
-- Dazzling Gleam
-
-Whimsicott @ Covert Cloak
-Ability: Prankster
-Level: 50
-Tera Type: Dark
-EVs: 236 HP / 164 SpD / 108 Spe
-Timid Nature
-IVs: 0 Atk
-- Moonblast
-- Tailwind
-- Light Screen
-- Encore
-
-Urshifu-Rapid-Strike @ Focus Sash
-Ability: Unseen Fist
-Level: 50
-Tera Type: Stellar
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Surging Strikes
-- Close Combat
-- Aqua Jet
-- Protect
-
-Ogerpon-Hearthflame (F) @ Hearthflame Mask
-Ability: Mold Breaker
-Level: 50
-Tera Type: Fire
-EVs: 188 HP / 76 Atk / 52 Def / 4 SpD / 188 Spe
-Adamant Nature
-- Ivy Cudgel
-- Wood Hammer
-- Follow Me
-- Spiky Shield
-
-Farigiraf @ Electric Seed
-Ability: Armor Tail
-Level: 50
-Tera Type: Water
-EVs: 204 HP / 164 Def / 4 SpA / 108 SpD / 28 Spe
-Bold Nature
-IVs: 6 Atk
-- Foul Play
-- Psychic Noise
-- Trick Room
-- Helping Hand
-
-Iron Hands @ Assault Vest
-Ability: Quark Drive
-Level: 50
-Tera Type: Bug
-EVs: 76 HP / 180 Atk / 12 Def / 236 SpD
-Brave Nature
-IVs: 0 Spe
-- Drain Punch
-- Low Kick
-- Wild Charge
-- Fake Out""",
-        """
-Calyrex-Ice @ Clear Amulet
-Ability: As One (Glastrier)
-Level: 50
-Tera Type: Grass
-EVs: 252 HP / 172 Atk / 84 SpD
-Brave Nature
-IVs: 1 Spe
-- Glacial Lance
-- High Horsepower
-- Protect
-- Trick Room
-
-Urshifu-Rapid-Strike (M) @ Focus Sash
-Ability: Unseen Fist
-Level: 50
-Tera Type: Water
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Surging Strikes
-- Close Combat
-- Aqua Jet
-- Detect
-
-Pelipper @ Life Orb
-Ability: Drizzle
-Level: 50
-Tera Type: Grass
-EVs: 252 HP / 252 SpA / 4 SpD
-Modest Nature
-IVs: 0 Atk
-- Weather Ball
-- Hurricane
-- Helping Hand
-- Wide Guard
-
-Amoonguss (M) @ Rocky Helmet
-Ability: Regenerator
-Level: 50
-Tera Type: Fire
-EVs: 236 HP / 228 Def / 44 SpD
-Relaxed Nature
-IVs: 0 Atk / 0 Spe
-- Spore
-- Rage Powder
-- Clear Smog
-- Pollen Puff
-
-Iron Valiant @ Booster Energy
-Ability: Quark Drive
-Level: 50
-Shiny: Yes
-Tera Type: Ghost
-EVs: 204 HP / 4 Atk / 100 Def / 28 SpD / 172 Spe
-Jolly Nature
-- Spirit Break
-- Coaching
-- Wide Guard
-- Encore
-
-Landorus @ Choice Scarf
-Ability: Sheer Force
-Level: 50
-Tera Type: Ghost
-EVs: 4 HP / 252 SpA / 252 Spe
-Modest Nature
-- Earth Power
-- Sandsear Storm
-- Sludge Bomb
-- U-turn""",
-    ],
-    "gen9vgc2025regg-old": [
-        """
 Calyrex-Ice @ Clear Amulet
 Ability: As One (Glastrier)
 Level: 50
@@ -1241,74 +958,74 @@ IVs: 20 SpA
 - Taunt
 """,
         """
-Miraidon @ Choice Specs
-Ability: Hadron Engine
+Koraidon @ Clear Amulet
+Ability: Orichalcum Pulse
 Level: 50
-Tera Type: Fairy
-EVs: 44 HP / 4 Def / 244 SpA / 12 SpD / 204 Spe
-Modest Nature
-- Electro Drift
-- Draco Meteor
-- Volt Switch
-- Dazzling Gleam
+Tera Type: Fire
+EVs: 236 HP / 196 Atk / 4 Def / 4 SpD / 68 Spe
+Adamant Nature
+- Collision Course
+- Flare Blitz
+- Flame Charge
+- Protect
 
-Whimsicott @ Covert Cloak
-Ability: Prankster
+Raging Bolt @ Life Orb
+Ability: Protosynthesis
 Level: 50
-Tera Type: Dark
-EVs: 236 HP / 164 SpD / 108 Spe
+Tera Type: Electric
+EVs: 148 HP / 164 Def / 100 SpA / 4 SpD / 92 Spe
+Modest Nature
+IVs: 20 Atk
+- Thunderbolt
+- Thunderclap
+- Draco Meteor
+- Protect
+
+Flutter Mane @ Booster Energy
+Ability: Protosynthesis
+Level: 50
+Tera Type: Normal
+EVs: 244 HP / 132 Def / 4 SpA / 4 SpD / 124 Spe
 Timid Nature
 IVs: 0 Atk
 - Moonblast
-- Tailwind
-- Light Screen
-- Encore
-
-Urshifu-Rapid-Strike @ Focus Sash
-Ability: Unseen Fist
-Level: 50
-Tera Type: Stellar
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Surging Strikes
-- Close Combat
-- Aqua Jet
+- Icy Wind
+- Thunder Wave
 - Protect
 
-Ogerpon-Hearthflame (F) @ Hearthflame Mask
-Ability: Mold Breaker
+Ogerpon-Cornerstone @ Cornerstone Mask
+Ability: Sturdy
 Level: 50
-Tera Type: Fire
-EVs: 188 HP / 76 Atk / 52 Def / 4 SpD / 188 Spe
-Adamant Nature
+Tera Type: Rock
+EVs: 36 HP / 204 Atk / 12 Def / 4 SpD / 252 Spe
+Jolly Nature
 - Ivy Cudgel
-- Wood Hammer
+- Power Whip
 - Follow Me
 - Spiky Shield
 
-Farigiraf @ Electric Seed
-Ability: Armor Tail
+Chi-Yu @ Covert Cloak
+Ability: Beads of Ruin
 Level: 50
 Tera Type: Water
-EVs: 204 HP / 164 Def / 4 SpA / 108 SpD / 28 Spe
-Bold Nature
-IVs: 6 Atk
-- Foul Play
-- Psychic Noise
-- Trick Room
-- Helping Hand
+EVs: 172 HP / 44 Def / 36 SpA / 12 SpD / 244 Spe
+Modest Nature
+IVs: 0 Atk
+- Heat Wave
+- Snarl
+- Overheat
+- Taunt
 
-Iron Hands @ Assault Vest
-Ability: Quark Drive
+Incineroar @ Safety Goggles
+Ability: Intimidate
 Level: 50
-Tera Type: Bug
-EVs: 76 HP / 180 Atk / 12 Def / 236 SpD
-Brave Nature
-IVs: 0 Spe
-- Drain Punch
-- Low Kick
-- Wild Charge
+Tera Type: Ghost
+EVs: 244 HP / 4 Atk / 196 Def / 52 SpD / 12 Spe
+Impish Nature
+- Knock Off
 - Fake Out
+- Will-O-Wisp
+- Parting Shot
 """,
         """
 Incineroar (M) @ Safety Goggles
@@ -3121,6 +2838,287 @@ IVs: 0 Atk
 - Sunny Day
 - Icy Wind
 """,
+        """
+Flutter Mane @ Focus Sash
+Ability: Protosynthesis
+Level: 50
+Tera Type: Normal
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Protect
+- Icy Wind
+- Moonblast
+- Shadow Ball
+
+Koraidon @ Life Orb
+Ability: Orichalcum Pulse
+Level: 50
+Tera Type: Fire
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Protect
+- Flame Charge
+- Close Combat
+- Flare Blitz
+
+Amoonguss @ Mental Herb
+Ability: Regenerator
+Level: 50
+Tera Type: Dark
+EVs: 236 HP / 76 Def / 196 SpD
+Sassy Nature
+IVs: 0 Atk / 0 Spe
+- Protect
+- Rage Powder
+- Sludge Bomb
+- Spore
+
+Incineroar @ Safety Goggles
+Ability: Intimidate
+Level: 50
+Tera Type: Bug
+EVs: 252 HP / 124 Def / 132 SpD
+Careful Nature
+IVs: 29 Spe
+- Protect
+- Flare Blitz
+- Fake Out
+- Parting Shot
+
+Gothitelle @ Leftovers
+Ability: Shadow Tag
+Level: 50
+Tera Type: Water
+EVs: 252 HP / 196 Def / 4 SpA / 52 SpD / 4 Spe
+Bold Nature
+IVs: 0 Atk
+- Protect
+- Psychic
+- Fake Out
+- Taunt
+
+Scream Tail @ Booster Energy
+Ability: Protosynthesis
+Level: 50
+Tera Type: Dark
+EVs: 252 HP / 84 Def / 68 SpD / 100 Spe
+Timid Nature
+IVs: 0 Atk
+- Protect
+- Encore
+- Disable
+- Perish Song""",
+        """
+megabeast:3 (Miraidon) @ Choice Specs
+Ability: Hadron Engine
+Level: 50
+Tera Type: Fairy
+EVs: 172 HP / 4 Def / 124 SpA / 4 SpD / 204 Spe
+Modest Nature
+- Electro Drift
+- Volt Switch
+- Draco Meteor
+- Dazzling Gleam
+
+hellofreak (Incineroar) (F) @ Rocky Helmet
+Ability: Intimidate
+Level: 50
+Tera Type: Ghost
+EVs: 252 HP / 140 Def / 116 SpD
+Careful Nature
+IVs: 11 Spe
+- Flare Blitz
+- Knock Off
+- U-turn
+- Fake Out
+
+radicalqueen (Urshifu) (F) @ Focus Sash
+Ability: Unseen Fist
+Level: 50
+Tera Type: Dark
+EVs: 4 HP / 236 Atk / 20 Def / 4 SpD / 244 Spe
+Adamant Nature
+- Wicked Blow
+- Sucker Punch
+- Close Combat
+- Detect
+
+partypirate (Iron Hands) @ Assault Vest
+Ability: Quark Drive
+Level: 50
+Tera Type: Poison
+EVs: 76 HP / 164 Atk / 12 Def / 252 SpD
+Brave Nature
+IVs: 0 Spe
+- Drain Punch
+- Low Kick
+- Heavy Slam
+- Fake Out
+
+crimsonracer (Iron Treads) @ Choice Band
+Ability: Quark Drive
+Level: 50
+Shiny: Yes
+Tera Type: Ghost
+EVs: 252 Atk / 36 SpD / 220 Spe
+Jolly Nature
+- High Horsepower
+- Iron Head
+- Steel Roller
+- Rock Slide
+
+mythicdreamr (Farigiraf) (M) @ Electric Seed
+Ability: Armor Tail
+Level: 50
+Shiny: Yes
+Tera Type: Water
+EVs: 228 HP / 164 Def / 116 SpD
+Bold Nature
+IVs: 20 Atk / 13 Spe
+- Psychic
+- Roar
+- Trick Room
+- Helping Hand""",
+        """
+Miraidon @ Choice Specs
+Ability: Hadron Engine
+Level: 50
+Tera Type: Fairy
+EVs: 44 HP / 4 Def / 244 SpA / 12 SpD / 204 Spe
+Modest Nature
+- Electro Drift
+- Draco Meteor
+- Volt Switch
+- Dazzling Gleam
+
+Whimsicott @ Covert Cloak
+Ability: Prankster
+Level: 50
+Tera Type: Dark
+EVs: 236 HP / 164 SpD / 108 Spe
+Timid Nature
+IVs: 0 Atk
+- Moonblast
+- Tailwind
+- Light Screen
+- Encore
+
+Urshifu-Rapid-Strike @ Focus Sash
+Ability: Unseen Fist
+Level: 50
+Tera Type: Stellar
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Surging Strikes
+- Close Combat
+- Aqua Jet
+- Protect
+
+Ogerpon-Hearthflame (F) @ Hearthflame Mask
+Ability: Mold Breaker
+Level: 50
+Tera Type: Fire
+EVs: 188 HP / 76 Atk / 52 Def / 4 SpD / 188 Spe
+Adamant Nature
+- Ivy Cudgel
+- Wood Hammer
+- Follow Me
+- Spiky Shield
+
+Farigiraf @ Electric Seed
+Ability: Armor Tail
+Level: 50
+Tera Type: Water
+EVs: 204 HP / 164 Def / 4 SpA / 108 SpD / 28 Spe
+Bold Nature
+IVs: 6 Atk
+- Foul Play
+- Psychic Noise
+- Trick Room
+- Helping Hand
+
+Iron Hands @ Assault Vest
+Ability: Quark Drive
+Level: 50
+Tera Type: Bug
+EVs: 76 HP / 180 Atk / 12 Def / 236 SpD
+Brave Nature
+IVs: 0 Spe
+- Drain Punch
+- Low Kick
+- Wild Charge
+- Fake Out""",
+        """
+Calyrex-Ice @ Clear Amulet
+Ability: As One (Glastrier)
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 172 Atk / 84 SpD
+Brave Nature
+IVs: 1 Spe
+- Glacial Lance
+- High Horsepower
+- Protect
+- Trick Room
+
+Urshifu-Rapid-Strike (M) @ Focus Sash
+Ability: Unseen Fist
+Level: 50
+Tera Type: Water
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Surging Strikes
+- Close Combat
+- Aqua Jet
+- Detect
+
+Pelipper @ Life Orb
+Ability: Drizzle
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 252 SpA / 4 SpD
+Modest Nature
+IVs: 0 Atk
+- Weather Ball
+- Hurricane
+- Helping Hand
+- Wide Guard
+
+Amoonguss (M) @ Rocky Helmet
+Ability: Regenerator
+Level: 50
+Tera Type: Fire
+EVs: 236 HP / 228 Def / 44 SpD
+Relaxed Nature
+IVs: 0 Atk / 0 Spe
+- Spore
+- Rage Powder
+- Clear Smog
+- Pollen Puff
+
+Iron Valiant @ Booster Energy
+Ability: Quark Drive
+Level: 50
+Shiny: Yes
+Tera Type: Ghost
+EVs: 204 HP / 4 Atk / 100 Def / 28 SpD / 172 Spe
+Jolly Nature
+- Spirit Break
+- Coaching
+- Wide Guard
+- Encore
+
+Landorus @ Choice Scarf
+Ability: Sheer Force
+Level: 50
+Tera Type: Ghost
+EVs: 4 HP / 252 SpA / 252 Spe
+Modest Nature
+- Earth Power
+- Sandsear Storm
+- Sludge Bomb
+- U-turn""",
     ],
     "gen9vgc2024regh": [
         """

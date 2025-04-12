@@ -14,7 +14,7 @@ from poke_env.player import MaxBasePowerPlayer, Player
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder, TeamToggle
-from src.utils import LearningStyle, battle_format, steps
+from src.utils import LearningStyle, allow_mirror_match, battle_format, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -63,7 +63,7 @@ class Callback(BaseCallback):
                     json.dump(self.payoff_matrix.tolist(), f)
             g = Game(self.payoff_matrix)
             self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
-        toggle = TeamToggle(len(teams))
+        toggle = None if allow_mirror_match else TeamToggle(len(teams))
         self.eval_agent = Agent(
             None,
             num_frames,
