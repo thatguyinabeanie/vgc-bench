@@ -40,6 +40,7 @@ class Callback(BaseCallback):
                 "-bc" if behavior_clone else "",
                 f"-fs{num_frames}" if num_frames > 1 else "",
                 "-" + learning_style.abbrev,
+                "-xm" if not allow_mirror_match else ""
             ]
         )[1:]
         if not os.path.exists(f"results/logs-{self.run_ident}"):
