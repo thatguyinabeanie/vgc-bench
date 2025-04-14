@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import pickle
 
 import numpy as np
@@ -12,6 +13,8 @@ from poke_env.ps_client import AccountConfiguration
 from scrape_logs import battle_formats
 from src.agent import Agent
 from src.utils import doubles_chunk_obs_len
+
+MIN_RATING = 1200
 
 
 class LogReader(Player):
@@ -153,17 +156,30 @@ def process_logs(log_jsons: dict[str, tuple[str, str]], strict: bool = False) ->
     for i, (tag, (_, log)) in enumerate(log_jsons.items()):
         print(f"Progress: {i}/{len(log_jsons)}", end="\r")
         try:
-            start_index = log.index(f"|win|")
-            username = log[start_index : log.index("\n", start_index)].split("|")[2]
-            player = LogReader(
-                account_configuration=AccountConfiguration(username, None),
-                battle_format=tag.split("-")[0],
-                log_level=51,
-                accept_open_team_sheet=True,
-            )
-            states1, actions1 = asyncio.run(player.follow_log(tag, log))
-            total += len(states1)
-            trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
+            start_index1 = log.index(f"|player|p1|")
+            _, _, _, username1, _, rating1 = log[start_index1 : log.index("\n", start_index1)].split("|")
+            if rating1 and int(rating1) >= MIN_RATING:
+                player1 = LogReader(
+                    account_configuration=AccountConfiguration(username1, None),
+                    battle_format=tag.split("-")[0],
+                    log_level=51,
+                    accept_open_team_sheet=True,
+                )
+                states1, actions1 = asyncio.run(player1.follow_log(tag, log))
+                total += len(states1)
+                trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
+            start_index2 = log.index(f"|player|p2|")
+            _, _, _, username2, _, rating2 = log[start_index2 : log.index("\n", start_index2)].split("|")
+            if rating2 and int(rating2) >= MIN_RATING:
+                player2 = LogReader(
+                    account_configuration=AccountConfiguration(username2, None),
+                    battle_format=tag.split("-")[0],
+                    log_level=51,
+                    accept_open_team_sheet=True,
+                )
+                states2, actions2 = asyncio.run(player2.follow_log(tag, log))
+                total += len(states2)
+                trajs += [Trajectory(obs=states2, acts=actions2, infos=None, terminal=True)]
         except KeyboardInterrupt:
             raise
         except SystemExit:
@@ -187,6 +203,8 @@ if __name__ == "__main__":
         with open(f"data/logs-{f}.json", "r") as file:
             logs = {**logs, **json.load(file)}
     trajs = process_logs(logs, strict=False)
+    if not os.path.exists("data/trajs"):
+        os.mkdir("data/trajs")
     for i, traj in enumerate(trajs):
         width = len(str(len(trajs)))
         with open(f"data/trajs/{i:0{width}d}.pkl", "wb") as f:

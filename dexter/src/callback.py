@@ -40,7 +40,7 @@ class Callback(BaseCallback):
                 "-bc" if behavior_clone else "",
                 f"-fs{num_frames}" if num_frames > 1 else "",
                 "-" + learning_style.abbrev,
-                "-xm" if not allow_mirror_match else ""
+                "-xm" if not allow_mirror_match else "",
             ]
         )[1:]
         if not os.path.exists(f"results/logs-{self.run_ident}"):
@@ -128,11 +128,16 @@ class Callback(BaseCallback):
     def _on_rollout_start(self):
         if self.learning_style.is_self_play:
             assert self.model.env is not None
+            policy_files = os.listdir(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+            )
             policies = random.choices(
-                os.listdir(
-                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
-                ),
-                weights=self.prob_dist,
+                policy_files,
+                weights=self.prob_dist
+                or [
+                    max(1, 10 * 0.8 ** (len(policy_files) - 1 - i))
+                    for i in range(len(policy_files))
+                ],
                 k=self.model.env.num_envs,
             )
             for i in range(self.model.env.num_envs):

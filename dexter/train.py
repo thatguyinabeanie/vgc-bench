@@ -32,7 +32,7 @@ def train(
             "-bc" if behavior_clone else "",
             f"-fs{num_frames}" if num_frames > 1 else "",
             "-" + learning_style.abbrev,
-            "-xm" if not allow_mirror_match else ""
+            "-xm" if not allow_mirror_match else "",
         ]
     )[1:]
     ppo = PPO(
@@ -102,7 +102,9 @@ if __name__ == "__main__":
         help="number of frames to use for frame stacking. default is 1",
     )
     args = parser.parse_args()
-    assert (args.teams is None) != (args.num_teams is None), "Only pass one of --teams and --num_teams in"
+    assert (args.teams is None) != (
+        args.num_teams is None
+    ), "Only pass one of --teams and --num_teams in"
     assert (
         int(args.exploiter)
         + int(args.self_play)
