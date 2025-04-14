@@ -79,6 +79,7 @@ def train(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a Pokémon AI model")
     parser.add_argument("--teams", nargs="*", type=int, help="Indices of teams to train with")
+    parser.add_argument("--num_teams", type=int, help="Number of teams to train with")
     parser.add_argument("--port", type=int, default=8000, help="Port to run showdown server on")
     parser.add_argument(
         "--device",
@@ -101,6 +102,7 @@ if __name__ == "__main__":
         help="number of frames to use for frame stacking. default is 1",
     )
     args = parser.parse_args()
+    assert (args.teams is None) != (args.num_teams is None), "Only pass one of --teams and --num_teams in"
     assert (
         int(args.exploiter)
         + int(args.self_play)
@@ -108,6 +110,7 @@ if __name__ == "__main__":
         + int(args.double_oracle)
         == 1
     )
+    teams = args.teams if args.teams is not None else list(range(args.num_teams))
     if args.exploiter:
         style = LearningStyle.EXPLOITER
     elif args.self_play:
@@ -118,4 +121,4 @@ if __name__ == "__main__":
         style = LearningStyle.DOUBLE_ORACLE
     else:
         raise TypeError()
-    train(args.teams, args.port, args.device, style, args.behavior_clone, args.num_frames)
+    train(teams, args.port, args.device, style, args.behavior_clone, args.num_frames)

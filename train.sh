@@ -4,6 +4,7 @@ if [[ $PATH != "/scratch/cluster/cangliss/bin:"* ]]; then
     export PATH="/scratch/cluster/cangliss/bin:$PATH"
 fi
 
+teams=(1 3 10 30)
 matchups=("30 31" "32 33" "30 32" "31 33")
 ports=(8000 8001 8002 8003)
 devices=("cuda:0" "cuda:1" "cuda:2" "cuda:3")
@@ -19,6 +20,7 @@ start_showdown() {
 
 start_training() {
     local i=$1
+    local team=${teams[$i]}
     local a b
     read -r a b <<< "${matchups[$i]}"
     local port=${ports[$i]}

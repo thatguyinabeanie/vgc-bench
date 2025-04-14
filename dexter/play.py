@@ -8,7 +8,7 @@ from src.utils import battle_format
 from stable_baselines3 import PPO
 
 
-async def play(filepath: str, num_teams: int, n_games: int, play_on_ladder: bool):
+async def play(filepath: str, n_games: int, play_on_ladder: bool):
     print("Setting up...")
     policy = PPO.load(filepath).policy
     print(f"Loaded {filepath}.")
@@ -22,7 +22,7 @@ async def play(filepath: str, num_teams: int, n_games: int, play_on_ladder: bool
         server_configuration=ShowdownServerConfiguration,
         accept_open_team_sheet=True,
         start_timer_on_battle_start=play_on_ladder,
-        team=RandomTeamBuilder(list(range(num_teams)), battle_format),
+        team=RandomTeamBuilder([0], battle_format),
     )
     if play_on_ladder:
         print("Entering ladder")
@@ -36,8 +36,7 @@ async def play(filepath: str, num_teams: int, n_games: int, play_on_ladder: bool
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--filepath", type=str, help="Filepath of save to play against")
-    parser.add_argument("--num_teams", type=int, default=1, help="Number of teams to train with")
     parser.add_argument("-n", type=int, default=1, help="Number of games to play. Default is 1.")
     parser.add_argument("-l", action="store_true", help="Play ladder. Default accepts challenges.")
     args = parser.parse_args()
-    asyncio.run(play(args.filepath, args.num_teams, args.n, args.l))
+    asyncio.run(play(args.filepath, args.n, args.l))

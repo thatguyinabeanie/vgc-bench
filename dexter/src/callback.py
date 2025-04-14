@@ -120,13 +120,12 @@ class Callback(BaseCallback):
                     f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
                 )
             ):
+                assert not self.behavior_clone, "make sure to provide an initial BC agent"
                 self.model.save(
                     f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
                 )
 
     def _on_rollout_start(self):
-        if self.behavior_clone:
-            self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
         if self.learning_style.is_self_play:
             assert self.model.env is not None
             policies = random.choices(
