@@ -277,7 +277,7 @@ class Agent(Player):
         weight = pokemon.weight / 1000
         # volatile fields
         hp_frac = pokemon.current_hp_fraction
-        revealed = pokemon.revealed
+        revealed = float(pokemon.revealed)
         status = [float(s == pokemon.status) for s in Status]
         status_counter = pokemon.status_counter / 16
         boosts = [b / 6 for b in pokemon.boosts.values()]
