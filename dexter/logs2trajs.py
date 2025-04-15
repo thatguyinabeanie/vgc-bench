@@ -157,7 +157,9 @@ def process_logs(log_jsons: dict[str, tuple[str, str]], strict: bool = False) ->
         print(f"Progress: {i}/{len(log_jsons)}", end="\r")
         try:
             start_index1 = log.index(f"|player|p1|")
-            _, _, _, username1, _, rating1 = log[start_index1 : log.index("\n", start_index1)].split("|")
+            _, _, _, username1, _, rating1 = log[
+                start_index1 : log.index("\n", start_index1)
+            ].split("|")
             if rating1 and int(rating1) >= MIN_RATING:
                 player1 = LogReader(
                     account_configuration=AccountConfiguration(username1, None),
@@ -169,7 +171,9 @@ def process_logs(log_jsons: dict[str, tuple[str, str]], strict: bool = False) ->
                 total += len(states1)
                 trajs += [Trajectory(obs=states1, acts=actions1, infos=None, terminal=True)]
             start_index2 = log.index(f"|player|p2|")
-            _, _, _, username2, _, rating2 = log[start_index2 : log.index("\n", start_index2)].split("|")
+            _, _, _, username2, _, rating2 = log[
+                start_index2 : log.index("\n", start_index2)
+            ].split("|")
             if rating2 and int(rating2) >= MIN_RATING:
                 player2 = LogReader(
                     account_configuration=AccountConfiguration(username2, None),
