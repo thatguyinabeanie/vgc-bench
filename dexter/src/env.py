@@ -20,7 +20,8 @@ from stable_baselines3.common.monitor import Monitor
 
 
 class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
-    _teampreview_draft: list[str]
+    _teampreview_draft1: list[int]
+    _teampreview_draft2: list[int]
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -30,7 +31,8 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             agent: Box(-1, len(moves), shape=(12, doubles_chunk_obs_len), dtype=np.float32)
             for agent in self.possible_agents
         }
-        self._teampreview_draft = []
+        self._teampreview_draft1 = []
+        self._teampreview_draft2 = []
 
     @classmethod
     def create_env(
@@ -97,9 +99,26 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             env = Monitor(env)
             return env
 
+    def step(
+        self, actions: dict[str, npt.NDArray[np.int64]]
+    ) -> tuple[
+        dict[str, npt.NDArray[np.float32]],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, dict[str, Any]],
+    ]:
+        if len(self._teampreview_draft1) < 4:
+            self._teampreview_draft1 += [a - 1 for a in actions[self.agents[0]]]
+        if len(self._teampreview_draft2) < 4:
+            self._teampreview_draft2 += [a - 1 for a in actions[self.agents[1]]]
+        return super().step(actions)
+
     def reset(
         self, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, npt.NDArray[np.float32]], dict[str, dict[str, Any]]]:
+        self._teampreview_draft1 = []
+        self._teampreview_draft2 = []
         result = super().reset(seed=seed, options=options)
         dead_tags = [k for k, b in self.agent1.battles.items() if b.finished]
         for tag in dead_tags:
@@ -124,4 +143,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             return 0
 
     def embed_battle(self, battle: AbstractBattle) -> npt.NDArray[np.float32]:
-        return Agent.embed_battle(battle, self._teampreview_draft, fake_ratings=True)
+        teampreview_draft = (
+            self._teampreview_draft1 if battle.player_role == "p1" else self._teampreview_draft2
+        )
+        return Agent.embed_battle(battle, teampreview_draft, fake_ratings=True)

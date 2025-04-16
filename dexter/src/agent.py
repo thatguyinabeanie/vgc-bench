@@ -40,7 +40,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 class Agent(Player):
     __policy: ActorCriticPolicy
     frames: Deque[npt.NDArray[np.float32]]
-    __teampreview_draft: list[str]
+    __teampreview_draft: list[int]
 
     def __init__(
         self,
@@ -81,6 +81,8 @@ class Agent(Player):
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         assert self.frames.maxlen is not None
+        if battle.teampreview and len(self.__teampreview_draft) == 4:
+            self.__teampreview_draft = []
         obs = self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
         if battle.turn == 0 and not (
             battle.teampreview and len([p for p in battle.team.values() if p.active]) > 0
@@ -93,10 +95,13 @@ class Agent(Player):
         with torch.no_grad():
             obs_tensor = torch.as_tensor(obs, device=self.__policy.device).unsqueeze(0)
             action, _, _ = self.__policy.forward(obs_tensor)
+        action = action.cpu().numpy()[0]
+        if battle.teampreview:
+            self.__teampreview_draft += [a - 1 for a in action]
         if isinstance(battle, Battle):
-            return SinglesEnv.action_to_order(action.cpu().numpy()[0], battle)
+            return SinglesEnv.action_to_order(action, battle)
         elif isinstance(battle, DoubleBattle):
-            return DoublesEnv.action_to_order(action.cpu().numpy()[0], battle, strict=False)
+            return DoublesEnv.action_to_order(action, battle, strict=False)
         else:
             raise TypeError()
 
@@ -115,7 +120,7 @@ class Agent(Player):
 
     @staticmethod
     def embed_battle(
-        battle: AbstractBattle, teampreview_draft: list[str], fake_ratings: bool = False
+        battle: AbstractBattle, teampreview_draft: list[int], fake_ratings: bool = False
     ) -> npt.NDArray[np.float32]:
         glob = Agent.embed_global(battle, teampreview_draft)
         side = Agent.embed_side(battle, fake_ratings)
@@ -158,7 +163,7 @@ class Agent(Player):
 
     @staticmethod
     def embed_global(
-        battle: AbstractBattle, teampreview_draft: list[str]
+        battle: AbstractBattle, teampreview_draft: list[int]
     ) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             if not battle._last_request:
@@ -186,14 +191,9 @@ class Agent(Player):
         fields = [
             min(battle.turn - battle.fields[f], 8) / 8 if f in battle.fields else 0 for f in Field
         ]
-        if battle.teampreview:
-            if not battle.active_pokemon:
-                teampreview_draft = []
-            else:
-                teampreview_draft = teampreview_draft[:2]
-        draft_positions = [float(p.name in teampreview_draft) for p in battle.team.values()]
+        teampreview_onehot = [float(i in teampreview_draft) for i in range(6)]
         return np.concatenate(
-            [mask, weather, fields, draft_positions, force_switch], dtype=np.float32
+            [mask, weather, fields, teampreview_onehot, force_switch], dtype=np.float32
         )
 
     @staticmethod
