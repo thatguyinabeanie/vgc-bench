@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from torch.distributions import Categorical
 from gymnasium import Space
 from gymnasium.spaces import Discrete
 from src.utils import (
@@ -63,8 +64,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             actions[:, 1] = actions2[:, 1]
         log_prob = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))  # type: ignore[misc]
-        if teampreview_epsilon > 0:
-            actions = self.apply_teampreview_epsilon(obs, actions)
         return actions, value_logits, log_prob
 
     def evaluate_actions(
@@ -103,6 +102,25 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     ) -> Distribution:
         mask = self.get_mask(obs, action)
         distribution = self.action_dist.proba_distribution(action_logits + mask)
+        assert isinstance(distribution, MultiCategoricalDistribution)
+        teampreview_draft = (
+            obs[:, 0, doubles_glob_obs_len - 8 : doubles_glob_obs_len - 2]
+            if len(obs.size()) == 3
+            else obs[:, -1, 0, doubles_glob_obs_len - 8 : doubles_glob_obs_len - 2]
+        )
+        is_teampreview = (teampreview_draft == 1).sum(dim=1) < 4
+        update_mask = is_teampreview.unsqueeze(1).float()
+        act_len = mask.size(1) // 2
+        for comp in [0, 1]:
+            valid_mask = (mask[:, comp * act_len : (comp + 1) * act_len] == 0).float()
+            valid_counts = valid_mask.sum(dim=1, keepdim=True).clamp(min=1)
+            uniform_probs = valid_mask / valid_counts
+            policy_probs = distribution.distribution[comp].probs
+            mixture_probs = (
+                1 - teampreview_epsilon
+            ) * policy_probs + teampreview_epsilon * uniform_probs  # type: ignore
+            new_probs = update_mask * mixture_probs + (1 - update_mask) * policy_probs  # type: ignore
+            distribution.distribution[comp] = Categorical(probs=new_probs)
         return distribution
 
     def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:
@@ -132,30 +150,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
                 mask = torch.cat([chunk[:, :act_len], mask], dim=1)
             mask = torch.where(mask == 1, float("-inf"), mask)
             return mask
-
-    @staticmethod
-    def apply_teampreview_epsilon(obs: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
-        teampreview_draft = (
-            obs[:, 0, doubles_glob_obs_len - 8 : doubles_glob_obs_len - 2]
-            if len(obs.size()) == 3
-            else obs[:, -1, 0, doubles_glob_obs_len - 8 : doubles_glob_obs_len - 2]
-        )
-        is_teampreview = (teampreview_draft == 1).sum(dim=1) < 4
-        batch_size = teampreview_draft.shape[0]
-        override_mask = (
-            torch.rand(batch_size, device=teampreview_draft.device) < teampreview_epsilon
-        )
-        update_mask = is_teampreview & override_mask  # This mask tells which samples to update.
-        # For each sample, generate random numbers for the 6 positions.
-        valid_mask = teampreview_draft == 0
-        rand_vals = torch.rand(teampreview_draft.shape, device=teampreview_draft.device)
-        # For positions not valid, force the random value to -1 so they won't be chosen.
-        candidate_vals = torch.where(valid_mask, rand_vals, torch.full_like(rand_vals, -1.0))
-        top2_indices = torch.topk(candidate_vals, k=2, dim=1).indices + 1
-        # Only update the team preview decisions for samples with update_mask True.
-        actions[:, 0] = torch.where(update_mask, top2_indices[:, 0], actions[:, 0])
-        actions[:, 1] = torch.where(update_mask, top2_indices[:, 1], actions[:, 1])
-        return actions
 
 
 class AttentionExtractor(BaseFeaturesExtractor):
