@@ -191,6 +191,7 @@ class Agent(Player):
         fields = [
             min(battle.turn - battle.fields[f], 8) / 8 if f in battle.fields else 0 for f in Field
         ]
+        assert battle.teampreview == (len(teampreview_draft) < 4)
         teampreview_onehot = [float(i in teampreview_draft) for i in range(6)]
         return np.concatenate(
             [mask, weather, fields, teampreview_onehot, force_switch], dtype=np.float32
