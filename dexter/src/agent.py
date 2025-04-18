@@ -3,7 +3,6 @@ from typing import Any, Deque
 import numpy as np
 import numpy.typing as npt
 import torch
-from gymnasium.spaces import Box, Discrete, MultiDiscrete
 from poke_env.environment import (
     AbstractBattle,
     Battle,
@@ -22,7 +21,6 @@ from poke_env.environment import (
 )
 from poke_env.player import BattleOrder, DoublesEnv, Player, SinglesEnv
 from poke_env.player.env import _EnvPlayer
-from src.policy import MaskedActorCriticPolicy
 from src.utils import (
     abilities,
     doubles_act_len,
@@ -32,54 +30,31 @@ from src.utils import (
     moves,
     pokemon_obs_len,
     singles_act_len,
-    singles_chunk_obs_len,
 )
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 
 class Agent(Player):
-    __policy: ActorCriticPolicy
+    __policy: ActorCriticPolicy | None
     frames: Deque[npt.NDArray[np.float32]]
     __teampreview_draft: list[int]
 
     def __init__(
         self,
-        policy: ActorCriticPolicy | None,
         num_frames: int,
-        device: torch.device | None = None,
         *args: Any,
         **kwargs: Any,
     ):
-        if device is None:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         super().__init__(*args, **kwargs)
-        if policy is not None:
-            self.__policy = policy.to(device)
-        elif self.format_is_doubles:
-            self.__policy = MaskedActorCriticPolicy(
-                num_frames=num_frames,
-                observation_space=Box(
-                    -1, len(moves), shape=(12, doubles_chunk_obs_len), dtype=np.float32
-                ),
-                action_space=MultiDiscrete([doubles_act_len, doubles_act_len]),
-                lr_schedule=lambda _: 1e-5,
-            ).to(device)
-        else:
-            self.__policy = MaskedActorCriticPolicy(
-                num_frames=num_frames,
-                observation_space=Box(
-                    -1, len(moves), shape=(12, singles_chunk_obs_len), dtype=np.float32
-                ),
-                action_space=Discrete(singles_act_len),
-                lr_schedule=lambda _: 1e-5,
-            ).to(device)
+        self.__policy = None
         self.frames = Deque(maxlen=num_frames)
         self.__teampreview_draft = []
 
     def set_policy(self, policy: ActorCriticPolicy):
-        self.__policy = policy.to(self.__policy.device)
+        self.__policy = policy
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
+        assert self.__policy is not None
         assert self.frames.maxlen is not None
         if battle.teampreview and len(self.__teampreview_draft) == 4:
             self.__teampreview_draft = []

@@ -23,10 +23,10 @@ from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, num_frames: int, epsilon: float = 1, **kwargs: Any):
+    def __init__(self, *args: Any, num_frames: int, epsilon: float, **kwargs: Any):
         self.num_frames = num_frames
-        self.actor_grad = True
         self.epsilon = epsilon
+        self.actor_grad = True
         super().__init__(
             *args,
             **kwargs,

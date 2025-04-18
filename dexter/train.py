@@ -18,11 +18,11 @@ def train(
     num_frames: int,
 ):
     env = (
-        ShowdownEnv.create_env(teams, port, device, learning_style, num_frames)
+        ShowdownEnv.create_env(teams, port, learning_style, num_frames)
         if learning_style == LearningStyle.PURE_SELF_PLAY
         else SubprocVecEnv(
             [
-                lambda: ShowdownEnv.create_env(teams, port, device, learning_style, num_frames)
+                lambda: ShowdownEnv.create_env(teams, port, learning_style, num_frames)
                 for _ in range(num_envs)
             ]
         )
@@ -44,7 +44,7 @@ def train(
         gamma=1,
         ent_coef=0.02,
         tensorboard_log=f"results/logs-{run_ident}",
-        policy_kwargs={"num_frames": num_frames},
+        policy_kwargs={"num_frames": num_frames, "epsilon": 0},
         device=device,
     )
     num_saved_timesteps = 0

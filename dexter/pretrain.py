@@ -93,9 +93,7 @@ def pretrain(num_teams: int, port: int, device: str, num_frames: int):
         ),
     )
     eval_agent = Agent(
-        policy=None,
         num_frames=num_frames,
-        device=torch.device(device),
         server_configuration=ServerConfiguration(
             f"ws://localhost:{port}/showdown/websocket",
             "https://play.pokemonshowdown.com/action.php?",
@@ -115,6 +113,8 @@ def pretrain(num_teams: int, port: int, device: str, num_frames: int):
         accept_open_team_sheet=True,
         team=RandomTeamBuilder(list(range(num_teams)), battle_format),
     )
+    policy = MaskedActorCriticPolicy.clone(ppo)
+    eval_agent.set_policy(policy)
     win_rate = Callback.compare(eval_agent, eval_opponent, 100)
     bc.logger.record("bc/eval", win_rate)
     ppo.save(f"results/saves-bc{f'-fs{num_frames}' if num_frames > 1 else ''}/0")

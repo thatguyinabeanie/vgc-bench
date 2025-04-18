@@ -6,7 +6,6 @@ import warnings
 
 import numpy as np
 import numpy.typing as npt
-import torch
 from nashpy import Game
 from poke_env import ServerConfiguration
 from poke_env.concurrency import POKE_LOOP
@@ -66,9 +65,7 @@ class Callback(BaseCallback):
             self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         toggle = None if allow_mirror_match else TeamToggle(len(teams))
         self.eval_agent = Agent(
-            None,
             num_frames,
-            device=torch.device(device),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -80,9 +77,7 @@ class Callback(BaseCallback):
             team=RandomTeamBuilder(teams, battle_format, toggle),
         )
         self.eval_agent2 = Agent(
-            None,
             num_frames,
-            device=torch.device(device),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -110,7 +105,9 @@ class Callback(BaseCallback):
 
     def _on_training_start(self):
         if self.learning_style.is_self_play:
-            self.model.policy.epsilon = 0.8 ** (self.model.num_timesteps // steps)  # type: ignore
+            epsilon = 0.8 ** (self.model.num_timesteps // steps)
+            self.model.policy.epsilon = epsilon  # type: ignore
+            self.model.policy_kwargs["epsilon"] = epsilon
             if self.model.num_timesteps < steps:
                 self.evaluate()
             if not (
