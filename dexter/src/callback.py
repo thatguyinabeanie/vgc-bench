@@ -110,6 +110,7 @@ class Callback(BaseCallback):
 
     def _on_training_start(self):
         if self.learning_style.is_self_play:
+            self.model.policy.epsilon = 0.8 ** (self.model.num_timesteps // steps)  # type: ignore
             if self.model.num_timesteps < steps:
                 self.evaluate()
             if not (

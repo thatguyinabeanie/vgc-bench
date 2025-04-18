@@ -13,7 +13,6 @@ from src.utils import (
     items,
     moves,
     side_obs_len,
-    teampreview_epsilon,
 )
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.distributions import Distribution, MultiCategoricalDistribution
@@ -24,9 +23,10 @@ from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
+    def __init__(self, *args: Any, num_frames: int, epsilon: float = 1, **kwargs: Any):
         self.num_frames = num_frames
         self.actor_grad = True
+        self.epsilon = epsilon
         super().__init__(
             *args,
             **kwargs,
@@ -117,8 +117,8 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             uniform_probs = valid_mask / valid_counts
             policy_probs = distribution.distribution[comp].probs
             mixture_probs = (
-                1 - teampreview_epsilon
-            ) * policy_probs + teampreview_epsilon * uniform_probs  # type: ignore
+                1 - self.epsilon
+            ) * policy_probs + self.epsilon * uniform_probs  # type: ignore
             new_probs = update_mask * mixture_probs + (1 - update_mask) * policy_probs  # type: ignore
             distribution.distribution[comp] = Categorical(probs=new_probs)
         return distribution
