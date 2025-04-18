@@ -46,6 +46,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             model.action_space,
             model.lr_schedule,
             num_frames=model.policy.num_frames,
+            epsilon=model.policy.epsilon,
         )
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
