@@ -78,7 +78,7 @@ def train(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a Pokémon AI model")
-    parser.add_argument("--teams", nargs="*", type=int, help="Indices of teams to train with")
+    parser.add_argument("--teams", nargs="+", type=int, help="Indices of teams to train with")
     parser.add_argument("--num_teams", type=int, help="Number of teams to train with")
     parser.add_argument("--port", type=int, default=8000, help="Port to run showdown server on")
     parser.add_argument(
