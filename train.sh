@@ -37,7 +37,7 @@ start_training() {
 }
 
 while true; do
-    for i in "${!matchups[@]}"; do
+    for i in "${!team_counts[@]}"; do
         start_training "$i" &
         sleep 1
     done
