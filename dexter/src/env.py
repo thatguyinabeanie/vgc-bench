@@ -39,6 +39,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         cls,
         teams: list[int],
         port: int,
+        device: str,
         learning_style: LearningStyle,
         num_frames: int,
     ) -> Env:
@@ -67,6 +68,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             opponent = (
                 Agent(
                     num_frames,
+                    torch.device(device),
                     server_configuration=ServerConfiguration(
                         f"ws://localhost:{port}/showdown/websocket",
                         "https://play.pokemonshowdown.com/action.php?",

@@ -42,16 +42,18 @@ class Agent(Player):
     def __init__(
         self,
         num_frames: int,
+        device: torch.device,
         *args: Any,
         **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
         self.__policy = None
         self.frames = Deque(maxlen=num_frames)
+        self.device = device
         self.__teampreview_draft = []
 
     def set_policy(self, policy: ActorCriticPolicy):
-        self.__policy = policy
+        self.__policy = policy.to(self.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
         assert self.__policy is not None

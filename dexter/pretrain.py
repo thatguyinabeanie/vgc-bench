@@ -93,7 +93,8 @@ def pretrain(num_teams: int, port: int, device: str, num_frames: int):
         ),
     )
     eval_agent = Agent(
-        num_frames=num_frames,
+        num_frames,
+        torch.device(device),
         server_configuration=ServerConfiguration(
             f"ws://localhost:{port}/showdown/websocket",
             "https://play.pokemonshowdown.com/action.php?",

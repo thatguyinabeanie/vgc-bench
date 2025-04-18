@@ -4,6 +4,7 @@ import os
 import random
 import warnings
 
+import torch
 import numpy as np
 import numpy.typing as npt
 from nashpy import Game
@@ -66,6 +67,7 @@ class Callback(BaseCallback):
         toggle = None if allow_mirror_match else TeamToggle(len(teams))
         self.eval_agent = Agent(
             num_frames,
+            torch.device(device),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -78,6 +80,7 @@ class Callback(BaseCallback):
         )
         self.eval_agent2 = Agent(
             num_frames,
+            torch.device(device),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
