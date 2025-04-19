@@ -54,7 +54,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             accept_open_team_sheet=True,
             open_timeout=None,
             team=RandomTeamBuilder(teams, battle_format, toggle),
-            start_challenging=True,
             strict=False,
         )
         if learning_style == LearningStyle.PURE_SELF_PLAY:
