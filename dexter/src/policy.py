@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from torch.distributions import Categorical
 from gymnasium import Space
 from gymnasium.spaces import Discrete
 from src.utils import (
@@ -23,9 +22,8 @@ from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, num_frames: int, epsilon: float, **kwargs: Any):
+    def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
         self.num_frames = num_frames
-        self.epsilon = epsilon
         self.actor_grad = True
         super().__init__(
             *args,
@@ -46,7 +44,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             model.action_space,
             model.lr_schedule,
             num_frames=model.policy.num_frames,
-            epsilon=model.policy.epsilon,
         )
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
@@ -103,25 +100,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     ) -> Distribution:
         mask = self.get_mask(obs, action)
         distribution = self.action_dist.proba_distribution(action_logits + mask)
-        assert isinstance(distribution, MultiCategoricalDistribution)
-        teampreview_draft = (
-            obs[:, 0, doubles_glob_obs_len - 8 : doubles_glob_obs_len - 2]
-            if len(obs.size()) == 3
-            else obs[:, -1, 0, doubles_glob_obs_len - 8 : doubles_glob_obs_len - 2]
-        )
-        is_teampreview = (teampreview_draft == 1).sum(dim=1) < 4
-        update_mask = is_teampreview.unsqueeze(1).float()
-        act_len = mask.size(1) // 2
-        for comp in [0, 1]:
-            valid_mask = (mask[:, comp * act_len : (comp + 1) * act_len] == 0).float()
-            valid_counts = valid_mask.sum(dim=1, keepdim=True).clamp(min=1)
-            uniform_probs = valid_mask / valid_counts
-            policy_probs = distribution.distribution[comp].probs
-            mixture_probs = (
-                1 - self.epsilon
-            ) * policy_probs + self.epsilon * uniform_probs  # type: ignore
-            new_probs = update_mask * mixture_probs + (1 - update_mask) * policy_probs  # type: ignore
-            distribution.distribution[comp] = Categorical(probs=new_probs)
         return distribution
 
     def get_mask(self, obs: torch.Tensor, ally_actions: torch.Tensor | None = None) -> torch.Tensor:

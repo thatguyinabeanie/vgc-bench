@@ -42,9 +42,9 @@ def train(
         n_steps=3072 // num_envs,
         batch_size=64,
         gamma=1,
-        ent_coef=0.02,
+        ent_coef=0.1,
         tensorboard_log=f"results/logs-{run_ident}",
-        policy_kwargs={"num_frames": num_frames, "epsilon": 0},
+        policy_kwargs={"num_frames": num_frames},
         device=device,
     )
     num_saved_timesteps = 0
