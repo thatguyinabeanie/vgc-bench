@@ -118,18 +118,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
     ) -> tuple[dict[str, npt.NDArray[np.float32]], dict[str, dict[str, Any]]]:
         self._teampreview_draft1 = []
         self._teampreview_draft2 = []
-        result = super().reset(seed=seed, options=options)
-        dead_tags = [k for k, b in self.agent1.battles.items() if b.finished]
-        for tag in dead_tags:
-            self.agent1._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                self.agent1.ps_client.send_message(f"/leave {tag}"), self.loop
-            )
-            self.agent2._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                self.agent2.ps_client.send_message(f"/leave {tag}"), self.loop
-            )
-        return result
+        return super().reset(seed=seed, options=options)
 
     def calc_reward(self, battle: AbstractBattle) -> float:
         if not battle.finished:
@@ -146,3 +135,18 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             self._teampreview_draft1 if battle.player_role == "p1" else self._teampreview_draft2
         )
         return Agent.embed_battle(battle, teampreview_draft, fake_ratings=True)
+    
+    def cleanup(self):
+        dead_tags = [k for k, b in self.agent1.battles.items() if b.finished]
+        for tag in dead_tags:
+            self.agent1._battles.pop(tag)
+            asyncio.run_coroutine_threadsafe(
+                self.agent1.ps_client.send_message(f"/leave {tag}"), self.loop
+            )
+            self.agent2._battles.pop(tag)
+            asyncio.run_coroutine_threadsafe(
+                self.agent2.ps_client.send_message(f"/leave {tag}"), self.loop
+            )
+
+    def get_win_rate(self) -> float:
+        return self.agent1.win_rate

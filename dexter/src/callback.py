@@ -129,23 +129,16 @@ class Callback(BaseCallback):
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
             )
-            probs = (
-                self.prob_dist + [0]
-                if self.prob_dist is not None
-                else [1] * len(policy_files) + [len(policy_files)]
-            )
-            policies = random.choices(
-                policy_files + [None], weights=probs, k=self.model.env.num_envs
-            )
+            policies = random.choices(policy_files, weights=self.prob_dist, k=self.model.env.num_envs)
             for i in range(self.model.env.num_envs):
-                if policies[i] is None:
-                    policy = MaskedActorCriticPolicy.clone(self.model)
-                else:
+                win_rate: float = self.model.env.env_method("get_win_rate", indices=i)[0]
+                self.model.env.env_method("cleanup", indices=i)
+                if win_rate > random.random():
                     policy = PPO.load(
                         f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policies[i]}",
                         device=self.model.device,
                     ).policy
-                self.model.env.env_method("set_opp_policy", policy, indices=i)
+                    self.model.env.env_method("set_opp_policy", policy, indices=i)
 
     def _on_rollout_end(self):
         if self.model.num_timesteps % steps == 0:
