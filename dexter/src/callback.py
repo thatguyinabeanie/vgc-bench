@@ -133,7 +133,7 @@ class Callback(BaseCallback):
             for i in range(self.model.env.num_envs):
                 win_rate: float = self.model.env.env_method("get_win_rate", indices=i)[0]
                 self.model.env.env_method("cleanup", indices=i)
-                if win_rate > random.random():
+                if win_rate == 0 or win_rate > random.random():
                     policy = PPO.load(
                         f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policies[i]}",
                         device=self.model.device,
