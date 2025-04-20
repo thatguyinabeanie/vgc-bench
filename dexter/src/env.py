@@ -148,5 +148,5 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 self.agent2.ps_client.send_message(f"/leave {tag}"), self.loop
             )
 
-    def get_win_rate(self) -> float:
-        return self.agent1.win_rate
+    def get_opp_win_rate(self) -> float:
+        return self.agent2.win_rate
