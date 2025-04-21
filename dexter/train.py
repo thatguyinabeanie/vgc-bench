@@ -38,7 +38,8 @@ def train(
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        n_steps=3072 // num_envs,
+        learning_rate=1e-4,
+        n_steps=3072 // (2 * num_envs),
         batch_size=64,
         gamma=1,
         tensorboard_log=f"results/logs-{run_ident}",

@@ -144,6 +144,7 @@ class Callback(BaseCallback):
 
     def _on_training_end(self):
         self.evaluate()
+        self.model.logger.dump(self.model.num_timesteps)
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
             self.update_payoff_matrix()
             g = Game(self.payoff_matrix)
