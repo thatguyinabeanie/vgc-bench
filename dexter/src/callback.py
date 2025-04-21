@@ -4,9 +4,9 @@ import os
 import random
 import warnings
 
-import torch
 import numpy as np
 import numpy.typing as npt
+import torch
 from nashpy import Game
 from poke_env import ServerConfiguration
 from poke_env.concurrency import POKE_LOOP
@@ -124,12 +124,14 @@ class Callback(BaseCallback):
                 )
 
     def _on_rollout_start(self):
-        if self.learning_style.is_self_play:
+        if self.learning_style == LearningStyle.FICTITIOUS_PLAY:
             assert self.model.env is not None
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
             )
-            policies = random.choices(policy_files, weights=self.prob_dist, k=self.model.env.num_envs)
+            policies = random.choices(
+                policy_files, weights=self.prob_dist, k=self.model.env.num_envs
+            )
             for i in range(self.model.env.num_envs):
                 opp_win_rate: float = self.model.env.env_method("get_opp_win_rate", indices=i)[0]
                 self.model.env.env_method("cleanup", indices=i)

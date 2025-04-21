@@ -38,7 +38,6 @@ def train(
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=1e-5,
         n_steps=3072 // num_envs,
         batch_size=64,
         gamma=1,
@@ -73,6 +72,7 @@ def train(
         tb_log_name=f"{','.join([str(t) for t in teams])}-teams",
         reset_num_timesteps=False,
     )
+    env.close()
 
 
 if __name__ == "__main__":

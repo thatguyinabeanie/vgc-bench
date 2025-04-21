@@ -39,13 +39,7 @@ class Agent(Player):
     frames: Deque[npt.NDArray[np.float32]]
     __teampreview_draft: list[int]
 
-    def __init__(
-        self,
-        num_frames: int,
-        device: torch.device,
-        *args: Any,
-        **kwargs: Any,
-    ):
+    def __init__(self, num_frames: int, device: torch.device, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.__policy = None
         self.frames = Deque(maxlen=num_frames)

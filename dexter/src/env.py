@@ -15,15 +15,23 @@ from poke_env.environment import AbstractBattle
 from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
 from src.agent import Agent
 from src.teams import RandomTeamBuilder, TeamToggle
-from src.utils import LearningStyle, allow_mirror_match, battle_format, doubles_chunk_obs_len, moves
+from src.utils import (
+    LearningStyle,
+    allow_mirror_match,
+    battle_format,
+    doubles_chunk_obs_len,
+    moves,
+    num_envs,
+)
 from stable_baselines3.common.monitor import Monitor
 
 
 class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
     _teampreview_draft1: list[int]
     _teampreview_draft2: list[int]
+    _learning_style: LearningStyle
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, learning_style: LearningStyle, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.metadata = {"name": "showdown_v1", "render_modes": ["human"]}
         self.render_mode: str | None = None
@@ -33,6 +41,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         }
         self._teampreview_draft1 = []
         self._teampreview_draft2 = []
+        self._learning_style = learning_style
 
     @classmethod
     def create_env(
@@ -45,6 +54,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
     ) -> Env:
         toggle = None if allow_mirror_match else TeamToggle(len(teams))
         env = cls(
+            learning_style,
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -61,7 +71,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 env = ss.frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
             env = ss.pettingzoo_env_to_vec_env_v1(env)
             env = ss.concat_vec_envs_v1(
-                env, num_vec_envs=8, num_cpus=8, base_class="stable_baselines3"
+                env, num_vec_envs=num_envs, num_cpus=num_envs, base_class="stable_baselines3"
             )
             return env  # type: ignore
         else:
@@ -118,7 +128,10 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
     ) -> tuple[dict[str, npt.NDArray[np.float32]], dict[str, dict[str, Any]]]:
         self._teampreview_draft1 = []
         self._teampreview_draft2 = []
-        return super().reset(seed=seed, options=options)
+        result = super().reset(seed=seed, options=options)
+        if self._learning_style == LearningStyle.PURE_SELF_PLAY:
+            self.cleanup()
+        return result
 
     def calc_reward(self, battle: AbstractBattle) -> float:
         if not battle.finished:
@@ -135,7 +148,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             self._teampreview_draft1 if battle.player_role == "p1" else self._teampreview_draft2
         )
         return Agent.embed_battle(battle, teampreview_draft, fake_ratings=True)
-    
+
     def cleanup(self):
         dead_tags = [k for k, b in self.agent1.battles.items() if b.finished]
         for tag in dead_tags:

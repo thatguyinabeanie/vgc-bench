@@ -28,7 +28,7 @@ start_training() {
     echo "Starting Showdown server for training process $i..."
     showdown_pid=$(start_showdown "$port")
     echo "Starting training process $i..."
-    python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" --behavior_clone --fictitious_play --num_frames 3 > debug"$port".log 2>&1
+    python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" --self_play > debug"$port".log 2>&1
     exit_status=$?
     if [ $exit_status -ne 0 ]; then
         echo "Training process $i died with exit status $exit_status"
