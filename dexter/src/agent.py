@@ -72,7 +72,7 @@ class Agent(Player):
         if isinstance(battle, Battle):
             return SinglesEnv.action_to_order(action, battle)
         elif isinstance(battle, DoubleBattle):
-            return DoublesEnv.action_to_order(action, battle, strict=False)
+            return DoublesEnv.action_to_order(action, battle)
         else:
             raise TypeError()
 
