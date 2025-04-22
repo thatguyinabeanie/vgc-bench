@@ -134,7 +134,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class AttentionExtractor(BaseFeaturesExtractor):
     num_pokemon: int = 12
     embed_len: int = 32
-    proj_len: int = 1024
+    proj_len: int = 256
     embed_layers: int = 3
 
     def __init__(self, observation_space: Space[Any], num_frames: int):
