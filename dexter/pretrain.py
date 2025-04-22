@@ -14,7 +14,7 @@ from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder
-from src.utils import battle_format
+from src.utils import LearningStyle, battle_format
 from stable_baselines3 import PPO
 from torch.utils.data import DataLoader, Dataset
 
@@ -54,6 +54,7 @@ class TrajectoryDataset(Dataset):
 
 def pretrain(num_teams: int, port: int, device: str, num_frames: int):
     env = ShowdownEnv(
+        learning_style=LearningStyle.PURE_SELF_PLAY,
         battle_format=battle_format,
         log_level=40,
         accept_open_team_sheet=True,
