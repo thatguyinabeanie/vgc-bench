@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import supersuit as ss
 import torch
-from gymnasium import Env, ObservationWrapper
+from gymnasium import Env
 from gymnasium.spaces import Box
 from gymnasium.wrappers import FrameStackObservation
 from poke_env import ServerConfiguration
@@ -24,14 +24,7 @@ from src.utils import (
     num_envs,
 )
 from stable_baselines3.common.monitor import Monitor
-
-
-class ReorderFrameStack(ObservationWrapper):
-    def __init__(self, env):
-        super().__init__(env)
-        
-    def observation(self, observation):
-        return np.flip(observation, axis=0)
+from stable_baselines3.common.vec_env import VecFrameStack
 
 
 class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
@@ -75,13 +68,12 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             start_challenging=True,
         )
         if learning_style == LearningStyle.PURE_SELF_PLAY:
-            if num_frames > 1:
-                env = ss.frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
-                env = ReorderFrameStack(env)  # type: ignore
             env = ss.pettingzoo_env_to_vec_env_v1(env)
             env = ss.concat_vec_envs_v1(
                 env, num_vec_envs=num_envs, num_cpus=num_envs, base_class="stable_baselines3"
             )
+            if num_frames > 1:
+                env = VecFrameStack(env, num_frames)
             return env  # type: ignore
         else:
             opponent = (
