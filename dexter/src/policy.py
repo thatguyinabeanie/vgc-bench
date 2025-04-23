@@ -11,6 +11,7 @@ from src.utils import (
     doubles_glob_obs_len,
     items,
     moves,
+    num_envs,
     side_obs_len,
 )
 from stable_baselines3.common.base_class import BaseAlgorithm
@@ -25,6 +26,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
         self.num_frames = num_frames
         self.actor_grad = True
+        self._must_flip_frame_stack = False
         super().__init__(
             *args,
             **kwargs,
@@ -51,6 +53,10 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def forward(
         self, obs: torch.Tensor, deterministic: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if not self._must_flip_frame_stack and obs.size(0) == 2 * num_envs and len(obs.size()) == 4:
+            self._must_flip_frame_stack = True
+        if self._must_flip_frame_stack:
+            obs = obs.flip(1)
         action_logits, value_logits = self.get_logits(obs, actor_grad=True)
         distribution = self.get_dist_from_logits(obs, action_logits)
         actions = distribution.get_actions(deterministic=deterministic)
@@ -68,8 +74,8 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         self, obs: PyTorchObs, actions: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
         assert isinstance(obs, torch.Tensor)
-        if obs.device != actions.device:
-            actions = actions.to(obs.device)
+        if self._must_flip_frame_stack:
+            obs = obs.flip(1)
         action_logits, value_logits = self.get_logits(obs, self.actor_grad)
         distribution = self.get_dist_from_logits(obs, action_logits)
         if isinstance(distribution, MultiCategoricalDistribution):

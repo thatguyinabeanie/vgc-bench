@@ -24,7 +24,6 @@ from src.utils import (
     num_envs,
 )
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import VecFrameStack
 
 
 class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
@@ -68,12 +67,12 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             start_challenging=True,
         )
         if learning_style == LearningStyle.PURE_SELF_PLAY:
+            if num_frames > 1:
+                env = ss.frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
             env = ss.pettingzoo_env_to_vec_env_v1(env)
             env = ss.concat_vec_envs_v1(
                 env, num_vec_envs=num_envs, num_cpus=num_envs, base_class="stable_baselines3"
             )
-            if num_frames > 1:
-                env = FrameStackObservation(env, num_frames, padding_type="zero")
             return env  # type: ignore
         else:
             opponent = (
