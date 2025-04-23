@@ -77,7 +77,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         if learning_style == LearningStyle.PURE_SELF_PLAY:
             if num_frames > 1:
                 env = ss.frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
-                env = ReorderFrameStack(env)  # type:ignore
+                env = ReorderFrameStack(env)  # type: ignore
             env = ss.pettingzoo_env_to_vec_env_v1(env)
             env = ss.concat_vec_envs_v1(
                 env, num_vec_envs=num_envs, num_cpus=num_envs, base_class="stable_baselines3"
