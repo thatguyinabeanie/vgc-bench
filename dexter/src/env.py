@@ -73,7 +73,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 env, num_vec_envs=num_envs, num_cpus=num_envs, base_class="stable_baselines3"
             )
             if num_frames > 1:
-                env = VecFrameStack(env, num_frames)
+                env = FrameStackObservation(env, num_frames, padding_type="zero")
             return env  # type: ignore
         else:
             opponent = (
