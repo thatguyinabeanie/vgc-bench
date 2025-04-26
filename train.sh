@@ -6,7 +6,7 @@ fi
 
 team_counts=(1 3 10 30)
 team_lists=("30 31" "32 33" "30")
-ports=(8000 8001 8002 8003)
+ports=(7200 7201 7202 7203)
 devices=("cuda:0" "cuda:1" "cuda:2" "cuda:3")
 
 start_showdown() {
@@ -27,6 +27,7 @@ start_training() {
 
     echo "Starting Showdown server for training process $i..."
     showdown_pid=$(start_showdown "$port")
+    sleep 5
     echo "Starting training process $i..."
     python dexter/train.py --num_teams "$num_teams" --port "$port" --device "$device" --self_play > debug"$port".log 2>&1
     exit_status=$?
