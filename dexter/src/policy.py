@@ -35,7 +35,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             features_extractor_class=AttentionExtractor,
             features_extractor_kwargs={"num_frames": num_frames},
             share_features_extractor=False,
-            # optimizer_kwargs={"weight_decay": 1e-5},
         )
 
     @classmethod
@@ -140,7 +139,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
 class AttentionExtractor(BaseFeaturesExtractor):
     num_pokemon: int = 12
     embed_len: int = 32
-    proj_len: int = 256
+    proj_len: int = 128
     embed_layers: int = 3
 
     def __init__(self, observation_space: Space[Any], num_frames: int):
