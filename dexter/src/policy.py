@@ -183,52 +183,32 @@ class AttentionExtractor(BaseFeaturesExtractor):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
-        if self.num_frames > 1:
-            # embedding
-            start = doubles_glob_obs_len + side_obs_len
-            x = torch.cat(
-                [
-                    x[:, :, :, :start],
-                    self.ability_embed.forward(x[:, :, :, start].long()),
-                    self.item_embed.forward(x[:, :, :, start + 1].long()),
-                    self.move_embed.forward(x[:, :, :, start + 2].long()),
-                    self.move_embed.forward(x[:, :, :, start + 3].long()),
-                    self.move_embed.forward(x[:, :, :, start + 4].long()),
-                    self.move_embed.forward(x[:, :, :, start + 5].long()),
-                    x[:, :, :, start + 6 :],
-                ],
-                dim=3,
-            )
-            # frame encoder
-            x = x.view(batch_size * self.num_frames, self.num_pokemon, -1)
-            x = self.feature_proj.forward(x)
-            token = self.cls_token.expand(batch_size * self.num_frames, -1, -1)
-            x = torch.cat([token, x], dim=1)
-            x = self.frame_encoder.forward(x)[:, 0, :]
-            x = x.view(batch_size, self.num_frames, -1)
-            # meta encoder
-            frame_encoding = self.frame_encoding.expand(batch_size, -1, -1)
-            x = torch.cat([x, frame_encoding], dim=2)
-            x = self.frame_proj.forward(x)
-            return self.meta_encoder.forward(x, mask=self.mask, is_causal=True)[:, -1, :]
-        else:
-            # embedding
-            start = doubles_glob_obs_len + side_obs_len
-            x = torch.cat(
-                [
-                    x[:, :, :start],
-                    self.ability_embed.forward(x[:, :, start].long()),
-                    self.item_embed.forward(x[:, :, start + 1].long()),
-                    self.move_embed.forward(x[:, :, start + 2].long()),
-                    self.move_embed.forward(x[:, :, start + 3].long()),
-                    self.move_embed.forward(x[:, :, start + 4].long()),
-                    self.move_embed.forward(x[:, :, start + 5].long()),
-                    x[:, :, start + 6 :],
-                ],
-                dim=2,
-            )
-            # frame encoder
-            x = self.feature_proj.forward(x)
-            token = self.cls_token.expand(batch_size, -1, -1)
-            x = torch.cat([token, x], dim=1)
-            return self.frame_encoder.forward(x)[:, 0, :]
+        # embedding
+        start = doubles_glob_obs_len + side_obs_len
+        x = torch.cat(
+            [
+                x[..., :start],
+                self.ability_embed(x[..., start].long()),
+                self.item_embed(x[..., start + 1].long()),
+                self.move_embed(x[..., start + 2].long()),
+                self.move_embed(x[..., start + 3].long()),
+                self.move_embed(x[..., start + 4].long()),
+                self.move_embed(x[..., start + 5].long()),
+                x[..., start + 6 :],
+            ],
+            dim=-1,
+        )
+        # frame encoder
+        x = x.view(batch_size * self.num_frames, self.num_pokemon, -1)
+        x = self.feature_proj(x)
+        token = self.cls_token.expand(batch_size * self.num_frames, -1, -1)
+        x = torch.cat([token, x], dim=1)
+        x = self.frame_encoder(x)[:, 0, :]
+        if self.num_frames == 1:
+            return x
+        # meta encoder
+        x = x.view(batch_size, self.num_frames, -1)
+        frame_encoding = self.frame_encoding.expand(batch_size, -1, -1)
+        x = torch.cat([x, frame_encoding], dim=2)
+        x = self.frame_proj(x)
+        return self.meta_encoder(x, mask=self.mask, is_causal=True)[:, -1, :]

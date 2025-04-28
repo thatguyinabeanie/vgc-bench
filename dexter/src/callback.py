@@ -124,6 +124,7 @@ class Callback(BaseCallback):
                 )
 
     def _on_rollout_start(self):
+        self.model.logger.dump(self.model.num_timesteps)
         if self.learning_style == LearningStyle.FICTITIOUS_PLAY:
             assert self.model.env is not None
             policy_files = os.listdir(
