@@ -38,9 +38,9 @@ def train(
     ppo = PPO(
         MaskedActorCriticPolicy,
         env,
-        learning_rate=1e-4,
-        n_steps=128 if learning_style == LearningStyle.PURE_SELF_PLAY else 256,
-        batch_size=128,
+        learning_rate=1e-5,
+        n_steps=64 if learning_style == LearningStyle.PURE_SELF_PLAY else 128,
+        batch_size=64,
         gamma=1,
         ent_coef=1e-3,
         tensorboard_log=f"results/logs-{run_ident}",

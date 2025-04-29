@@ -125,24 +125,22 @@ class Callback(BaseCallback):
 
     def _on_rollout_start(self):
         self.model.logger.dump(self.model.num_timesteps)
-        if self.learning_style == LearningStyle.FICTITIOUS_PLAY:
+        if self.behavior_clone:
+            self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
+        if self.learning_style == LearningStyle.FICTITIOUS_PLAY or self.learning_style == LearningStyle.DOUBLE_ORACLE:
             assert self.model.env is not None
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
             )
-            weights = self.prob_dist or [1] * len(policy_files) + [len(policy_files)]
             policies = random.choices(
-                policy_files + [None], weights=weights, k=self.model.env.num_envs
+                policy_files, weights=self.prob_dist, k=self.model.env.num_envs
             )
             for i in range(self.model.env.num_envs):
                 self.model.env.env_method("cleanup", indices=i)
-                if policies[i] is None:
-                    policy = MaskedActorCriticPolicy.clone(self.model)
-                else:
-                    policy = PPO.load(
-                        f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policies[i]}",
-                        device=self.model.device,
-                    ).policy
+                policy = PPO.load(
+                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policies[i]}",
+                    device=self.model.device,
+                ).policy
                 self.model.env.env_method("set_opp_policy", policy, indices=i)
 
     def _on_training_end(self):
