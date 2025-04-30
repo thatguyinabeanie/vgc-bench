@@ -69,11 +69,12 @@ def train(
             num_saved_timesteps = 0
         ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
-        1000 * steps - num_saved_timesteps,
+        steps,
         callback=Callback(teams, port, device, learning_style, behavior_clone, num_frames),
         tb_log_name=f"{','.join([str(t) for t in teams])}-teams",
         reset_num_timesteps=False,
     )
+    env.close()
 
 
 if __name__ == "__main__":
