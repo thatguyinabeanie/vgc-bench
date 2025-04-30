@@ -136,23 +136,25 @@ class Callback(BaseCallback):
                 policy_files, weights=self.prob_dist, k=self.model.env.num_envs
             )
             for i in range(self.model.env.num_envs):
-                self.model.env.env_method("cleanup", indices=i)
                 policy = PPO.load(
                     f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policies[i]}",
                     device=self.model.device,
                 ).policy
                 self.model.env.env_method("set_opp_policy", policy, indices=i)
 
-    def _on_training_end(self):
-        self.evaluate()
-        self.model.logger.dump(self.model.num_timesteps)
-        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
-            self.update_payoff_matrix()
-            g = Game(self.payoff_matrix)
-            self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
-        self.model.save(
-            f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
-        )
+    def _on_rollout_end(self):
+        assert self.model.env is not None
+        if self.model.num_timesteps % steps == 0:
+            self.evaluate()
+            self.model.logger.dump(self.model.num_timesteps)
+            if self.learning_style == LearningStyle.DOUBLE_ORACLE:
+                self.update_payoff_matrix()
+                g = Game(self.payoff_matrix)
+                self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
+            self.model.save(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
+            )
+            self.model.env.close()
 
     def evaluate(self):
         policy = MaskedActorCriticPolicy.clone(self.model)

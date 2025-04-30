@@ -10,7 +10,7 @@ import torch
 from gymnasium import Env
 from gymnasium.spaces import Box
 from gymnasium.wrappers import FrameStackObservation
-from poke_env import ServerConfiguration
+from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.environment import AbstractBattle
 from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
 from src.agent import Agent
@@ -55,6 +55,8 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         toggle = None if allow_mirror_match else TeamToggle(len(teams))
         env = cls(
             learning_style,
+            account_configuration1=AccountConfiguration.randgen(10),
+            account_configuration2=AccountConfiguration.randgen(10),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -64,7 +66,6 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             accept_open_team_sheet=True,
             open_timeout=None,
             team=RandomTeamBuilder(teams, battle_format, toggle),
-            start_challenging=True,
         )
         if learning_style == LearningStyle.PURE_SELF_PLAY:
             if num_frames > 1:
@@ -154,11 +155,11 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         for tag in dead_tags:
             self.agent1._battles.pop(tag)
             asyncio.run_coroutine_threadsafe(
-                self.agent1.ps_client.send_message(f"/leave {tag}"), self.loop
+                self.agent1.ps_client.send_message(f"/leave {tag}"), self._loop
             )
             self.agent2._battles.pop(tag)
             asyncio.run_coroutine_threadsafe(
-                self.agent2.ps_client.send_message(f"/leave {tag}"), self.loop
+                self.agent2.ps_client.send_message(f"/leave {tag}"), self._loop
             )
 
     def get_opp_win_rate(self) -> float:

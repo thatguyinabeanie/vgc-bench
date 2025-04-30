@@ -37,11 +37,9 @@ start_training() {
     kill $showdown_pid
 }
 
-while true; do
-    for i in "${!team_counts[@]}"; do
-        start_training "$i" &
-        sleep 1
-    done
-    wait
-    sleep 10
+for i in "${!team_counts[@]}"; do
+    start_training "$i" &
+    sleep 1
 done
+wait
+sleep 10
