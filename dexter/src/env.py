@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 import numpy as np
@@ -156,13 +155,7 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
         dead_tags = [k for k, b in self.agent1.battles.items() if b.finished]
         for tag in dead_tags:
             self.agent1._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                self.agent1.ps_client.send_message(f"/leave {tag}"), self._loop
-            )
             self.agent2._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                self.agent2.ps_client.send_message(f"/leave {tag}"), self._loop
-            )
 
     def get_opp_win_rate(self) -> float:
         return self.agent2.win_rate

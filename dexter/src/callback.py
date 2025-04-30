@@ -142,6 +142,7 @@ class Callback(BaseCallback):
                 policy_files, weights=self.prob_dist, k=self.model.env.num_envs
             )
             for i in range(self.model.env.num_envs):
+                self.model.env.env_method("cleanup", indices=i)
                 policy = PPO.load(
                     f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policies[i]}",
                     device=self.model.device,
@@ -192,16 +193,6 @@ class Callback(BaseCallback):
     def compare(player1: Player, player2: Player, n_battles: int) -> float:
         asyncio.run(player1.battle_against(player2, n_battles=n_battles))
         win_rate = player1.win_rate
-        dead_tags = [k for k, b in player1.battles.items() if b.finished]
-        for tag in dead_tags:
-            player1._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                player1.ps_client.send_message(f"/leave {tag}"), POKE_LOOP
-            )
-            player2._battles.pop(tag)
-            asyncio.run_coroutine_threadsafe(
-                player2.ps_client.send_message(f"/leave {tag}"), POKE_LOOP
-            )
         player1.reset_battles()
         player2.reset_battles()
         return win_rate
