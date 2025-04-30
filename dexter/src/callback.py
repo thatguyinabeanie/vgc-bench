@@ -8,9 +8,9 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from nashpy import Game
-from poke_env import ServerConfiguration
 from poke_env.concurrency import POKE_LOOP
 from poke_env.player import MaxBasePowerPlayer, Player
+from poke_env.ps_client import AccountConfiguration, ServerConfiguration
 from src.agent import Agent
 from src.policy import MaskedActorCriticPolicy
 from src.teams import RandomTeamBuilder, TeamToggle
@@ -68,6 +68,7 @@ class Callback(BaseCallback):
         self.eval_agent = Agent(
             num_frames,
             torch.device(device),
+            account_configuration=AccountConfiguration.randgen(10),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -81,6 +82,7 @@ class Callback(BaseCallback):
         self.eval_agent2 = Agent(
             num_frames,
             torch.device(device),
+            account_configuration=AccountConfiguration.randgen(10),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -92,6 +94,7 @@ class Callback(BaseCallback):
             team=RandomTeamBuilder(teams, battle_format, toggle),
         )
         self.eval_opponent = MaxBasePowerPlayer(
+            account_configuration=AccountConfiguration.randgen(10),
             server_configuration=ServerConfiguration(
                 f"ws://localhost:{port}/showdown/websocket",
                 "https://play.pokemonshowdown.com/action.php?",
@@ -127,7 +130,10 @@ class Callback(BaseCallback):
         self.model.logger.dump(self.model.num_timesteps)
         if self.behavior_clone:
             self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
-        if self.learning_style == LearningStyle.FICTITIOUS_PLAY or self.learning_style == LearningStyle.DOUBLE_ORACLE:
+        if (
+            self.learning_style == LearningStyle.FICTITIOUS_PLAY
+            or self.learning_style == LearningStyle.DOUBLE_ORACLE
+        ):
             assert self.model.env is not None
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
