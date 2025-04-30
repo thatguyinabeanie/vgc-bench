@@ -107,6 +107,7 @@ def pretrain(num_teams: int, port: int, device: str, num_frames: int):
         team=RandomTeamBuilder(list(range(num_teams)), battle_format),
     )
     eval_opponent = MaxBasePowerPlayer(
+        account_configuration=AccountConfiguration.randgen(10),
         server_configuration=ServerConfiguration(
             f"ws://localhost:{port}/showdown/websocket",
             "https://play.pokemonshowdown.com/action.php?",
