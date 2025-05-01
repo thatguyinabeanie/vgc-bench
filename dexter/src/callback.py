@@ -97,7 +97,7 @@ class Callback(BaseCallback):
         self.prob_dist: list[float] | None = None
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
             if os.path.exists(
-                f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-self.-payoff-matrix.json"
+                f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
             ):
                 with open(
                     f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
