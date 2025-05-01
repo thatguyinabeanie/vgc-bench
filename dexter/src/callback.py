@@ -176,7 +176,7 @@ class Callback(BaseCallback):
         ).policy
         self.eval_agent.set_policy(policy)
         win_rates = np.array([])
-        if len(policy_files) > 7:
+        if len(policy_files) > 8:
             policy_files = policy_files[-8:-1]
             self.payoff_matrix = self.payoff_matrix[1:][1:]
         else:
