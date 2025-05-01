@@ -8,7 +8,6 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from nashpy import Game
-from poke_env.concurrency import POKE_LOOP
 from poke_env.player import MaxBasePowerPlayer, Player
 from poke_env.ps_client import AccountConfiguration, ServerConfiguration
 from src.agent import Agent
@@ -45,21 +44,6 @@ class Callback(BaseCallback):
         )[1:]
         if not os.path.exists(f"results/logs-{self.run_ident}"):
             os.mkdir(f"results/logs-{self.run_ident}")
-        self.payoff_matrix: npt.NDArray[np.float32]
-        self.prob_dist: list[float] | None = None
-        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
-            if os.path.exists(
-                f"results/logs-{self.run_ident}/{','.join([str(t) for t in teams])}-teams-payoff-matrix.json"
-            ):
-                with open(
-                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in teams])}-teams-payoff-matrix.json"
-                ) as f:
-                    self.payoff_matrix = np.array(json.load(f))
-            else:
-                self.payoff_matrix = np.array([[0]])
-                self.update_payoff_matrix()
-            g = Game(self.payoff_matrix)
-            self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         toggle = None if allow_mirror_match else TeamToggle(len(teams))
         self.eval_agent = Agent(
             num_frames,
@@ -106,6 +90,21 @@ class Callback(BaseCallback):
         return True
 
     def _on_training_start(self):
+        self.payoff_matrix: npt.NDArray[np.float32]
+        self.prob_dist: list[float] | None = None
+        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
+            if os.path.exists(
+                f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-self.-payoff-matrix.json"
+            ):
+                with open(
+                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
+                ) as f:
+                    self.payoff_matrix = np.array(json.load(f))
+            else:
+                self.payoff_matrix = np.array([[0]])
+                self.update_payoff_matrix()
+            g = Game(self.payoff_matrix)
+            self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         if self.learning_style.is_self_play:
             if self.model.num_timesteps < steps:
                 self.evaluate()
