@@ -136,9 +136,9 @@ class Callback(BaseCallback):
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
             )
-            policy_files = sorted(policy_files, key=lambda x: int(x[:-8]))
+            policy_files = sorted(policy_files, key=lambda x: int(x[:-4]))
             if self.learning_style == LearningStyle.DOUBLE_ORACLE and len(policy_files) > 8:
-                policy_files = policy_files[-5:]
+                policy_files = policy_files[-8:]
             policies = random.choices(
                 policy_files, weights=self.prob_dist, k=self.model.env.num_envs
             )
@@ -176,9 +176,11 @@ class Callback(BaseCallback):
         ).policy
         self.eval_agent.set_policy(policy)
         win_rates = np.array([])
-        if self.learning_style == LearningStyle.DOUBLE_ORACLE and len(policy_files) > 7:
+        if len(policy_files) > 7:
             policy_files = policy_files[-8:-1]
             self.payoff_matrix = self.payoff_matrix[1:][1:]
+        else:
+            policy_files = policy_files[:-1]
         for p in policy_files:
             policy2 = PPO.load(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{p}",
