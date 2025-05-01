@@ -138,6 +138,9 @@ class Callback(BaseCallback):
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
             )
+            policy_files = sorted(policy_files, key=lambda x: int(x[:-4]))
+            if self.learning_style == LearningStyle.DOUBLE_ORACLE and len(policy_files) > 5:
+                policy_files = policy_files[-5:]
             policies = random.choices(
                 policy_files, weights=self.prob_dist, k=self.model.env.num_envs
             )
@@ -154,8 +157,6 @@ class Callback(BaseCallback):
         self.model.logger.dump(self.model.num_timesteps)
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
             self.update_payoff_matrix()
-            g = Game(self.payoff_matrix)
-            self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         self.model.save(
             f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
         )
@@ -170,9 +171,13 @@ class Callback(BaseCallback):
         policy = MaskedActorCriticPolicy.clone(self.model)
         self.eval_agent.set_policy(policy)
         win_rates = np.array([])
-        for p in os.listdir(
+        policy_files = os.listdir(
             f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
-        ):
+        )
+        if self.learning_style == LearningStyle.DOUBLE_ORACLE and len(policy_files) > 4:
+            policy_files = sorted(policy_files, key=lambda x: int(x[:-4]))[-4:]
+            self.payoff_matrix = self.payoff_matrix[1:][1:]
+        for p in policy_files:
             policy2 = PPO.load(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{p}",
                 device=self.model.device,
