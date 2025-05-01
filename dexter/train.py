@@ -49,7 +49,8 @@ def train(
     )
     num_saved_timesteps = 0
     if (
-        os.path.exists(f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams")
+        learning_style != LearningStyle.DOUBLE_ORACLE
+        and os.path.exists(f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams")
         and len(os.listdir(f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams"))
         > 0
     ):
