@@ -44,6 +44,21 @@ class Callback(BaseCallback):
         )[1:]
         if not os.path.exists(f"results/logs-{self.run_ident}"):
             os.mkdir(f"results/logs-{self.run_ident}")
+        self.payoff_matrix: npt.NDArray[np.float32]
+        self.prob_dist: list[float] | None = None
+        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
+            if os.path.exists(
+                f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-self.-payoff-matrix.json"
+            ):
+                with open(
+                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
+                ) as f:
+                    self.payoff_matrix = np.array(json.load(f))
+            else:
+                self.payoff_matrix = np.array([[0]])
+                self.update_payoff_matrix()
+            g = Game(self.payoff_matrix)
+            self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         toggle = None if allow_mirror_match else TeamToggle(len(teams))
         self.eval_agent = Agent(
             num_frames,
@@ -90,21 +105,6 @@ class Callback(BaseCallback):
         return True
 
     def _on_training_start(self):
-        self.payoff_matrix: npt.NDArray[np.float32]
-        self.prob_dist: list[float] | None = None
-        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
-            if os.path.exists(
-                f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-self.-payoff-matrix.json"
-            ):
-                with open(
-                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
-                ) as f:
-                    self.payoff_matrix = np.array(json.load(f))
-            else:
-                self.payoff_matrix = np.array([[0]])
-                self.update_payoff_matrix()
-            g = Game(self.payoff_matrix)
-            self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         if self.learning_style.is_self_play:
             if self.model.num_timesteps < steps:
                 self.evaluate()
@@ -150,11 +150,11 @@ class Callback(BaseCallback):
     def _on_training_end(self):
         self.evaluate()
         self.model.logger.dump(self.model.num_timesteps)
-        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
-            self.update_payoff_matrix()
         self.model.save(
             f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
         )
+        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
+            self.update_payoff_matrix()
 
     def evaluate(self):
         policy = MaskedActorCriticPolicy.clone(self.model)
@@ -166,24 +166,27 @@ class Callback(BaseCallback):
         policy_files = os.listdir(
             f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
         )
-        if not(self.payoff_matrix.shape[0] == len(policy_files) == 1):
-            policy = MaskedActorCriticPolicy.clone(self.model)
-            self.eval_agent.set_policy(policy)
-            win_rates = np.array([])
-            if self.learning_style == LearningStyle.DOUBLE_ORACLE and len(policy_files) > 7:
-                policy_files = sorted(policy_files, key=lambda x: int(x[:-4]))[-7:]
-                self.payoff_matrix = self.payoff_matrix[1:][1:]
-            for p in policy_files:
-                policy2 = PPO.load(
-                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{p}",
-                    device=self.model.device,
-                ).policy
-                self.eval_agent2.set_policy(policy2)
-                win_rate = self.compare(self.eval_agent, self.eval_agent2, 100)
-                win_rates = np.append(win_rates, round(2 * win_rate - 1, ndigits=2))
-            self.payoff_matrix = np.concat([self.payoff_matrix, -win_rates.reshape(-1, 1)], axis=1)
-            win_rates = np.append(win_rates, 0)
-            self.payoff_matrix = np.concat([self.payoff_matrix, win_rates.reshape(1, -1)], axis=0)
+        policy_files = sorted(policy_files, key=lambda x: int(x[:-4]))
+        policy = PPO.load(
+            f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policy_files[-1]}",
+                device=self.model.device,
+        ).policy
+        self.eval_agent.set_policy(policy)
+        win_rates = np.array([])
+        if self.learning_style == LearningStyle.DOUBLE_ORACLE and len(policy_files) > 7:
+            policy_files = policy_files[-8:-1]
+            self.payoff_matrix = self.payoff_matrix[1:][1:]
+        for p in policy_files:
+            policy2 = PPO.load(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{p}",
+                device=self.model.device,
+            ).policy
+            self.eval_agent2.set_policy(policy2)
+            win_rate = self.compare(self.eval_agent, self.eval_agent2, 100)
+            win_rates = np.append(win_rates, round(2 * win_rate - 1, ndigits=2))
+        self.payoff_matrix = np.concat([self.payoff_matrix, -win_rates.reshape(-1, 1)], axis=1)
+        win_rates = np.append(win_rates, 0)
+        self.payoff_matrix = np.concat([self.payoff_matrix, win_rates.reshape(1, -1)], axis=0)
         with open(
             f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json",
             "w",
