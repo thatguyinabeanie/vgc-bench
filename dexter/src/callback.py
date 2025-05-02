@@ -177,8 +177,8 @@ class Callback(BaseCallback):
         ).policy
         self.eval_agent.set_policy(policy)
         win_rates = np.array([])
-        policy_files = [policy_files[i] for i in self.best_indices]
-        for p in policy_files:
+        best_policy_files = [policy_files[i] for i in self.best_indices]
+        for p in best_policy_files:
             policy2 = PPO.load(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{p}",
                 device=self.model.device,
