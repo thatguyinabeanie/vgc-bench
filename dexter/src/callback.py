@@ -194,7 +194,8 @@ class Callback(BaseCallback):
         if len(self.best_indices) > 8:
             g = Game(self.payoff_matrix)
             prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
-            worst_index = np.argmin(prob_dist)
+            worst_indices = np.where(prob_dist == np.min(prob_dist))[0]
+            worst_index = np.random.choice(worst_indices)
             self.best_indices.pop(worst_index)
             self.payoff_matrix = np.delete(self.payoff_matrix, worst_index, axis=0)
             self.payoff_matrix = np.delete(self.payoff_matrix, worst_index, axis=1)
