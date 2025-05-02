@@ -95,6 +95,7 @@ class Callback(BaseCallback):
     def _on_training_start(self):
         self.payoff_matrix: npt.NDArray[np.float32]
         self.prob_dist: list[float] | None = None
+        self.best_indices: list[int] | None = None
         if self.learning_style == LearningStyle.DOUBLE_ORACLE:
             if os.path.exists(
                 f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
@@ -102,10 +103,10 @@ class Callback(BaseCallback):
                 with open(
                     f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
                 ) as f:
-                    self.payoff_matrix = np.array(json.load(f))
+                    self.payoff_matrix, self.best_indices = np.array(json.load(f))
             else:
                 self.payoff_matrix = np.array([[0]])
-                self.update_payoff_matrix()
+                self.best_indices = [0]
             g = Game(self.payoff_matrix)
             self.prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
         if self.learning_style.is_self_play:
@@ -136,9 +137,9 @@ class Callback(BaseCallback):
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
             )
-            policy_files = sorted(policy_files, key=lambda x: int(x[:-4]))
-            if self.learning_style == LearningStyle.DOUBLE_ORACLE and len(policy_files) > 8:
-                policy_files = policy_files[-8:]
+            if self.learning_style == LearningStyle.DOUBLE_ORACLE:
+                assert self.best_indices is not None
+                policy_files = [policy_files[i] for i in self.best_indices]
             policies = random.choices(
                 policy_files, weights=self.prob_dist, k=self.model.env.num_envs
             )
@@ -166,21 +167,17 @@ class Callback(BaseCallback):
         self.model.logger.record("train/eval", win_rate)
 
     def update_payoff_matrix(self):
+        assert self.best_indices is not None
         policy_files = os.listdir(
             f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
         )
-        policy_files = sorted(policy_files, key=lambda x: int(x[:-4]))
         policy = PPO.load(
             f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{policy_files[-1]}",
                 device=self.model.device,
         ).policy
         self.eval_agent.set_policy(policy)
         win_rates = np.array([])
-        if len(policy_files) > 8:
-            policy_files = policy_files[-8:-1]
-            self.payoff_matrix = self.payoff_matrix[1:][1:]
-        else:
-            policy_files = policy_files[:-1]
+        policy_files = [policy_files[i] for i in self.best_indices]
         for p in policy_files:
             policy2 = PPO.load(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{p}",
@@ -192,11 +189,21 @@ class Callback(BaseCallback):
         self.payoff_matrix = np.concat([self.payoff_matrix, -win_rates.reshape(-1, 1)], axis=1)
         win_rates = np.append(win_rates, 0)
         self.payoff_matrix = np.concat([self.payoff_matrix, win_rates.reshape(1, -1)], axis=0)
+        self.best_indices += [len(policy_files) - 1]
+        if len(self.best_indices) > 8:
+            g = Game(self.payoff_matrix)
+            prob_dist = list(g.support_enumeration())[0][0].tolist()  # type: ignore
+            worst_index = np.argmin(prob_dist)
+            self.best_indices.pop(worst_index)
+            self.payoff_matrix = np.delete(self.payoff_matrix, worst_index, axis=0)
+            self.payoff_matrix = np.delete(self.payoff_matrix, worst_index, axis=1)
+            assert len(self.best_indices) == 8
+            assert self.payoff_matrix.shape == (8, 8)
         with open(
             f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json",
             "w",
         ) as f:
-            json.dump(self.payoff_matrix.tolist(), f)
+            json.dump((self.payoff_matrix.tolist(), self.best_indices), f)
 
     @staticmethod
     def compare(player1: Player, player2: Player, n_battles: int) -> float:
