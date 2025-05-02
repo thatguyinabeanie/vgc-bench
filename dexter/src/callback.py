@@ -103,7 +103,8 @@ class Callback(BaseCallback):
                 with open(
                     f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
                 ) as f:
-                    self.payoff_matrix, self.best_indices = np.array(json.load(f))
+                    payoff_matrix, self.best_indices = json.load(f)
+                    self.payoff_matrix = np.array(payoff_matrix)
             else:
                 self.payoff_matrix = np.array([[0]])
                 self.best_indices = [0]
