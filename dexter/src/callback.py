@@ -44,6 +44,26 @@ class Callback(BaseCallback):
         )[1:]
         if not os.path.exists(f"results/logs-{self.run_ident}"):
             os.mkdir(f"results/logs-{self.run_ident}")
+        self.payoff_matrix: npt.NDArray[np.float32]
+        self.prob_dist: list[float] | None = None
+        if self.learning_style == LearningStyle.LAST_SELF:
+            policy_files = os.listdir(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+            )
+            self.prob_dist = [0.0] * len(policy_files)
+            self.prob_dist[-1] = 1
+        elif self.learning_style == LearningStyle.DOUBLE_ORACLE:
+            if os.path.exists(
+                f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
+            ):
+                with open(
+                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
+                ) as f:
+                    self.payoff_matrix = np.array(json.load(f))
+            else:
+                self.payoff_matrix = np.array([[0]])
+            g = Game(self.payoff_matrix)
+            self.prob_dist = g.linear_program()[0].tolist()  # type: ignore
         toggle = None if allow_mirror_match else TeamToggle(len(teams))
         self.eval_agent = Agent(
             num_frames,
@@ -93,20 +113,6 @@ class Callback(BaseCallback):
         return True
 
     def _on_training_start(self):
-        self.payoff_matrix: npt.NDArray[np.float32]
-        self.prob_dist: list[float] | None = None
-        if self.learning_style == LearningStyle.DOUBLE_ORACLE:
-            if os.path.exists(
-                f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
-            ):
-                with open(
-                    f"results/logs-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams-payoff-matrix.json"
-                ) as f:
-                    self.payoff_matrix = np.array(json.load(f))
-            else:
-                self.payoff_matrix = np.array([[0]])
-            g = Game(self.payoff_matrix)
-            self.prob_dist = g.linear_program()[0].tolist()  # type: ignore
         if self.learning_style.is_self_play:
             if self.model.num_timesteps < steps:
                 self.evaluate()
@@ -127,10 +133,11 @@ class Callback(BaseCallback):
         self.model.logger.dump(self.model.num_timesteps)
         if self.behavior_clone:
             self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
-        if (
-            self.learning_style == LearningStyle.FICTITIOUS_PLAY
-            or self.learning_style == LearningStyle.DOUBLE_ORACLE
-        ):
+        if self.learning_style in [
+            LearningStyle.LAST_SELF,
+            LearningStyle.FICTITIOUS_PLAY,
+            LearningStyle.DOUBLE_ORACLE,
+        ]:
             assert self.model.env is not None
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"

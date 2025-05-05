@@ -20,6 +20,7 @@ from poke_env.environment import (
 class LearningStyle(Enum):
     EXPLOITER = auto()
     PURE_SELF_PLAY = auto()
+    LAST_SELF = auto()
     FICTITIOUS_PLAY = auto()
     DOUBLE_ORACLE = auto()
 
@@ -27,6 +28,7 @@ class LearningStyle(Enum):
     def is_self_play(self) -> bool:
         return self in {
             LearningStyle.PURE_SELF_PLAY,
+            LearningStyle.LAST_SELF,
             LearningStyle.FICTITIOUS_PLAY,
             LearningStyle.DOUBLE_ORACLE,
         }
@@ -38,6 +40,8 @@ class LearningStyle(Enum):
                 return "ex"
             case LearningStyle.PURE_SELF_PLAY:
                 return "sp"
+            case LearningStyle.LAST_SELF:
+                return "ls"
             case LearningStyle.FICTITIOUS_PLAY:
                 return "fp"
             case LearningStyle.DOUBLE_ORACLE:
