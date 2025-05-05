@@ -3,6 +3,7 @@
 if [[ $PATH != "/scratch/cluster/cangliss/bin:"* ]]; then
     export PATH="/scratch/cluster/cangliss/bin:$PATH"
 fi
+export HF_HOME=/scratch/cluster/cangliss/hf_cache
 
 port=8004
 num_teams=1
