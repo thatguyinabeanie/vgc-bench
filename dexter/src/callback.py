@@ -113,6 +113,7 @@ class Callback(BaseCallback):
         return True
 
     def _on_training_start(self):
+        assert self.model.env is not None
         if self.learning_style.is_self_play:
             if self.model.num_timesteps < steps:
                 self.evaluate()
@@ -128,8 +129,16 @@ class Callback(BaseCallback):
                 self.model.save(
                     f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
                 )
+        elif self.learning_style == LearningStyle.EXPLOITER:
+            policy = PPO.load(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/-1",
+                device=self.model.device,
+            ).policy
+            for i in range(self.model.env.num_envs):
+                self.model.env.env_method("set_opp_policy", policy, indices=i)
 
     def _on_rollout_start(self):
+        assert self.model.env is not None
         self.model.logger.dump(self.model.num_timesteps)
         if self.behavior_clone:
             self.model.policy.actor_grad = self.model.num_timesteps >= steps  # type: ignore
@@ -138,7 +147,6 @@ class Callback(BaseCallback):
             LearningStyle.FICTITIOUS_PLAY,
             LearningStyle.DOUBLE_ORACLE,
         ]:
-            assert self.model.env is not None
             policy_files = os.listdir(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
             )

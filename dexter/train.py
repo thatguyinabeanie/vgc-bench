@@ -53,21 +53,22 @@ def train(
         and len(os.listdir(f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams"))
         > 0
     ):
-        num_saved_timesteps = max(
-            [
-                int(file[:-4])
-                for file in os.listdir(
-                    f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams"
-                )
-            ]
-        )
-        ppo.set_parameters(
-            f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams/{num_saved_timesteps}.zip",
-            device=ppo.device,
-        )
-        if num_saved_timesteps < steps:
-            num_saved_timesteps = 0
-        ppo.num_timesteps = num_saved_timesteps
+        saved_policy_timesteps = [
+            int(file[:-4])
+            for file in os.listdir(
+                f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams"
+            )
+            if int(file[:-4]) >= 0
+        ]
+        if saved_policy_timesteps:
+            num_saved_timesteps = max(saved_policy_timesteps)
+            ppo.set_parameters(
+                f"results/saves-{run_ident}/{','.join([str(t) for t in teams])}-teams/{num_saved_timesteps}.zip",
+                device=ppo.device,
+            )
+            if num_saved_timesteps < steps:
+                num_saved_timesteps = 0
+            ppo.num_timesteps = num_saved_timesteps
     ppo.learn(
         steps,
         callback=Callback(teams, port, device, learning_style, behavior_clone, num_frames),

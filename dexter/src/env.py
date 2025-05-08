@@ -75,34 +75,19 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             )
             return env  # type: ignore
         else:
-            opponent = (
-                Agent(
-                    num_frames,
-                    torch.device(device),
-                    account_configuration=AccountConfiguration.randgen(10),
-                    server_configuration=ServerConfiguration(
-                        f"ws://localhost:{port}/showdown/websocket",
-                        "https://play.pokemonshowdown.com/action.php?",
-                    ),
-                    battle_format=battle_format,
-                    log_level=25,
-                    accept_open_team_sheet=True,
-                    open_timeout=None,
-                    team=RandomTeamBuilder(teams, battle_format, toggle),
-                )
-                if learning_style.is_self_play
-                else SimpleHeuristicsPlayer(
-                    account_configuration=AccountConfiguration.randgen(10),
-                    server_configuration=ServerConfiguration(
-                        f"ws://localhost:{port}/showdown/websocket",
-                        "https://play.pokemonshowdown.com/action.php?",
-                    ),
-                    battle_format=battle_format,
-                    log_level=25,
-                    accept_open_team_sheet=True,
-                    open_timeout=None,
-                    team=RandomTeamBuilder(teams, battle_format, toggle),
-                )
+            opponent = Agent(
+                num_frames,
+                torch.device(device),
+                account_configuration=AccountConfiguration.randgen(10),
+                server_configuration=ServerConfiguration(
+                    f"ws://localhost:{port}/showdown/websocket",
+                    "https://play.pokemonshowdown.com/action.php?",
+                ),
+                battle_format=battle_format,
+                log_level=25,
+                accept_open_team_sheet=True,
+                open_timeout=None,
+                team=RandomTeamBuilder(teams, battle_format, toggle),
             )
             env = SingleAgentWrapper(env, opponent)
             if num_frames > 1:
