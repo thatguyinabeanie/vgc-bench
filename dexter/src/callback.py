@@ -114,21 +114,20 @@ class Callback(BaseCallback):
 
     def _on_training_start(self):
         assert self.model.env is not None
-        if self.learning_style.is_self_play:
-            if self.model.num_timesteps < steps:
-                self.evaluate()
-            if not (
-                os.path.exists(
-                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
-                )
-                and os.listdir(
-                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
-                )
-            ):
-                assert not self.behavior_clone, "make sure to provide an initial BC agent"
-                self.model.save(
-                    f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
-                )
+        if self.model.num_timesteps < steps:
+            self.evaluate()
+        if not (
+            os.path.exists(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+            )
+            and os.listdir(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams"
+            )
+        ):
+            assert not self.behavior_clone, "make sure to provide an initial BC agent"
+            self.model.save(
+                f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/{self.model.num_timesteps}"
+            )
         elif self.learning_style == LearningStyle.EXPLOITER:
             policy = PPO.load(
                 f"results/saves-{self.run_ident}/{','.join([str(t) for t in self.teams])}-teams/-1",
