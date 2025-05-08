@@ -17,6 +17,8 @@ def train(
     behavior_clone: bool,
     num_frames: int,
 ):
+    if learning_style == LearningStyle.EXPLOITER:
+        teams = [0]
     env = (
         ShowdownEnv.create_env(teams, port, device, learning_style, num_frames)
         if learning_style == LearningStyle.PURE_SELF_PLAY
