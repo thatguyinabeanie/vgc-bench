@@ -78,7 +78,9 @@ class Callback(BaseCallback):
             max_concurrent_battles=10,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(teams, battle_format, toggle),
+            team=RandomTeamBuilder(
+                [0] if learning_style == LearningStyle.EXPLOITER else teams, battle_format, toggle
+            ),
         )
         self.eval_agent2 = Agent(
             num_frames,
@@ -93,7 +95,9 @@ class Callback(BaseCallback):
             max_concurrent_battles=10,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(teams, battle_format, toggle),
+            team=RandomTeamBuilder(
+                [0] if learning_style == LearningStyle.EXPLOITER else teams, battle_format, toggle
+            ),
         )
         self.eval_opponent = MaxBasePowerPlayer(
             account_configuration=AccountConfiguration.randgen(10),
@@ -106,7 +110,9 @@ class Callback(BaseCallback):
             max_concurrent_battles=10,
             accept_open_team_sheet=True,
             open_timeout=None,
-            team=RandomTeamBuilder(teams, battle_format, toggle),
+            team=RandomTeamBuilder(
+                [0] if learning_style == LearningStyle.EXPLOITER else teams, battle_format, toggle
+            ),
         )
 
     def _on_step(self) -> bool:

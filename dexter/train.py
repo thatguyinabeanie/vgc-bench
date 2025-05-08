@@ -17,14 +17,18 @@ def train(
     behavior_clone: bool,
     num_frames: int,
 ):
-    if learning_style == LearningStyle.EXPLOITER:
-        teams = [0]
     env = (
         ShowdownEnv.create_env(teams, port, device, learning_style, num_frames)
         if learning_style == LearningStyle.PURE_SELF_PLAY
         else SubprocVecEnv(
             [
-                lambda: ShowdownEnv.create_env(teams, port, device, learning_style, num_frames)
+                lambda: ShowdownEnv.create_env(
+                    [0] if learning_style == LearningStyle.EXPLOITER else teams,
+                    port,
+                    device,
+                    learning_style,
+                    num_frames,
+                )
                 for _ in range(num_envs)
             ]
         )
