@@ -38,3 +38,6 @@ First, run `node pokemon-showdown start --no-security` from the pokemon-showdown
 OR
 
 Use the train.sh, pretrain.sh, or eval.sh scripts for a more streamlined experience. Scripts require manual configuration to operate, use --help on executables for more info
+
+# Data
+Here's a dataset of Gen 9 VGC battles, all with open team sheets enabled: https://huggingface.co/datasets/cameronangliss/vgc-battle-logs
