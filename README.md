@@ -28,8 +28,13 @@ python dexter/scrape_data.py
 ```
 
 # How to run
+First, run `node pokemon-showdown start --no-security` from the pokemon-showdown directory in one terminal, and then...
 1. Run `python dexter/train.py` to train with RL methods.
 1. Run `python dexter/pretrain.py` to train with BC method.
 1. Run `python dexter/play.py` to play on the online servers. Run `python dexter/play.py --help` for option details.
 1. To scrape logs from showdown, run `python dexter/scrape_logs.py`, or to convert logs to state-action pairs, run `python dexter/logs2trajs.py`.
 1. To evaluate agents in cross-play and get ELO ratings, run `python dexter/eval.py` (manual configuration of the file required)
+
+OR
+
+Use the train.sh, pretrain.sh, or eval.sh scripts for a more streamlined experience. Scripts require manual configuration to operate, use --help on executables for more info
