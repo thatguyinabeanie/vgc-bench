@@ -6,7 +6,6 @@ import torch
 from poke_env import cross_evaluate
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 from poke_env.ps_client import AccountConfiguration, ServerConfiguration
-from scipy.optimize import minimize
 from src.agent import Agent
 from src.llm import LLMPlayer
 from src.teams import RandomTeamBuilder
@@ -44,13 +43,10 @@ def eval(teams: list[int], port: int):
     )
     players += [llm_player]
     agent_files = {
-        "sp": f"results/saves-sp/{','.join([str(t) for t in teams])}-teams/5013504",
-        "fp": f"results/saves-fp/{','.join([str(t) for t in teams])}-teams/5013504",
-        "do": f"../UT-masters-thesis3/results/saves-do/{','.join([str(t) for t in teams])}-teams/5013504",
-        "bc": f"results/saves-bc/29",
-        "bc-sp": f"../UT-masters-thesis2/results/saves-bc-sp/{','.join([str(t) for t in teams])}-teams/5013504",
-        "bc-fp": f"../UT-masters-thesis3/results/saves-bc-fp/{','.join([str(t) for t in teams])}-teams/5013504",
-        "bc-do": f"../UT-masters-thesis2/results/saves-bc-do/{','.join([str(t) for t in teams])}-teams/5013504",
+        "bc1": f"results/saves-bc-fp/0-teams/98304",
+        # "bc3": f"results/saves-bc-fp/0,1,2-teams/98304",
+        # "bc10": f"results/saves-bc-fp/0,1,2,3,4,5,6,7,8,9-teams/98304",
+        # "bc30": f"results/saves-bc-fp/0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29-teams/98304",
     }
     for name, f in agent_files.items():
         agent = Agent(
@@ -71,61 +67,72 @@ def eval(teams: list[int], port: int):
         agent.set_policy(PPO.load(f).policy)
         players += [agent]
     results = asyncio.run(cross_evaluate(players, 100))
-    payoff_matrix = [
-        [r if r is not None else 0 for r in result.values()] for result in results.values()
-    ]
-    elos = elo_from_payoff(payoff_matrix)
+    payoff_matrix = np.array(
+        [[r if r is not None else 0 for r in result.values()] for result in results.values()]
+    )
+    elos = wins_to_elos(payoff_matrix)
     print(payoff_matrix)
     print(elos)
 
 
-def elo_from_payoff(A, K=400, eps=1e-9):
+def wins_to_elos(win_rates, base_elo=1500, min_elo=1000, scale_std=200):
     """
-    Fit Elo ratings to a payoff matrix of win-fractions.
+    Convert a symmetric matrix of win rates into Elo ratings.
 
     Parameters
     ----------
-    A : (n, n) array_like
-        Payoff matrix.  For i != j,
-          - if 0 <= A[i,j] <= 1 : treated as fraction of wins by i over j,
-          - if A[i,j] > 1       : treated as integer win-counts (will be normalized).
-        Diagonal entries are ignored.
-    K : float
-        Elo scaling factor (default 400).
-    eps : float
-        Small constant to avoid log(0).
+    win_rates : (n,n) array
+        win_rates[i,j] is fraction of games player i won vs j (out of 1).
+        Diagonal entries are ignored (e.g., zero).
+    base_elo : float
+        The mean Elo to center the ratings on.
+    min_elo : float
+        The minimum Elo after shifting.
+    scale_std : float or None
+        If not None, rescale so that resulting std of elos equals this.
 
     Returns
     -------
-    r : ndarray, shape (n,)
-        Fitted Elo ratings (mean-centered).
+    elos : (n,) array
+        Computed Elo ratings.
     """
-    A = np.asarray(A, dtype=float)
-    n = A.shape[0]
+    n = win_rates.shape[0]
 
-    # If counts (>1), normalize each pair to a fraction
+    # Build equations A x = b for differences
+    rows = []
+    b = []
     for i in range(n):
-        for j in range(i + 1, n):
-            total = A[i, j] + A[j, i]
-            if total > 0 and (A[i, j] > 1 or A[j, i] > 1):
-                A[i, j] /= total
-                A[j, i] /= total
+        for j in range(n):
+            s = win_rates[i, j]
+            # only if result is strictly between 0 and 1
+            if i != j and 0 < s < 1:
+                # implied diff: R_i - R_j = D_ij
+                D_ij = -400 * np.log10((1 / s) - 1)
+                row = np.zeros(n)
+                row[i] = 1
+                row[j] = -1
+                rows.append(row)
+                b.append(D_ij)
+    A = np.vstack(rows)
+    b = np.array(b)
 
-    def expected_matrix(r):
-        diff = (r[:, None] - r[None, :]) / K
-        return 1.0 / (1.0 + 10.0 ** (-diff))
+    # Add constraint: sum(R_i) = n * base_elo
+    constraint = np.ones((1, n))
+    A = np.vstack([A, constraint])
+    b = np.concatenate([b, [n * base_elo]])
 
-    def neg_log_likelihood(r):
-        E = expected_matrix(r)
-        mask = ~np.eye(n, dtype=bool)
-        ll = np.sum(A[mask] * np.log(E[mask] + eps) + (1 - A[mask]) * np.log(1 - E[mask] + eps))
-        return -ll
+    # Solve least squares
+    R, *_ = np.linalg.lstsq(A, b, rcond=None)
 
-    # Optimize starting from zero
-    res = minimize(neg_log_likelihood, np.zeros(n), method="BFGS")
-    r = res.x
-    # Center ratings so mean = 0
-    return r - np.mean(r)
+    # Optionally rescale so min equals min_elo
+    shift = min_elo - np.min(R)
+    R = R + shift
+
+    # Optionally set standard deviation
+    if scale_std is not None:
+        R = (R - np.mean(R)) * (scale_std / np.std(R)) + np.mean(R)
+
+    return R
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import random
 from typing import Any, Deque
 
 import numpy as np
@@ -37,24 +38,25 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 class Agent(Player):
     __policy: ActorCriticPolicy | None
     frames: Deque[npt.NDArray[np.float32]]
-    __teampreview_draft: list[int]
+    _teampreview_draft: list[int]
 
     def __init__(self, num_frames: int, device: torch.device, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.__policy = None
         self.frames = Deque(maxlen=num_frames)
         self.device = device
-        self.__teampreview_draft = []
+        self._teampreview_draft = []
 
     def set_policy(self, policy: ActorCriticPolicy):
         self.__policy = policy.to(self.device)
 
     def choose_move(self, battle: AbstractBattle) -> BattleOrder:
+        assert isinstance(battle, DoubleBattle)
         assert self.__policy is not None
         assert self.frames.maxlen is not None
-        if battle.teampreview and len(self.__teampreview_draft) == 4:
-            self.__teampreview_draft = []
-        obs = self.embed_battle(battle, self.__teampreview_draft, fake_ratings=True)
+        if battle.teampreview and len(self._teampreview_draft) == 4:
+            self._teampreview_draft = []
+        obs = self.embed_battle(battle, self._teampreview_draft, fake_ratings=True)
         if battle.turn == 0 and not (
             battle.teampreview and len([p for p in battle.team.values() if p.active]) > 0
         ):
@@ -68,13 +70,11 @@ class Agent(Player):
             action, _, _ = self.__policy.forward(obs_tensor)
         action = action.cpu().numpy()[0]
         if battle.teampreview:
-            self.__teampreview_draft += [a - 1 for a in action]
-        if isinstance(battle, Battle):
-            return SinglesEnv.action_to_order(action, battle)
-        elif isinstance(battle, DoubleBattle):
-            return DoublesEnv.action_to_order(action, battle)
-        else:
-            raise TypeError()
+            if not self.__policy.chooses_on_teampreview:
+                available_actions = [i for i in range(1, 7) if i - 1 not in self._teampreview_draft]
+                action = np.array(random.sample(available_actions, k=2))
+            self._teampreview_draft += [a - 1 for a in action]
+        return DoublesEnv.action_to_order(action, battle)
 
     def teampreview(self, battle: AbstractBattle) -> str:
         if isinstance(battle, Battle):
@@ -85,7 +85,12 @@ class Agent(Player):
             order2 = self.choose_move(upd_battle)
             action1 = DoublesEnv.order_to_action(order1, battle)
             action2 = DoublesEnv.order_to_action(order2, upd_battle)
-            return f"/team {action1[0]}{action1[1]}{action2[0]}{action2[1]}"
+            if self.__policy.chooses_on_teampreview:  # type: ignore
+                return f"/team {action1[0]}{action1[1]}{action2[0]}{action2[1]}"
+            else:
+                message = self.random_teampreview(battle)
+                self._teampreview_draft = [int(i) - 1 for i in message[6:-2]]
+                return message
         else:
             raise TypeError()
 
@@ -93,7 +98,7 @@ class Agent(Player):
     def embed_battle(
         battle: AbstractBattle, teampreview_draft: list[int], fake_ratings: bool = False
     ) -> npt.NDArray[np.float32]:
-        glob = Agent.embed_global(battle, teampreview_draft)
+        glob = Agent.embed_global(battle)
         side = Agent.embed_side(battle, fake_ratings)
         opp_side = Agent.embed_side(battle, fake_ratings, opp=True)
         [a1, a2, *_] = (
@@ -104,6 +109,8 @@ class Agent(Player):
             if isinstance(battle, Battle)
             else battle.opponent_active_pokemon
         )
+        assert battle.teampreview == (len(teampreview_draft) < 4)
+        assert all([0 <= i < 6 for i in teampreview_draft])
         pokemons = [
             Agent.embed_pokemon(
                 p,
@@ -111,6 +118,7 @@ class Agent(Player):
                 from_opponent=False,
                 active_a=a1 is not None and p.name == a1.name,
                 active_b=a2 is not None and p.name == a2.name,
+                in_draft=i in teampreview_draft,
             )
             for i, p in enumerate(battle.team.values())
         ]
@@ -133,9 +141,7 @@ class Agent(Player):
         )
 
     @staticmethod
-    def embed_global(
-        battle: AbstractBattle, teampreview_draft: list[int]
-    ) -> npt.NDArray[np.float32]:
+    def embed_global(battle: AbstractBattle) -> npt.NDArray[np.float32]:
         if isinstance(battle, Battle):
             if not battle._last_request:
                 mask = np.zeros(singles_act_len, dtype=np.float32)
@@ -162,11 +168,8 @@ class Agent(Player):
         fields = [
             min(battle.turn - battle.fields[f], 8) / 8 if f in battle.fields else 0 for f in Field
         ]
-        assert battle.teampreview == (len(teampreview_draft) < 4)
-        teampreview_onehot = [float(i in teampreview_draft) for i in range(6)]
-        return np.concatenate(
-            [mask, weather, fields, teampreview_onehot, force_switch], dtype=np.float32
-        )
+        teampreview = float(battle.teampreview)
+        return np.array([*mask, *weather, *fields, teampreview, *force_switch], dtype=np.float32)
 
     @staticmethod
     def embed_side(
@@ -229,7 +232,12 @@ class Agent(Player):
 
     @staticmethod
     def embed_pokemon(
-        pokemon: Pokemon, pos: int, from_opponent: bool, active_a: bool, active_b: bool
+        pokemon: Pokemon,
+        pos: int,
+        from_opponent: bool,
+        active_a: bool,
+        active_b: bool,
+        in_draft: bool = False,
     ) -> npt.NDArray[np.float32]:
         # (mostly) stable fields
         ability_id = abilities.index("null" if pokemon.ability is None else pokemon.ability)
@@ -286,6 +294,7 @@ class Agent(Player):
                 float(active_b),
                 *pos_onehot,
                 float(from_opponent),
+                float(in_draft),
             ],
             dtype=np.float32,
         )

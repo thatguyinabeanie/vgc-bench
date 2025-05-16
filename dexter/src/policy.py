@@ -23,8 +23,9 @@ from torch import nn
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    def __init__(self, *args: Any, num_frames: int, **kwargs: Any):
+    def __init__(self, *args: Any, num_frames: int, chooses_on_teampreview: bool, **kwargs: Any):
         self.num_frames = num_frames
+        self.chooses_on_teampreview = chooses_on_teampreview
         self.actor_grad = True
         self._must_flip_frame_stack = False
         super().__init__(
@@ -33,7 +34,10 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             net_arch=[],
             activation_fn=torch.nn.ReLU,
             features_extractor_class=AttentionExtractor,
-            features_extractor_kwargs={"num_frames": num_frames},
+            features_extractor_kwargs={
+                "num_frames": num_frames,
+                "chooses_on_teampreview": chooses_on_teampreview,
+            },
             share_features_extractor=False,
         )
 
@@ -45,6 +49,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             model.action_space,
             model.lr_schedule,
             num_frames=model.policy.num_frames,
+            chooses_on_teampreview=model.policy.chooses_on_teampreview,
         )
         new_policy.load_state_dict(model.policy.state_dict())
         return new_policy
@@ -142,9 +147,12 @@ class AttentionExtractor(BaseFeaturesExtractor):
     proj_len: int = 128
     embed_layers: int = 3
 
-    def __init__(self, observation_space: Space[Any], num_frames: int):
+    def __init__(
+        self, observation_space: Space[Any], num_frames: int, chooses_on_teampreview: bool
+    ):
         super().__init__(observation_space, features_dim=self.proj_len)
         self.num_frames = num_frames
+        self.chooses_on_teampreview = chooses_on_teampreview
         self.ability_embed = nn.Embedding(len(abilities), self.embed_len)
         self.item_embed = nn.Embedding(len(items), self.embed_len)
         self.move_embed = nn.Embedding(len(moves), self.embed_len)

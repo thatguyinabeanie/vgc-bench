@@ -21,7 +21,7 @@ class LogReader(Player):
     states: list[npt.NDArray[np.float32]]
     actions: list[npt.NDArray[np.int64]]
     msg: str | None
-    teampreview_draft: list[str]
+    teampreview_draft: list[int]
 
     def __init__(self, *args, **kwargs):
         super().__init__(start_listening=False, *args, **kwargs)
@@ -53,9 +53,9 @@ class LogReader(Player):
         assert isinstance(battle, DoubleBattle)
         id1 = self.get_teampreview_order(battle, self.next_msg, False)
         id2 = self.get_teampreview_order(battle, self.next_msg, True)
-        all_choices = [str(c) for c in range(1, 7)]
-        all_choices.remove(str(id1))
-        all_choices.remove(str(id2))
+        all_choices = [i for i in range(1, 7)]
+        all_choices.remove(id1)
+        all_choices.remove(id2)
         order_str = f"/team {id1}{id2}{all_choices[0]}{all_choices[1]}"
         order1 = BattleOrder(list(battle.team.values())[id1 - 1])
         order2 = BattleOrder(list(battle.team.values())[id2 - 1])
@@ -65,9 +65,7 @@ class LogReader(Player):
         action = DoublesEnv.order_to_action(order, battle, fake=True)
         self.states += [state]
         self.actions += [action]
-        self.teampreview_draft = [
-            p.name for i, p in enumerate(battle.team.values()) if i + 1 in [id1, id2]
-        ]
+        self.teampreview_draft = [id1 - 1, id2 - 1, all_choices[0] - 1, all_choices[1] - 1]
         return order_str
 
     @staticmethod

@@ -4,7 +4,7 @@ import os
 from src.callback import Callback
 from src.env import ShowdownEnv
 from src.policy import MaskedActorCriticPolicy
-from src.utils import LearningStyle, allow_mirror_match, num_envs, steps
+from src.utils import LearningStyle, allow_mirror_match, chooses_on_teampreview, num_envs, steps
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
@@ -50,7 +50,7 @@ def train(
         gamma=1,
         ent_coef=1e-3,
         tensorboard_log=f"results/logs-{run_ident}",
-        policy_kwargs={"num_frames": num_frames},
+        policy_kwargs={"num_frames": num_frames, "chooses_on_teampreview": chooses_on_teampreview},
         device=device,
     )
     num_saved_timesteps = 0

@@ -10,7 +10,7 @@ from gymnasium import Env
 from gymnasium.spaces import Box
 from gymnasium.wrappers import FrameStackObservation
 from poke_env.environment import AbstractBattle
-from poke_env.player import DoublesEnv, SimpleHeuristicsPlayer, SingleAgentWrapper
+from poke_env.player import DoublesEnv, SingleAgentWrapper
 from poke_env.ps_client import AccountConfiguration, ServerConfiguration
 from src.agent import Agent
 from src.teams import RandomTeamBuilder, TeamToggle
@@ -18,6 +18,7 @@ from src.utils import (
     LearningStyle,
     allow_mirror_match,
     battle_format,
+    chooses_on_teampreview,
     doubles_chunk_obs_len,
     moves,
     num_envs,
@@ -66,6 +67,9 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
             open_timeout=None,
             team=RandomTeamBuilder(teams, battle_format, toggle),
         )
+        if not chooses_on_teampreview:
+            env.agent1.teampreview = env.async_random_teampreview1
+            env.agent2.teampreview = env.async_random_teampreview2
         if learning_style == LearningStyle.PURE_SELF_PLAY:
             if num_frames > 1:
                 env = ss.frame_stack_v2(env, stack_size=num_frames, stack_dim=0)
@@ -94,6 +98,16 @@ class ShowdownEnv(DoublesEnv[npt.NDArray[np.float32]]):
                 env = FrameStackObservation(env, num_frames, padding_type="zero")
             env = Monitor(env)
             return env
+
+    async def async_random_teampreview1(self, battle: AbstractBattle) -> str:
+        message = self.agent1.random_teampreview(battle)
+        self._teampreview_draft1 = [int(i) - 1 for i in message[6:-2]]
+        return message
+
+    async def async_random_teampreview2(self, battle: AbstractBattle) -> str:
+        message = self.agent2.random_teampreview(battle)
+        self._teampreview_draft2 = [int(i) - 1 for i in message[6:-2]]
+        return message
 
     def step(
         self, actions: dict[str, npt.NDArray[np.int64]]
