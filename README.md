@@ -6,11 +6,9 @@ Prerequisites:
 
 The newest of each should be fine.
 
-Run the following (assuming Linux):
+Run the following to ensure that pokemon showdown is configured:
 ```
-git clone git@github.com:cameronangliss/UT-masters-thesis.git
-cd UT-masters-thesis
-git submodules update --init
+git submodules update --init --recursive
 cd pokemon-showdown
 node pokemon-showdown start --no-security
 ```
@@ -21,15 +19,17 @@ RESTORE CHATROOM: staff
 Worker 1 now listening on 0.0.0.0:8000
 Test your server at http://localhost:8000
 ```
-Then Ctrl+c the operation and run the following:
+Then Ctrl+c the operation and run the following from the root of VGC-Bench:
 ```
-cd ..
 python3 -m venv <env-path>
 source <env-path>/bin/activate
 pip install -r requirements.txt
+python dexter/scrape_data.py
 ```
 
 # How to run
-1. Navigate to project root (`UT-masters-thesis/`)
-1. Ensure that the Python virtual environment is activated (see above setup script for how to do this)
-1. Run `python src/train.py` to train, or `python src/play.py` to play on the online servers. Run `python src/play.py --help` for option details.
+1. Run `python dexter/train.py` to train with RL methods.
+1. Run `python dexter/pretrain.py` to train with BC method.
+1. Run `python dexter/play.py` to play on the online servers. Run `python dexter/play.py --help` for option details.
+1. To scrape logs from showdown, run `python dexter/scrape_logs.py`, or to convert logs to state-action pairs, run `python dexter/logs2trajs.py`.
+1. To evaluate agents in cross-play and get ELO ratings, run `python dexter/eval.py` (manual configuration of the file required)
