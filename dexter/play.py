@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 
+import torch
 from poke_env import AccountConfiguration, ShowdownServerConfiguration
 from src.agent import Agent
 from src.teams import RandomTeamBuilder
@@ -10,11 +11,9 @@ from stable_baselines3 import PPO
 
 async def play(filepath: str, n_games: int, play_on_ladder: bool):
     print("Setting up...")
-    policy = PPO.load(filepath).policy
-    print(f"Loaded {filepath}.")
     agent = Agent(
-        policy,
         num_frames=1,
+        device=torch.device("cuda:0"),
         account_configuration=AccountConfiguration("", ""),  # fill in
         battle_format=battle_format,
         log_level=40,
@@ -24,6 +23,7 @@ async def play(filepath: str, n_games: int, play_on_ladder: bool):
         start_timer_on_battle_start=play_on_ladder,
         team=RandomTeamBuilder([0], battle_format),
     )
+    agent.set_policy(PPO.load(filepath).policy)
     if play_on_ladder:
         print("Entering ladder")
         await agent.ladder(n_games=n_games)
