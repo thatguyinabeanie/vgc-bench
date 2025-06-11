@@ -1,14 +1,19 @@
+# VGC-Bench
+This is the official code for the paper "VGC-Bench: A Benchmark for Generalizing Across Diverse Team Strategies in Competitive Pokémon".
+
+This includes:
+- a supervised learning (SL) pipeline to gather, process, and learn on VGC battle logs with open team sheets
+- a reinforcement learning (RL) pipeline with 3 PSRO methods to fine-tune an agent initialized either randomly or with the product of the SL pipeline
+- a very basic LLMPlayer implementation 
+
 # How to setup
 Prerequisites:
-1. Python
-1. NodeJS and npm (to run the showdown server locally)
-1. Git
-
-The newest of each should be fine.
+1. Python (I use 3.10)
+1. NodeJS and npm (whatever pokemon-showdown requires)
 
 Run the following to ensure that pokemon showdown is configured:
 ```
-git submodules update --init --recursive
+git submodule update --init --recursive
 cd pokemon-showdown
 node pokemon-showdown start --no-security
 ```
