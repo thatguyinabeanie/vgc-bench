@@ -8,7 +8,8 @@ This includes:
 
 # How to setup
 Prerequisites:
-1. Python (I use 3.10)
+1. Python (I use v3.10)
+1. Pip (I use v23)
 1. NodeJS and npm (whatever pokemon-showdown requires)
 
 Run the following to ensure that pokemon showdown is configured:
