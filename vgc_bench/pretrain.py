@@ -70,7 +70,7 @@ def pretrain(num_teams: int, port: int, device: str, num_frames: int):
     ppo = PPO(
         MaskedActorCriticPolicy,
         single_agent_env,
-        policy_kwargs={"num_frames": num_frames},
+        policy_kwargs={"num_frames": num_frames, "chooses_on_teampreview": True},
         device=device,
     )
     dataset = TrajectoryDataset(num_frames)
