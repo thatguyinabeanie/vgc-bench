@@ -1,5 +1,5 @@
 # VGC-Bench
-This is the official code for the paper "VGC-Bench: A Benchmark for Generalizing Across Diverse Team Strategies in Competitive Pokémon" (https://arxiv.org/abs/2506.10326).
+This is the official code for the paper [VGC-Bench: A Benchmark for Generalizing Across Diverse Team Strategies in Competitive Pokémon](https://arxiv.org/abs/2506.10326).
 
 This includes:
 - a supervised learning (SL) pipeline to gather, process, and learn on VGC battle logs with open team sheets
