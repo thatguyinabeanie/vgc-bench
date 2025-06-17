@@ -3,3 +3,4 @@ data/
 results*/
 debug*.log
 profile.prof
+.venv
