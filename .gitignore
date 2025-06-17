@@ -4,3 +4,5 @@ results*/
 debug*.log
 profile.prof
 .venv
+.claude
+*.egg-info/
