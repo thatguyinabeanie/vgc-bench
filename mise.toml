@@ -1,0 +1,53 @@
+[tools]
+python = "3.12"
+
+[env]
+VIRTUAL_ENV = "{{env.PWD}}/.venv"
+
+[tasks.setup]
+description = "Set up the development environment"
+run = """
+python -m venv .venv
+.venv/bin/pip install --upgrade pip
+.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-dev.txt
+"""
+
+[tasks.install]
+description = "Install project dependencies"
+run = ".venv/bin/pip install -r requirements.txt"
+
+[tasks.install-dev]
+description = "Install development dependencies"
+run = ".venv/bin/pip install -r requirements-dev.txt"
+
+[tasks.fmt]
+description = "Format code with black and isort"
+run = """
+.venv/bin/black vgc_bench
+.venv/bin/isort vgc_bench
+"""
+
+[tasks.lint]
+description = "Run linting checks"
+run = """
+.venv/bin/black --check vgc_bench
+.venv/bin/isort --check-only vgc_bench
+.venv/bin/pyright vgc_bench
+"""
+
+[tasks.typecheck]
+description = "Run type checking with pyright"
+run = ".venv/bin/pyright vgc_bench"
+
+[tasks.test]
+description = "Run tests"
+run = ".venv/bin/pytest"
+
+[tasks.clean]
+description = "Clean up generated files"
+run = """
+find . -type d -name "__pycache__" -exec rm -rf {} +
+find . -type f -name "*.pyc" -delete
+rm -rf .venv
+"""
