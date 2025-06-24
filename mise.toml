@@ -1,5 +1,5 @@
 [tools]
-python = "3.12"
+python = "3.10"
 
 [env]
 VIRTUAL_ENV = "{{env.PWD}}/.venv"
@@ -50,4 +50,65 @@ run = """
 find . -type d -name "__pycache__" -exec rm -rf {} +
 find . -type f -name "*.pyc" -delete
 rm -rf .venv
+"""
+
+[tasks.init]
+description = "Initialize project (submodules + setup)"
+run = """
+git submodule update --init --recursive
+mise run setup
+"""
+
+[tasks.server]
+description = "Start Pokemon Showdown server"
+run = "cd pokemon-showdown && node pokemon-showdown start --no-security"
+
+[tasks.scrape]
+description = "Download game data (moves, abilities, items)"
+run = ".venv/bin/python vgc_bench/scrape_data.py"
+
+[tasks.train]
+description = "Run RL training with PPO"
+run = ".venv/bin/python vgc_bench/train.py"
+
+[tasks.train-sh]
+description = "Run RL training via shell script"
+run = "./train.sh"
+
+[tasks.pretrain]
+description = "Run supervised learning from battle logs"
+run = ".venv/bin/python vgc_bench/pretrain.py"
+
+[tasks.pretrain-sh]
+description = "Run supervised learning via shell script"
+run = "./pretrain.sh"
+
+[tasks.eval]
+description = "Evaluate agents and calculate ELO ratings"
+run = ".venv/bin/python vgc_bench/eval.py"
+
+[tasks.eval-sh]
+description = "Run evaluation via shell script"
+run = "./eval.sh"
+
+[tasks.play]
+description = "Play on online servers"
+run = ".venv/bin/python vgc_bench/play.py"
+
+[tasks.scrape-logs]
+description = "Scrape battle logs from Pokemon Showdown"
+run = ".venv/bin/python vgc_bench/scrape_logs.py"
+
+[tasks.logs2trajs]
+description = "Convert logs to state-action trajectories"
+run = ".venv/bin/python vgc_bench/logs2trajs.py"
+
+[tasks.quickstart]
+description = "Full setup: init, scrape data, and show next steps"
+run = """
+mise run init
+mise run scrape
+echo "Setup complete! Next steps:"
+echo "1. Run 'mise run server' in a separate terminal"
+echo "2. Run 'mise run train' or 'mise run pretrain' to start training"
 """

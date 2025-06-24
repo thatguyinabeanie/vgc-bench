@@ -10,9 +10,9 @@ from poke_env import to_id_str
 from poke_env.environment import AbstractBattle, DoubleBattle
 from poke_env.player import BattleOrder, DoubleBattleOrder, DoublesEnv, Player
 from poke_env.ps_client import AccountConfiguration
-from scrape_logs import battle_formats
-from src.agent import Agent
-from src.utils import doubles_chunk_obs_len
+from vgc_bench.scrape_logs import battle_formats
+from vgc_bench.src.agent import Agent
+from vgc_bench.src.utils import doubles_chunk_obs_len
 
 MIN_RATING = 1200
 

@@ -1,49 +1,176 @@
 # VGC-Bench
-This is the official code for the paper [VGC-Bench: A Benchmark for Generalizing Across Diverse Team Strategies in Competitive Pokémon](https://arxiv.org/abs/2506.10326).
 
-This includes:
-- a supervised learning (SL) pipeline to gather, process, and learn on VGC battle logs with open team sheets
-- a reinforcement learning (RL) pipeline with 3 PSRO methods to fine-tune an agent initialized either randomly or with the product of the SL pipeline
-- a very basic LLMPlayer implementation 
+A benchmark for training AI agents to play competitive Pokémon (Video Game Championships format) using both supervised and reinforcement learning approaches.
 
-# How to setup
-Prerequisites:
-1. Python (I use v3.10)
-1. Pip (I use v23)
-1. NodeJS and npm (whatever pokemon-showdown requires)
+📄 **Paper**: [VGC-Bench: A Benchmark for Generalizing Across Diverse Team Strategies in Competitive Pokémon](https://arxiv.org/abs/2506.10326)
 
-Run the following to ensure that pokemon showdown is configured:
+## Features
+
+- **Supervised Learning (SL)**: Learn from human VGC battle logs with open team sheets
+- **Reinforcement Learning (RL)**: Fine-tune agents using PPO with 3 PSRO methods (selfplay, pfsp, p2sro)
+- **Cross-play Evaluation**: ELO rating system for comparing different agents
+- **VGC Format Support**: Doubles battles, bring 6 pick 4, with full game mechanics
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.10-3.12
+- Node.js and npm
+- [mise](https://mise.jdx.dev/) (recommended) or manual setup
+
+### Option 1: Using mise (Recommended)
+
+```bash
+# Install mise if you haven't already
+# See: https://mise.jdx.dev/getting-started.html
+
+# Run the quickstart
+mise run quickstart
+
+# Start the Pokemon Showdown server (keep this running)
+mise run server
+
+# Train an agent
+mise run train      # RL training
+mise run pretrain   # Supervised learning
 ```
+
+### Option 2: Manual Setup
+
+```bash
+# 1. Clone submodules
 git submodule update --init --recursive
+
+# 2. Setup Python environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # For development
+
+# 3. Initial Pokemon Showdown setup
 cd pokemon-showdown
 node pokemon-showdown start --no-security
-```
-Let that run until you see the following text:
-```
-RESTORE CHATROOM: lobby
-RESTORE CHATROOM: staff
-Worker 1 now listening on 0.0.0.0:8000
-Test your server at http://localhost:8000
-```
-Then Ctrl+c the operation and run the following from the root of VGC-Bench:
-```
-python3 -m venv <env-path>
-source <env-path>/bin/activate
-pip install -r requirements.txt
+# Wait for "Test your server at http://localhost:8000" then Ctrl+C
+cd ..
+
+# 4. Download game data
 python vgc_bench/scrape_data.py
 ```
 
-# How to run
-First, run `node pokemon-showdown start --no-security` from the pokemon-showdown directory in one terminal, and then...
-1. Run `python vgc_bench/train.py` to train with RL methods.
-1. Run `python vgc_bench/pretrain.py` to train with BC method.
-1. Run `python vgc_bench/play.py` to play on the online servers. Run `python vgc_bench/play.py --help` for option details.
-1. To scrape logs from showdown, run `python vgc_bench/scrape_logs.py`, or to convert logs to state-action pairs, run `python vgc_bench/logs2trajs.py`.
-1. To evaluate agents in cross-play and get ELO ratings, run `python vgc_bench/eval.py` (manual configuration of the file required)
+## Usage
 
-OR
+### Training
 
-Use the train.sh, pretrain.sh, or eval.sh scripts for a more streamlined experience. Scripts require manual configuration to operate, use --help on executables for more info
+Always start the Pokemon Showdown server first:
 
-# Data
-Here's a dataset of Gen 9 VGC battles, all with open team sheets enabled: https://huggingface.co/datasets/cameronangliss/vgc-battle-logs
+```bash
+# In a separate terminal
+cd pokemon-showdown && node pokemon-showdown start --no-security
+```
+
+Then run training:
+
+```bash
+# Reinforcement Learning with PPO
+python vgc_bench/train.py
+# or use the script: ./train.sh
+
+# Supervised Learning from battle logs
+python vgc_bench/pretrain.py
+# or use the script: ./pretrain.sh
+
+# Evaluate agents and calculate ELO ratings
+python vgc_bench/eval.py
+# or use the script: ./eval.sh
+
+# Play on online servers
+python vgc_bench/play.py --help
+```
+
+### Available mise Tasks
+
+```bash
+mise tasks         # List all available tasks
+mise run fmt       # Format code with black and isort
+mise run lint      # Run linting checks
+mise run test      # Run tests
+mise run clean     # Clean up generated files
+```
+
+## Project Structure
+
+```
+vgc_bench/
+├── agent.py          # Agent implementation for battles
+├── env.py            # Gymnasium environment wrapper
+├── policy.py         # Masked actor-critic policy
+├── train.py          # RL training (PPO + PSRO methods)
+├── pretrain.py       # Supervised learning pipeline
+├── eval.py           # Cross-play evaluation
+├── play.py           # Online play interface
+├── scrape_logs.py    # Battle log scraper
+├── logs2trajs.py     # Convert logs to trajectories
+└── scrape_data.py    # Download game data (moves, abilities, items)
+```
+
+## Configuration
+
+Training parameters can be configured via command-line arguments:
+
+```bash
+python vgc_bench/train.py --help
+python vgc_bench/pretrain.py --help
+```
+
+Or modify the shell scripts for common configurations:
+
+- `train.sh` - RL training presets
+- `pretrain.sh` - SL training presets
+- `eval.sh` - Evaluation presets
+
+## Data
+
+Pre-collected Gen 9 VGC battle logs with open team sheets:
+🤗 [VGC Battle Logs](https://huggingface.co/datasets/cameronangliss/vgc-battle-logs)
+
+## Development
+
+```bash
+# Format code
+mise run fmt
+
+# Check code quality
+mise run lint
+mise run typecheck
+
+# Run tests
+mise run test
+```
+
+## Technical Details
+
+- **Environment**: Text-based observations converted to embeddings using sentence-transformers
+- **Action Space**: Discrete(10) - up to 4 moves + 6 switches with action masking
+- **PSRO Methods**:
+  - `selfplay`: Train against copies of itself
+  - `pfsp`: Prioritized fictitious self-play
+  - `p2sro`: Policy-space response oracles
+- **Team Format**: VGC doubles (bring 6, pick 4)
+
+## Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@article{vgc-bench2024,
+  title={VGC-Bench: A Benchmark for Generalizing Across Diverse Team Strategies in Competitive Pokémon},
+  author={[Authors]},
+  journal={arXiv preprint arXiv:2506.10326},
+  year={2024}
+}
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

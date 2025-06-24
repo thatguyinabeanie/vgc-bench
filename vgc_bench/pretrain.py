@@ -9,12 +9,12 @@ from imitation.data.types import Trajectory
 from imitation.util.logger import configure
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SingleAgentWrapper
 from poke_env.ps_client import AccountConfiguration, ServerConfiguration
-from src.agent import Agent
-from src.callback import Callback
-from src.env import ShowdownEnv
-from src.policy import MaskedActorCriticPolicy
-from src.teams import RandomTeamBuilder
-from src.utils import LearningStyle, battle_format
+from vgc_bench.src.agent import Agent
+from vgc_bench.src.callback import Callback
+from vgc_bench.src.env import ShowdownEnv
+from vgc_bench.src.policy import MaskedActorCriticPolicy
+from vgc_bench.src.teams import RandomTeamBuilder
+from vgc_bench.src.utils import LearningStyle, battle_format
 from stable_baselines3 import PPO
 from torch.utils.data import DataLoader, Dataset
 
@@ -142,9 +142,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda:0",
-        choices=["cuda:0", "cuda:1", "cuda:2", "cuda:3"],
-        help="CUDA device to use for training",
+        default="cuda:0" if torch.cuda.is_available() else "cpu",
+        choices=["cuda:0", "cuda:1", "cuda:2", "cuda:3", "cpu"],
+        help="Device to use for training",
     )
     parser.add_argument(
         "--num_frames",
